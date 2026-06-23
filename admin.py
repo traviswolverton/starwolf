@@ -29,6 +29,7 @@ forecasts, and get a composite night-quality score so you can pick the best wind
 | **Geocoding** | [Nominatim / OpenStreetMap](https://nominatim.org) & [Natural Resources Canada](https://geogratis.gc.ca) |
 | **App** | Built with [Streamlit](https://streamlit.io) · AI assistance by [Claude](https://anthropic.com) |
 | **Authors** | Seth & Travis Wolverton |
+| **Source** | [gitea.wolvertons.net/travis/stargazing-app](https://gitea.wolvertons.net/travis/stargazing-app) |
 """)
 
 if "show_results" not in st.session_state:
