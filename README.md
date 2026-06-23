@@ -152,26 +152,159 @@ Scores above ~70 are worth the drive. Below 40 is probably a bust.
 
 ---
 
+## Data Model
+
+All configuration is stored in a local SQLite database (`stargazing.db`, git-ignored). Three tables:
+
+### `sites`
+One row per dark-sky observing location.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PK | Auto-assigned |
+| `name` | TEXT | Display name |
+| `lat` / `lon` | REAL | WGS84 coordinates |
+| `bortle_class` | INTEGER | 1 (darkest) – 9 (inner city) |
+| `elevation_m` | REAL | Elevation in metres |
+| `notes` | TEXT | Free-form notes |
+| `active` | INTEGER | 1 = included in forecasts, 0 = hidden |
+
+### `scoring_weights`
+One row per scoring factor. Weights must sum to 1.00.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `factor` | TEXT UNIQUE | Factor identifier (e.g. `cloud_cover`) |
+| `weight` | REAL | Fraction of the 0–100 score (0.0–1.0) |
+| `description` | TEXT | Human-readable explanation |
+
+Default factors: `cloud_cover` (0.35), `high_cloud` (0.15), `moon` (0.25), `lifted_index` (0.15), `humidity` (0.10).
+
+### `app_settings`
+Key/value pairs for application-wide settings.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `key` | TEXT PK | Setting name |
+| `value` | TEXT | Setting value (always stored as text) |
+| `description` | TEXT | Human-readable explanation |
+
+Default keys: `forecast_days`, `timezone`, `min_score_threshold`.
+
+---
+
+## App
+
+Everything runs from a single Streamlit app:
+
+```bash
+streamlit run admin.py
+```
+
+Opens at `http://localhost:8501`. Four tabs:
+
+| Tab | Purpose |
+|-----|---------|
+| **Forecast** | Ranked list of best nights + calendar heatmap. Auto-fetches on load, caches for 1 hour. Refresh button to force a new fetch. |
+| **Dark-Sky Sites** | Add/edit/deactivate observing sites. |
+| **Scoring Weights** | Adjust factor weights (must sum to 1.00). |
+| **App Settings** | Forecast horizon, timezone, score threshold. |
+
+The database is created and seeded with Texas dark-sky sites and default weights on first run.
+
+---
+
 ## Setup
 
 ```bash
-# Clone and install dependencies
-git clone <repo>
-cd stargazing-planner
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### requirements.txt (planned)
+---
 
+## Forecast Fetcher
+
+`forecast.py` fetches live data for all active sites from the database.
+
+**Public API:**
+- `fetch_site_forecast(site: dict) -> dict` — fetches Open-Meteo + 7timer for one site
+- `fetch_all_forecasts() -> list[dict]` — fetches all active sites from the DB
+
+Each result dict contains:
+```python
+{
+    "site":        {...},   # site record from DB
+    "open_meteo":  {...},   # raw Open-Meteo hourly response
+    "seven_timer": {...},   # raw 7timer dataseries response
+    "errors":      [...],   # per-source error strings (empty on success)
+}
 ```
-requests
-astral
-pandas
-sqlite3  # stdlib
+
+Forecast horizon and timezone are read from `app_settings` in the database (`forecast_days`, `timezone`). A failed source populates `errors` and leaves its key as `None` — the other source is still returned.
+
+Run standalone to verify connectivity against all active sites:
+```bash
+python forecast.py
+```
+
+---
+
+## Scoring Engine
+
+`scorer.py` converts raw forecast data into a 0–100 night quality score per site per night.
+
+**Public API:**
+- `score_forecast(forecast: dict) -> list` — scores all nights in one site's forecast
+- `score_all(forecasts: list) -> list` — scores all sites, sorted by date then score (desc)
+
+Each result dict contains:
+```python
+{
+    "site":      "Enchanted Rock SP",
+    "date":      "2026-06-27",
+    "composite": 88.0,
+    "factors": {
+        "cloud_cover":  100.0,  # 0–100 per factor
+        "high_cloud":   100.0,
+        "moon":          99.7,
+        "lifted_index":  50.2,
+        "humidity":      55.2,
+    },
+    "stats": {
+        "avg_cloud_cover":  0.0,
+        "avg_high_cloud":   0.0,
+        "avg_humidity":     77.9,
+        "avg_lifted_index": -2.5,
+        "night_hours":      9,
+        "seeing_7timer":    3.2,       # 1–8 scale; None if beyond 7timer range
+        "transparency_7timer": 4.0,    # 1–8 scale
+    }
+}
+```
+
+**Factor scoring:**
+
+| Factor | Source | Ideal → 100 pts |
+|--------|--------|-----------------|
+| `cloud_cover` | Open-Meteo `cloud_cover` avg | 0% cloud |
+| `high_cloud` | Open-Meteo `cloud_cover_high` avg | 0% high cirrus |
+| `moon` | `astral` library (offline) | New moon, sets before dark |
+| `lifted_index` | Open-Meteo `lifted_index` avg | +5°C or above |
+| `humidity` | Open-Meteo `relative_humidity_2m` avg | Below 60% RH |
+
+Weights are read from the `scoring_weights` table and must sum to 1.00. 7timer seeing and transparency are included in `stats` as supplemental info but do not affect the composite score.
+
+Nighttime hours are identified via Open-Meteo's `is_day == 0` flag. Hours after midnight are assigned to the previous evening's night.
+
+Run standalone to print the top 5 nights across all active sites:
+```bash
+python scorer.py
 ```
 
 ---
 
 ## Project Status
 
-Early planning / API exploration phase. Core scoring engine and CLI interface are next milestones.
+Data model, configuration UI, forecast fetcher, and scoring engine complete. Next milestone: CLI interface.

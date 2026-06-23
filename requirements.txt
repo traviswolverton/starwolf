@@ -1,0 +1,5 @@
+requests
+astral
+pandas
+streamlit
+plotly

@@ -1,0 +1,88 @@
+<svg width="100%" viewBox="0 0 480 410" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Starwolf stargazing app logo</title>
+<desc>Starwolf logo with white star, 49 background stars, green telescope and landscape</desc>
+
+<style>
+  .appname { font-family: sans-serif; font-size: 76px; font-weight: 500; fill: #ffffff; letter-spacing: 1px; }
+  .tagline { font-family: sans-serif; font-size: 24px; font-weight: 400; fill: #ffffff; letter-spacing: 2.5px; }
+  .label { font-family: sans-serif; font-size: 12px; fill: #888; text-anchor: middle; }
+</style>
+
+<rect width="480" height="410" rx="12" fill="#07111f"/>
+<circle cx="240" cy="190" r="155" fill="#07111f"/>
+
+<!-- 49 background stars -->
+<circle cx="148" cy="98" r="1.5" fill="#ffffff" opacity="0.85"/>
+<circle cx="172" cy="80" r="1" fill="#c8e0ff" opacity="0.7"/>
+<circle cx="205" cy="72" r="1.2" fill="#ffffff" opacity="0.6"/>
+<circle cx="278" cy="75" r="1.5" fill="#ffffff" opacity="0.8"/>
+<circle cx="312" cy="88" r="1" fill="#c8e0ff" opacity="0.65"/>
+<circle cx="330" cy="118" r="1.2" fill="#ffffff" opacity="0.7"/>
+<circle cx="338" cy="155" r="1" fill="#d0f0d0" opacity="0.6"/>
+<circle cx="325" cy="245" r="1" fill="#ffffff" opacity="0.5"/>
+<circle cx="318" cy="280" r="1.2" fill="#c8e0ff" opacity="0.55"/>
+<circle cx="148" cy="270" r="1" fill="#ffffff" opacity="0.5"/>
+<circle cx="138" cy="240" r="1.5" fill="#d0f0d0" opacity="0.6"/>
+<circle cx="130" cy="200" r="1" fill="#ffffff" opacity="0.45"/>
+<circle cx="135" cy="155" r="1" fill="#ffffff" opacity="0.6"/>
+<circle cx="160" cy="130" r="1.2" fill="#d0f0d0" opacity="0.7"/>
+<circle cx="295" cy="115" r="1" fill="#ffffff" opacity="0.6"/>
+<circle cx="260" cy="90" r="1.5" fill="#c8e0ff" opacity="0.7"/>
+<circle cx="190" cy="95" r="1" fill="#ffffff" opacity="0.55"/>
+<circle cx="220" cy="110" r="1" fill="#d0ffda" opacity="0.65"/>
+<circle cx="155" cy="175" r="1" fill="#ffffff" opacity="0.5"/>
+<circle cx="162" cy="215" r="1.2" fill="#c8e0ff" opacity="0.55"/>
+<circle cx="175" cy="250" r="1" fill="#ffffff" opacity="0.45"/>
+<circle cx="195" cy="270" r="1.5" fill="#ffffff" opacity="0.6"/>
+<circle cx="215" cy="285" r="1" fill="#c8e0ff" opacity="0.5"/>
+<circle cx="265" cy="280" r="1.2" fill="#ffffff" opacity="0.55"/>
+<circle cx="290" cy="268" r="1" fill="#ffffff" opacity="0.6"/>
+<circle cx="308" cy="250" r="1.5" fill="#d0f0d0" opacity="0.5"/>
+<circle cx="142" cy="145" r="1" fill="#ffffff" opacity="0.65"/>
+<circle cx="345" cy="175" r="1.2" fill="#c8e0ff" opacity="0.6"/>
+<circle cx="340" cy="210" r="1" fill="#ffffff" opacity="0.5"/>
+<circle cx="178" cy="305" r="1" fill="#ffffff" opacity="0.45"/>
+<circle cx="240" cy="310" r="1.2" fill="#c8e0ff" opacity="0.5"/>
+<circle cx="298" cy="305" r="1" fill="#ffffff" opacity="0.45"/>
+<circle cx="152" cy="310" r="1.5" fill="#ffffff" opacity="0.4"/>
+<circle cx="328" cy="300" r="1" fill="#d0f0d0" opacity="0.45"/>
+<circle cx="185" cy="165" r="1" fill="#ffffff" opacity="0.5"/>
+<circle cx="298" cy="145" r="1.2" fill="#c8e0ff" opacity="0.65"/>
+<circle cx="315" cy="165" r="1" fill="#ffffff" opacity="0.55"/>
+<circle cx="168" cy="192" r="1" fill="#ffffff" opacity="0.4"/>
+<circle cx="200" cy="230" r="1.2" fill="#d0f0d0" opacity="0.5"/>
+<circle cx="275" cy="230" r="1" fill="#ffffff" opacity="0.45"/>
+<circle cx="230" cy="255" r="1.5" fill="#c8e0ff" opacity="0.55"/>
+<circle cx="252" cy="308" r="1" fill="#ffffff" opacity="0.4"/>
+<circle cx="143" cy="118" r="1" fill="#d0f0d0" opacity="0.6"/>
+<circle cx="333" cy="135" r="1.2" fill="#ffffff" opacity="0.65"/>
+<circle cx="220" cy="78" r="1" fill="#ffffff" opacity="0.6"/>
+<circle cx="253" cy="72" r="1.5" fill="#c8e0ff" opacity="0.7"/>
+<circle cx="175" cy="320" r="1" fill="#ffffff" opacity="0.4"/>
+<circle cx="305" cy="320" r="1" fill="#d0f0d0" opacity="0.4"/>
+<circle cx="240" cy="330" r="1.2" fill="#ffffff" opacity="0.35"/>
+
+<!-- Main star — white -->
+<polygon points="240,105 245,122 263,122 249,132 254,149 240,139 226,149 231,132 217,122 235,122" fill="#ffffff"/>
+
+<!-- Green landscape -->
+<path d="M85,285 Q140,255 200,262 Q240,258 280,265 Q320,260 395,285 Z" fill="#1a4a28"/>
+<path d="M85,295 Q160,278 240,282 Q310,278 395,295 Z" fill="#22602f"/>
+
+<!-- Telescope tripod -->
+<line x1="240" y1="272" x2="218" y2="295" stroke="#3a8a5a" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="240" y1="272" x2="262" y2="295" stroke="#3a8a5a" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="240" y1="272" x2="240" y2="295" stroke="#3a8a5a" stroke-width="2" stroke-linecap="round"/>
+<circle cx="240" cy="272" r="4" fill="#4aaa70"/>
+
+<!-- Telescope tube -->
+<rect x="222" y="230" width="52" height="13" rx="5" fill="#2d7a50" transform="rotate(-38,248,236)"/>
+<rect x="234" y="260" width="14" height="9" rx="3" fill="#1f5c3a"/>
+<circle cx="272" cy="218" r="6" fill="#3a9460" opacity="0.9"/>
+<circle cx="272" cy="218" r="3.5" fill="#1a4a28"/>
+
+<!-- Wordmark -->
+<text x="240" y="365" class="appname" text-anchor="middle">Starwolf</text>
+<text x="240" y="395" class="tagline" text-anchor="middle">STARGAZING PLANNER</text>
+
+</svg>
