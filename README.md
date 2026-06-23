@@ -1,163 +1,128 @@
-# 🔭 Stargazing Trip Planner
+# Stargazing Trip Planner
 
-A Python app for planning optimal stargazing nights at dark-sky sites across Texas. Pulls live weather and atmospheric data, combines it with moon phase and light pollution information, and scores each site/night combination so you can pick the best window for your trip.
+A multi-user Streamlit web app for planning optimal stargazing nights at dark-sky sites. Pulls live weather and atmospheric data, combines it with moon phase calculations and astronomer-specific seeing forecasts, and scores each site/night combination so you can pick the best window for your trip.
+
+Live instance: [starwolf.wolvertons.net](https://starwolf.wolvertons.net)
+Source: [gitea.wolvertons.net/travis/stargazing-app](https://gitea.wolvertons.net/travis/stargazing-app)
 
 ---
 
 ## Features
 
-- Hourly cloud cover forecasts (total, low, mid, and high layers) for up to 16 days out
-- Atmospheric seeing proxies (Lifted Index, CAPE) to predict star steadiness
-- Moon phase, moonrise, and moonset calculations — entirely offline
-- Composite "night quality" score per site per night
-- Pre-loaded database of known Texas dark-sky sites
-- Humidity and dew risk alerts (protect your optics)
+- Composite 0–100 night quality score per site per night
+- Configurable scoring weights (cloud cover, moon, seeing, humidity)
+- Hard disqualifier thresholds for cloud cover, precipitation probability, and visibility
+- Astronomer-specific seeing and sky transparency from 7timer (1–8 scale)
+- Moon phase, moonrise, and moonset calculations — fully offline via `astral`
+- Up to 16-day hourly forecast from Open-Meteo (no API key required)
+- Color-coded expandable result cards with per-metric breakdowns
+- Calendar heatmap for comparing all sites across all nights at a glance
+- Session-based per-user settings (timezone, thresholds, unit system) — no login required
+- User location: geocode a home base to see distances to sites in results
+- Site database: add, edit, deactivate sites; import from IDA dark-sky catalog or by address
+- Proximity filter: activate all sites within a configurable radius of any location
+- Imperial/metric toggle: distances and visibility threshold throughout the UI
+- Password-protected Admin page for scoring weights and app-wide settings
+
+---
+
+## App Structure
+
+The app is a Streamlit multi-page app. Entry point: `Planner.py`.
+
+```
+stargazing-app/
+├── Planner.py            # Main forecast page (entry point)
+├── pages/
+│   ├── 0_Location.py     # Set/clear user home location
+│   ├── 1_Sites.py        # Site catalog management
+│   ├── 2_Preferences.py  # Per-session user settings
+│   └── 3_Admin.py        # Password-gated admin panel
+├── forecast.py           # Open-Meteo + 7timer API client
+├── scorer.py             # Composite night quality scorer
+├── db.py                 # SQLite schema, seed data, helpers
+├── utils.py              # Shared session state + sidebar helpers
+├── osm_import.py         # Geocoding + IDA dark-sky site importer
+├── run.sh                # Dev launcher
+└── stargazing.db         # SQLite database (git-ignored)
+```
+
+### Pages
+
+| Page | Purpose |
+|------|---------|
+| **Planner** | Run forecast, view ranked result cards and heatmap |
+| **Location** | Geocode a home location; drives distance display and proximity filter |
+| **Sites** | Manage the site catalog — activate/deactivate, add by address, import from IDA |
+| **Preferences** | Session timezone, min score threshold, hard disqualifiers, unit system |
+| **Admin** | Password-gated; scoring weights and app-wide settings (forecast horizon, etc.) |
+
+### Session State
+
+All user-facing settings are stored per-session in `st.session_state` — multiple users can use the app simultaneously without affecting each other. Nothing is written to the database except by the Admin page.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `timezone` | `America/Chicago` | IANA timezone for night boundary calculations |
+| `min_score_threshold` | 40 | Hide nights scoring below this |
+| `disq_max_cloud_cover` | 85% | Hard disqualifier: cloud cover ceiling |
+| `disq_max_precip_prob` | 40% | Hard disqualifier: precipitation probability ceiling |
+| `disq_min_visibility_km` | 10 km | Hard disqualifier: visibility floor (stored in km) |
+| `units` | `metric` | `"metric"` or `"imperial"` — controls distance/visibility display |
+| `user_location` | `None` | Dict: `{text, lat, lon, display}` from geocoder |
+| `site_active` | DB defaults | Dict of `{site_id: bool}` — overrides DB `active` column per session |
 
 ---
 
 ## Data Sources
 
-| Data | Source | Notes |
-|------|--------|-------|
-| Cloud cover + atmospheric forecast | [Open-Meteo](https://open-meteo.com) | Free, no API key, up to 16-day forecast |
-| Astronomy-specific seeing | [7timer!](http://www.7timer.info) | Free, no key, purpose-built for astronomers |
-| Moon phase / rise / set | `astral` Python library | Fully local, no API call |
-| Light pollution / Bortle class | Falchi et al. static dataset | Load once, query by coordinates |
-| Known TX dark-sky sites | Local SQLite database | Manually curated |
+| Data | Source | Coverage |
+|------|--------|---------|
+| Cloud cover, humidity, visibility, precipitation | [Open-Meteo](https://open-meteo.com) | Up to 16 days, hourly, free, no API key |
+| Astronomical seeing + sky transparency | [7timer!](http://7timer.info) | ~3 days (72-hour limit of the free tier) |
+| Moon phase / rise / set | `astral` Python library | Fully offline |
+| Geocoding | [Nominatim/OSM](https://nominatim.org) + [Natural Resources Canada](https://geogratis.gc.ca) | Address → lat/lon |
+| Dark-sky site catalog | [IDA / DarkSky International](https://darksky.org) | Importable via OSM Overpass API |
+
+> **7timer note:** Seeing and transparency use a 1–8 scale where **1 is best**. Coverage is limited to approximately 3 days; nights beyond that will show `—` for these two fields — that's a hard limit of the data source.
 
 ---
 
-## Open-Meteo API
+## Scoring
 
-### Endpoint
+### Composite Score
 
-```
-GET https://api.open-meteo.com/v1/forecast
-```
+A weighted 0–100 composite is computed per site per night using only nighttime hours (`is_day == 0` from Open-Meteo). Hours after midnight are assigned to the previous evening's night.
 
-No API key required. Free for non-commercial use.
+| Factor | Weight | Source |
+|--------|--------|--------|
+| Cloud cover (total) | 35% | Open-Meteo `cloud_cover` |
+| High cloud (cirrus) | 15% | Open-Meteo `cloud_cover_high` |
+| Moon | 25% | `astral` (offline) |
+| Lifted Index (stability) | 15% | Open-Meteo `lifted_index` |
+| Humidity | 10% | Open-Meteo `relative_humidity_2m` |
 
-### Sample Request
+Weights are stored in the `scoring_weights` table and editable by Admin. 7timer seeing and transparency are displayed in result cards but do not affect the composite score.
 
-```python
-import requests
+### Hard Disqualifiers
 
-params = {
-    "latitude": 29.37,       # Brazos Bend State Park
-    "longitude": -95.63,
-    "hourly": [
-        "cloud_cover",
-        "cloud_cover_low",
-        "cloud_cover_mid",
-        "cloud_cover_high",
-        "visibility",
-        "relative_humidity_2m",
-        "dewpoint_2m",
-        "lifted_index",
-        "cape",
-        "wind_speed_10m",
-        "precipitation_probability",
-        "is_day",
-    ],
-    "forecast_days": 10,
-    "timezone": "America/Chicago",
-}
+Before scoring, each night is checked against three user-configurable thresholds (Preferences page). If any threshold is exceeded, the night is excluded from results entirely and moved to the "Disqualified nights" expander with a reason string.
 
-resp = requests.get("https://api.open-meteo.com/v1/forecast", params=params)
-data = resp.json()
-```
+### Interpreting Scores
 
-### Response Variables
-
-All fields are returned as hourly arrays aligned to the `time` array.
-
-#### Cloud Cover
-
-| Variable | Unit | Description |
-|----------|------|-------------|
-| `cloud_cover` | % | Total sky coverage. Under 20% is good; over 50% is likely a bust. |
-| `cloud_cover_low` | % | Stratus and fog (surface–6,500 ft). Thick and opaque — worst for stargazing. |
-| `cloud_cover_mid` | % | Altostratus (6,500–20,000 ft). Opaque but can move through faster. |
-| `cloud_cover_high` | % | Cirrus (20,000+ ft). Thin ice clouds that kill transparency even at low total cover %. |
-
-> **Note:** Don't rely on `cloud_cover` alone. A night showing 30% total cover that's all `cloud_cover_high` will still wash out faint nebulae.
-
-#### Atmospheric Seeing
-
-| Variable | Unit | Description |
-|----------|------|-------------|
-| `lifted_index` | °C | Atmospheric stability. Positive = stable = good seeing. Aim for > +3. Negative = turbulent, stars will boil. |
-| `cape` | J/kg | Convective energy. 0–500 = low risk; 500–2000 = moderate; >2000 = significant storm/turbulence potential. |
-
-> In Houston/Gulf Coast summers, `lifted_index` is routinely −3 to −9 and CAPE 1,500–3,700 J/kg. This is normal. It limits high-magnification planetary work but wide-field DSO sessions are still very viable under a dark sky.
-
-#### Humidity & Dew Risk
-
-| Variable | Unit | Description |
-|----------|------|-------------|
-| `relative_humidity_2m` | % | Above ~85%, dew on eyepieces and corrector plates is likely. Bring a dew heater. |
-| `dewpoint_2m` | °C | If air temperature approaches dewpoint, optics will fog. |
-
-#### Visibility & Precipitation
-
-| Variable | Unit | Description |
-|----------|------|-------------|
-| `visibility` | m | Surface haze, smoke, or dust. Below 10,000 m starts to matter; below 5,000 m is rough. |
-| `precipitation_probability` | % | Rain probability for that hour. |
-| `wind_speed_10m` | km/h | Surface wind. Strong wind can cause image blur through scope shake. |
-
-#### Utility
-
-| Variable | — | Description |
-|----------|---|-------------|
-| `is_day` | 0/1 | 0 = nighttime, 1 = daytime. Use to filter arrays down to hours that matter. |
-| `time` | ISO 8601 | Timestamp for each hourly slot. All other arrays index against this. |
-
-### Response Metadata
-
-| Field | Description |
-|-------|-------------|
-| `latitude` / `longitude` | Snapped coordinates (nearest grid point) |
-| `elevation` | Elevation in meters at that grid point |
-| `timezone` | Timezone used for `time` array |
-| `hourly_units` | Dictionary of units for each requested variable |
-
----
-
-## Night Quality Scoring (Proposed)
-
-A composite 0–100 score per site/night, weighted roughly as follows:
-
-| Factor | Weight | Ideal Value |
-|--------|--------|-------------|
-| Cloud cover (total) | 35% | < 20% |
-| High cloud cover | 15% | < 10% |
-| Moon illumination + hours above horizon | 25% | New moon, sets early |
-| Lifted Index (seeing) | 15% | > +3 |
-| Humidity / dew risk | 10% | < 70% RH |
-
-Scores above ~70 are worth the drive. Below 40 is probably a bust.
-
----
-
-## Texas Dark-Sky Sites (Initial Database)
-
-| Site | Lat | Lon | Notes |
-|------|-----|-----|-------|
-| Brazos Bend State Park | 29.37 | −95.63 | Closest dark site to Houston; alligators |
-| McDonald Observatory area | 30.67 | −104.02 | Best Bortle in TX; 6+ hr drive |
-| Balmorhea State Park | 30.95 | −103.77 | Near McDonald; excellent |
-| Sam Houston National Forest | 30.75 | −95.50 | Moderate dark sky, closer option |
-| Enchanted Rock SP | 30.50 | −98.82 | Good Hill Country site |
+| Score | Meaning |
+|-------|---------|
+| 70–100 | Worth the drive |
+| 40–69 | Marginal — check individual factors |
+| < 40 | Likely a bust |
 
 ---
 
 ## Data Model
 
-All configuration is stored in a local SQLite database (`stargazing.db`, git-ignored). Three tables:
+All persistent configuration is stored in a local SQLite database (`stargazing.db`, git-ignored). Three tables:
 
 ### `sites`
-One row per dark-sky observing location.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -167,144 +132,171 @@ One row per dark-sky observing location.
 | `bortle_class` | INTEGER | 1 (darkest) – 9 (inner city) |
 | `elevation_m` | REAL | Elevation in metres |
 | `notes` | TEXT | Free-form notes |
-| `active` | INTEGER | 1 = included in forecasts, 0 = hidden |
+| `active` | INTEGER | Default active state for new sessions (1 = on, 0 = off) |
 
 ### `scoring_weights`
-One row per scoring factor. Weights must sum to 1.00.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `factor` | TEXT UNIQUE | Factor identifier (e.g. `cloud_cover`) |
-| `weight` | REAL | Fraction of the 0–100 score (0.0–1.0) |
-| `description` | TEXT | Human-readable explanation |
-
-Default factors: `cloud_cover` (0.35), `high_cloud` (0.15), `moon` (0.25), `lifted_index` (0.15), `humidity` (0.10).
+| `factor` | TEXT UNIQUE | Factor identifier (`cloud_cover`, `high_cloud`, `moon`, `lifted_index`, `humidity`) |
+| `weight` | REAL | Fraction of the composite score (must sum to 1.00) |
+| `description` | TEXT | Human-readable label |
 
 ### `app_settings`
-Key/value pairs for application-wide settings.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `key` | TEXT PK | Setting name |
-| `value` | TEXT | Setting value (always stored as text) |
-| `description` | TEXT | Human-readable explanation |
+Key/value pairs for admin-configurable application settings.
 
-Default keys: `forecast_days`, `timezone`, `min_score_threshold`.
+| Key | Default | Description |
+|-----|---------|-------------|
+| `forecast_days` | 10 | Forecast horizon in days (1–16) |
+| `timezone` | `America/Chicago` | Default timezone for new sessions |
+| `min_score_threshold` | 40 | Default score threshold for new sessions |
+| `disq_max_cloud_cover` | 85 | Default cloud cover disqualifier |
+| `disq_max_precip_prob` | 40 | Default precipitation probability disqualifier |
+| `disq_min_visibility_km` | 10 | Default visibility disqualifier (km) |
 
 ---
 
-## App
+## API Reference
 
-Everything runs from a single Streamlit app:
+### Open-Meteo
 
-```bash
-streamlit run admin.py
+**Endpoint:** `GET https://api.open-meteo.com/v1/forecast`  
+No API key required. Free for non-commercial use.
+
+**Parameters used:**
+
+```python
+params = {
+    "latitude":  29.37,
+    "longitude": -95.63,
+    "hourly": [
+        "cloud_cover", "cloud_cover_high",
+        "visibility", "relative_humidity_2m",
+        "lifted_index", "precipitation_probability", "is_day",
+    ],
+    "forecast_days": 10,
+    "timezone": "America/Chicago",
+}
 ```
 
-Opens at `http://localhost:8501`. Four tabs:
+**Key response fields:**
 
-| Tab | Purpose |
-|-----|---------|
-| **Forecast** | Ranked list of best nights + calendar heatmap. Auto-fetches on load, caches for 1 hour. Refresh button to force a new fetch. |
-| **Dark-Sky Sites** | Add/edit/deactivate observing sites. |
-| **Scoring Weights** | Adjust factor weights (must sum to 1.00). |
-| **App Settings** | Forecast horizon, timezone, score threshold. |
+| Variable | Unit | Description |
+|----------|------|-------------|
+| `cloud_cover` | % | Total sky coverage |
+| `cloud_cover_high` | % | Cirrus — kills transparency even at low total cover |
+| `lifted_index` | °C | Atmospheric stability; positive = stable = good seeing |
+| `relative_humidity_2m` | % | Above ~85%, dew on optics is likely |
+| `visibility` | m | Surface haze/smoke; below 10 km starts to matter |
+| `precipitation_probability` | % | Rain probability per hour |
+| `is_day` | 0/1 | 0 = nighttime — used to isolate scoring hours |
 
-The database is created and seeded with Texas dark-sky sites and default weights on first run.
+### 7timer (ASTRO product)
+
+**Endpoint:** `GET http://www.7timer.info/bin/api.pl?lon=&lat=&product=astro&output=json`  
+No API key required. Free service. Coverage: ~72 hours (24 × 3-hour slots).
+
+**Key response fields (1–8 scale, 1 = best):**
+
+| Field | Description |
+|-------|-------------|
+| `seeing` | Atmospheric steadiness — critical for planetary/high-mag work |
+| `transparency` | Sky clarity/darkness — critical for faint DSO work |
+
+---
+
+## Code Reference
+
+### `forecast.py`
+
+- `fetch_site_forecast(site: dict, forecast_days: int, timezone: str) -> dict` — fetches Open-Meteo + 7timer for one site
+- `fetch_all_forecasts() -> list[dict]` — fetches all active sites from the DB (used for standalone runs)
+
+### `scorer.py`
+
+- `score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None) -> list` — scores all nights in one site's forecast
+- `score_all(forecasts: list, tz_str: str, disqualifiers: dict | None) -> list` — scores all sites, sorted by date then score (desc)
+
+Each scored night dict:
+```python
+{
+    "site":      "Enchanted Rock SP",
+    "date":      "2026-06-27",
+    "composite": 88.0,
+    "factors":   {"cloud_cover": 100.0, "high_cloud": 100.0, "moon": 99.7, ...},
+    "stats": {
+        "avg_cloud_cover":     0.0,
+        "avg_high_cloud":      0.0,
+        "avg_humidity":        77.9,
+        "avg_lifted_index":   -2.5,
+        "night_hours":         9,
+        "seeing_7timer":       3.2,   # None if beyond 7timer range
+        "transparency_7timer": 4.0,
+    },
+    # Only present if disqualified:
+    "disqualified": "Cloud cover 91% > 85% limit",
+}
+```
+
+### `utils.py`
+
+Shared helpers used across all pages:
+
+| Function | Description |
+|----------|-------------|
+| `init_session_settings()` | Seed all session state keys from DB defaults on first page load |
+| `sync_site_active()` | Sync `site_active` dict with DB; preserves per-session overrides |
+| `render_sidebar()` | Display user location (or "set location" link) at sidebar bottom |
+| `dist_display(km)` | Format a km value as `"43 km"` or `"27 mi"` per session units |
+| `dist_unit()` | Returns `"km"` or `"mi"` |
+| `km_to_display(km)` | Convert km to display-unit float |
+| `display_to_km(val)` | Convert display-unit float back to km |
 
 ---
 
 ## Setup
 
 ```bash
+git clone https://gitea.wolvertons.net/travis/stargazing-app
+cd stargazing-app
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
-
-## Forecast Fetcher
-
-`forecast.py` fetches live data for all active sites from the database.
-
-**Public API:**
-- `fetch_site_forecast(site: dict) -> dict` — fetches Open-Meteo + 7timer for one site
-- `fetch_all_forecasts() -> list[dict]` — fetches all active sites from the DB
-
-Each result dict contains:
-```python
-{
-    "site":        {...},   # site record from DB
-    "open_meteo":  {...},   # raw Open-Meteo hourly response
-    "seven_timer": {...},   # raw 7timer dataseries response
-    "errors":      [...],   # per-source error strings (empty on success)
-}
+**Admin password** (optional): create `.streamlit/secrets.toml`:
+```toml
+admin_password = "your-password-here"
 ```
 
-Forecast horizon and timezone are read from `app_settings` in the database (`forecast_days`, `timezone`). A failed source populates `errors` and leaves its key as `None` — the other source is still returned.
+If not set, the Admin page falls back to the `ADMIN_PASSWORD` environment variable, then allows open access.
 
-Run standalone to verify connectivity against all active sites:
+**Run:**
 ```bash
-python forecast.py
+./run.sh
+# or
+streamlit run Planner.py
 ```
 
----
+Opens at `http://localhost:8501`.
 
-## Scoring Engine
+**Production (systemd):**
+```ini
+[Unit]
+Description=Stargazing Trip Planner
+After=network.target
 
-`scorer.py` converts raw forecast data into a 0–100 night quality score per site per night.
+[Service]
+Type=simple
+User=travis
+WorkingDirectory=/opt/stargazing-app
+ExecStart=/opt/stargazing-app/venv/bin/streamlit run Planner.py --server.port 8501 --server.headless true
+Restart=on-failure
+RestartSec=5
 
-**Public API:**
-- `score_forecast(forecast: dict) -> list` — scores all nights in one site's forecast
-- `score_all(forecasts: list) -> list` — scores all sites, sorted by date then score (desc)
-
-Each result dict contains:
-```python
-{
-    "site":      "Enchanted Rock SP",
-    "date":      "2026-06-27",
-    "composite": 88.0,
-    "factors": {
-        "cloud_cover":  100.0,  # 0–100 per factor
-        "high_cloud":   100.0,
-        "moon":          99.7,
-        "lifted_index":  50.2,
-        "humidity":      55.2,
-    },
-    "stats": {
-        "avg_cloud_cover":  0.0,
-        "avg_high_cloud":   0.0,
-        "avg_humidity":     77.9,
-        "avg_lifted_index": -2.5,
-        "night_hours":      9,
-        "seeing_7timer":    3.2,       # 1–8 scale; None if beyond 7timer range
-        "transparency_7timer": 4.0,    # 1–8 scale
-    }
-}
+[Install]
+WantedBy=multi-user.target
 ```
 
-**Factor scoring:**
-
-| Factor | Source | Ideal → 100 pts |
-|--------|--------|-----------------|
-| `cloud_cover` | Open-Meteo `cloud_cover` avg | 0% cloud |
-| `high_cloud` | Open-Meteo `cloud_cover_high` avg | 0% high cirrus |
-| `moon` | `astral` library (offline) | New moon, sets before dark |
-| `lifted_index` | Open-Meteo `lifted_index` avg | +5°C or above |
-| `humidity` | Open-Meteo `relative_humidity_2m` avg | Below 60% RH |
-
-Weights are read from the `scoring_weights` table and must sum to 1.00. 7timer seeing and transparency are included in `stats` as supplemental info but do not affect the composite score.
-
-Nighttime hours are identified via Open-Meteo's `is_day == 0` flag. Hours after midnight are assigned to the previous evening's night.
-
-Run standalone to print the top 5 nights across all active sites:
-```bash
-python scorer.py
-```
-
----
-
-## Project Status
-
-Data model, configuration UI, forecast fetcher, and scoring engine complete. Next milestone: CLI interface.
+The SQLite database (`stargazing.db`) is created and seeded on first run. It is git-ignored.
