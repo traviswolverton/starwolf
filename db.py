@@ -20,9 +20,12 @@ _WEIGHTS_SEED = [
 ]
 
 _SETTINGS_SEED = [
-    ("forecast_days",       "10",                 "Forecast horizon in days (1–16)"),
-    ("timezone",            "America/Chicago",    "IANA timezone for all forecasts"),
-    ("min_score_threshold", "40",                 "Minimum night quality score worth considering (0–100)"),
+    ("forecast_days",          "10",              "Forecast horizon in days (1–16)"),
+    ("timezone",               "America/Chicago", "IANA timezone for all forecasts"),
+    ("min_score_threshold",    "40",              "Minimum night quality score worth considering (0–100)"),
+    ("disq_max_cloud_cover",   "85",              "Hard disqualifier: max avg nighttime cloud cover (%) — nights above this are excluded"),
+    ("disq_max_precip_prob",   "40",              "Hard disqualifier: max avg nighttime precipitation probability (%) — nights above this are excluded"),
+    ("disq_min_visibility_km", "10",              "Hard disqualifier: min avg nighttime visibility (km) — nights below this are excluded"),
 ]
 
 
@@ -82,6 +85,12 @@ def init_db() -> None:
     if cur.execute("SELECT COUNT(*) FROM app_settings").fetchone()[0] == 0:
         cur.executemany(
             "INSERT INTO app_settings (key, value, description) VALUES (?,?,?)",
+            _SETTINGS_SEED,
+        )
+    else:
+        # Insert any settings added after initial setup without touching existing values
+        cur.executemany(
+            "INSERT OR IGNORE INTO app_settings (key, value, description) VALUES (?,?,?)",
             _SETTINGS_SEED,
         )
 

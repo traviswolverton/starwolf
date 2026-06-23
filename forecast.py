@@ -48,7 +48,7 @@ def _fetch_7timer(lat: float, lon: float) -> dict:
     return resp.json()
 
 
-def fetch_site_forecast(site: dict) -> dict:
+def fetch_site_forecast(site: dict, forecast_days: int, timezone: str) -> dict:
     """Fetch Open-Meteo and 7timer forecasts for a single site.
 
     Returns a dict with keys:
@@ -57,10 +57,6 @@ def fetch_site_forecast(site: dict) -> dict:
       seven_timer — raw 7timer dataseries response (or None on failure)
       errors      — list of error strings for any failed fetch
     """
-    settings = get_settings()
-    forecast_days = int(settings.get("forecast_days", 10))
-    timezone = settings.get("timezone", "America/Chicago")
-
     result = {"site": site, "open_meteo": None, "seven_timer": None, "errors": []}
 
     try:
@@ -77,11 +73,14 @@ def fetch_site_forecast(site: dict) -> dict:
 
 
 def fetch_all_forecasts() -> list:
-    """Fetch forecasts for all active sites in the database."""
+    """Fetch forecasts for all active sites in the database (used by __main__)."""
+    settings = get_settings()
+    forecast_days = int(settings.get("forecast_days", 10))
+    timezone = settings.get("timezone", "America/Chicago")
     con = get_connection()
     sites = pd.read_sql("SELECT * FROM sites WHERE active = 1", con).to_dict("records")
     con.close()
-    return [fetch_site_forecast(site) for site in sites]
+    return [fetch_site_forecast(site, forecast_days, timezone) for site in sites]
 
 
 if __name__ == "__main__":

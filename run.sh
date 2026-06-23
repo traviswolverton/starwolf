@@ -1,4 +1,4 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 source venv/bin/activate
-streamlit run admin.py
+streamlit run Planner.py

@@ -4,3 +4,4 @@ __pycache__/
 .env
 stargazing.db
 .gitignore
+.streamlit/secrets.toml

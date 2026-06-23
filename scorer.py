@@ -5,7 +5,7 @@ from astral import LocationInfo
 from astral.moon import phase as moon_phase, moonrise
 from astral.sun import night as astral_night
 
-from db import get_connection, get_settings
+from db import get_connection
 
 
 # ── per-factor scorers (each returns 0–100) ────────────────────────────────────
@@ -100,7 +100,7 @@ def _avg(values: list) -> float | None:
 
 # ── public API ─────────────────────────────────────────────────────────────────
 
-def score_forecast(forecast: dict) -> list:
+def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = None) -> list:
     """Score every night in a single site's forecast.
 
     Returns a list of dicts (one per night):
@@ -116,8 +116,6 @@ def score_forecast(forecast: dict) -> list:
     if not om:
         return []
 
-    settings = get_settings()
-    tz_str = settings.get("timezone", "America/Chicago")
     weights = _load_weights()
 
     hourly = om["hourly"]
@@ -137,10 +135,21 @@ def score_forecast(forecast: dict) -> list:
         def field_avg(key):
             return _avg([hourly[key][i] for i in idxs])
 
-        avg_cloud    = field_avg("cloud_cover")
-        avg_hi_cloud = field_avg("cloud_cover_high")
-        avg_li       = field_avg("lifted_index")
-        avg_rh       = field_avg("relative_humidity_2m")
+        avg_cloud      = field_avg("cloud_cover")
+        avg_hi_cloud   = field_avg("cloud_cover_high")
+        avg_li         = field_avg("lifted_index")
+        avg_rh         = field_avg("relative_humidity_2m")
+        avg_precip     = field_avg("precipitation_probability")
+        avg_vis_km     = (_avg([hourly["visibility"][i] for i in idxs]) or 0) / 1000
+
+        disq_reasons = []
+        if disqualifiers:
+            if avg_cloud  is not None and avg_cloud  > disqualifiers.get("max_cloud_cover",    100):
+                disq_reasons.append(f"Cloud cover {avg_cloud:.0f}% > {disqualifiers['max_cloud_cover']}% limit")
+            if avg_precip is not None and avg_precip > disqualifiers.get("max_precip_prob",    100):
+                disq_reasons.append(f"Precip. prob. {avg_precip:.0f}% > {disqualifiers['max_precip_prob']}% limit")
+            if avg_vis_km < disqualifiers.get("min_visibility_km", 0):
+                disq_reasons.append(f"Visibility {avg_vis_km:.1f} km < {disqualifiers['min_visibility_km']} km minimum")
 
         factor_scores = {
             "cloud_cover":  _score_cloud_cover(avg_cloud or 0),
@@ -160,7 +169,7 @@ def score_forecast(forecast: dict) -> list:
         st7_seeing = [s["seeing"] for s in st7_slots if "seeing" in s]
         st7_trans  = [s["transparency"] for s in st7_slots if "transparency" in s]
 
-        results.append({
+        entry = {
             "site":      site["name"],
             "date":      night_date.isoformat(),
             "composite": round(composite, 1),
@@ -174,29 +183,35 @@ def score_forecast(forecast: dict) -> list:
                 "seeing_7timer":    round(sum(st7_seeing) / len(st7_seeing), 1) if st7_seeing else None,
                 "transparency_7timer": round(sum(st7_trans) / len(st7_trans), 1) if st7_trans else None,
             },
-        })
+        }
+        if disq_reasons:
+            entry["disqualified"] = "; ".join(disq_reasons)
+        results.append(entry)
 
     return results
 
 
-def score_all(forecasts: list) -> list:
+def score_all(forecasts: list, tz_str: str, disqualifiers: dict | None = None) -> list:
     """Score all nights across all sites, sorted by date then composite score (desc)."""
     all_nights = []
     for forecast in forecasts:
-        all_nights.extend(score_forecast(forecast))
+        all_nights.extend(score_forecast(forecast, tz_str, disqualifiers))
     return sorted(all_nights, key=lambda r: (r["date"], -r["composite"]))
 
 
 if __name__ == "__main__":
     from db import init_db
     from forecast import fetch_all_forecasts
+    from db import get_settings
 
     init_db()
     print("Fetching forecasts...")
     forecasts = fetch_all_forecasts()
 
+    settings = get_settings()
+    tz_str = settings.get("timezone", "America/Chicago")
     print("Scoring...")
-    nights = score_all(forecasts)
+    nights = score_all(forecasts, tz_str)
 
     # Print top 5 nights across all sites
     top = sorted(nights, key=lambda r: -r["composite"])[:5]
