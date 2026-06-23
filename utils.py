@@ -1,6 +1,35 @@
 import streamlit as st
 from db import get_connection, get_settings
 
+KM_TO_MI = 0.621371
+
+
+def dist_display(km: float | None, decimals: int = 0) -> str:
+    """Format a distance (stored in km) using the session's unit preference."""
+    if km is None:
+        return "—"
+    if st.session_state.get("units") == "imperial":
+        return f"{km * KM_TO_MI:.{decimals}f} mi"
+    return f"{km:.{decimals}f} km"
+
+
+def dist_unit() -> str:
+    return "mi" if st.session_state.get("units") == "imperial" else "km"
+
+
+def km_to_display(km: float) -> float:
+    """Convert km to the user's preferred display unit."""
+    if st.session_state.get("units") == "imperial":
+        return km * KM_TO_MI
+    return km
+
+
+def display_to_km(val: float) -> float:
+    """Convert a display-unit distance back to km."""
+    if st.session_state.get("units") == "imperial":
+        return val / KM_TO_MI
+    return val
+
 
 def sync_site_active() -> None:
     """Seed/sync session_state.site_active from the DB site list.
@@ -26,6 +55,7 @@ def sync_site_active() -> None:
 _SESSION_SETTING_KEYS = [
     "timezone", "min_score_threshold",
     "disq_max_cloud_cover", "disq_max_precip_prob", "disq_min_visibility_km",
+    "user_location", "units",
 ]
 
 
@@ -44,3 +74,19 @@ def init_session_settings() -> None:
         st.session_state.disq_max_precip_prob = int(settings.get("disq_max_precip_prob", "40"))
     if "disq_min_visibility_km" not in st.session_state:
         st.session_state.disq_min_visibility_km = int(settings.get("disq_min_visibility_km", "10"))
+    if "user_location" not in st.session_state:
+        st.session_state.user_location = None
+    if "units" not in st.session_state:
+        st.session_state.units = "metric"
+
+
+def render_sidebar() -> None:
+    """Show the user's stored location at the bottom of the sidebar."""
+    loc = st.session_state.get("user_location")
+    st.sidebar.divider()
+    if loc:
+        st.sidebar.caption("📍 **Your location**")
+        st.sidebar.write(loc["display"])
+    else:
+        st.sidebar.caption("📍 No location set")
+        st.sidebar.page_link("pages/0_Location.py", label="Set your location →")

@@ -1,10 +1,12 @@
 import streamlit as st
 
 from db import get_connection, init_db
+from utils import init_session_settings, render_sidebar
 
 import pandas as pd
 
 init_db()
+init_session_settings()
 
 st.set_page_config(page_title="Admin — Stargazing Planner")
 st.title("Admin")
@@ -136,3 +138,5 @@ with tab_settings:
     if st.button("Save Settings"):
         save_settings(edited_settings.dropna(subset=["key"]))
         st.success("Settings saved.")
+
+render_sidebar()

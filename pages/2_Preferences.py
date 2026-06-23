@@ -1,7 +1,7 @@
 import streamlit as st
 
 from db import get_settings, init_db
-from utils import init_session_settings
+from utils import KM_TO_MI, init_session_settings, render_sidebar
 
 init_db()
 init_session_settings()
@@ -10,6 +10,24 @@ st.set_page_config(page_title="Preferences — Stargazing Planner")
 st.title("Preferences")
 st.caption("These settings apply to your current session only and reset when you close the tab.")
 
+# ── Units ──────────────────────────────────────────────────────────────────────
+
+st.subheader("Units")
+units = st.radio(
+    "Measurement system",
+    options=["metric", "imperial"],
+    format_func=lambda x: "Metric (km, m)" if x == "metric" else "Imperial (mi, ft)",
+    index=0 if st.session_state.units == "metric" else 1,
+    horizontal=True,
+    label_visibility="collapsed",
+)
+if units != st.session_state.units:
+    st.session_state.units = units
+    st.rerun()
+
+# ── Timezone ───────────────────────────────────────────────────────────────────
+
+st.subheader("Timezone")
 COMMON_TIMEZONES = [
     "America/New_York",
     "America/Chicago",
@@ -30,12 +48,10 @@ COMMON_TIMEZONES = [
     "UTC",
 ]
 
-# Ensure the current session timezone is always in the list
 tz_options = COMMON_TIMEZONES[:]
 if st.session_state.timezone not in tz_options:
     tz_options.insert(0, st.session_state.timezone)
 
-st.subheader("Timezone")
 tz = st.selectbox(
     "Timezone",
     options=tz_options,
@@ -47,6 +63,8 @@ if tz != st.session_state.timezone:
     st.session_state.timezone = tz
     st.rerun()
 
+# ── Minimum Score Threshold ────────────────────────────────────────────────────
+
 st.subheader("Minimum Score Threshold")
 threshold = st.slider(
     "Hide nights scoring below this value",
@@ -57,6 +75,8 @@ threshold = st.slider(
 )
 if threshold != st.session_state.min_score_threshold:
     st.session_state.min_score_threshold = threshold
+
+# ── Hard Disqualifiers ─────────────────────────────────────────────────────────
 
 st.subheader("Hard Disqualifiers")
 st.caption(
@@ -82,14 +102,28 @@ max_precip = st.slider(
 if max_precip != st.session_state.disq_max_precip_prob:
     st.session_state.disq_max_precip_prob = max_precip
 
-min_vis = st.slider(
-    "Min visibility (km)",
-    min_value=0, max_value=50,
-    value=st.session_state.disq_min_visibility_km,
-    help="Exclude nights where average nighttime visibility falls below this value. Set to 0 to disable.",
-)
-if min_vis != st.session_state.disq_min_visibility_km:
-    st.session_state.disq_min_visibility_km = min_vis
+is_imperial = st.session_state.units == "imperial"
+if is_imperial:
+    stored_km = st.session_state.disq_min_visibility_km
+    slider_val = round(stored_km * KM_TO_MI)
+    min_vis_display = st.slider(
+        "Min visibility (mi)",
+        min_value=0, max_value=32,
+        value=slider_val,
+        help="Exclude nights where average nighttime visibility falls below this value. Set to 0 to disable.",
+    )
+    min_vis_km = round(min_vis_display / KM_TO_MI)
+else:
+    min_vis_km = st.slider(
+        "Min visibility (km)",
+        min_value=0, max_value=50,
+        value=st.session_state.disq_min_visibility_km,
+        help="Exclude nights where average nighttime visibility falls below this value. Set to 0 to disable.",
+    )
+if min_vis_km != st.session_state.disq_min_visibility_km:
+    st.session_state.disq_min_visibility_km = min_vis_km
+
+# ── Reset ──────────────────────────────────────────────────────────────────────
 
 st.divider()
 if st.button("Reset to defaults"):
@@ -99,4 +133,7 @@ if st.button("Reset to defaults"):
     st.session_state.disq_max_cloud_cover = int(settings.get("disq_max_cloud_cover", "85"))
     st.session_state.disq_max_precip_prob = int(settings.get("disq_max_precip_prob", "40"))
     st.session_state.disq_min_visibility_km = int(settings.get("disq_min_visibility_km", "10"))
+    st.session_state.units = "metric"
     st.rerun()
+
+render_sidebar()

@@ -1,11 +1,13 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
 from db import get_connection, get_settings, init_db
-from utils import sync_site_active, init_session_settings
+from osm_import import _haversine
+from utils import dist_display, sync_site_active, init_session_settings, render_sidebar
 
 init_db()
 
@@ -98,22 +100,25 @@ Use the pages in the left sidebar to set up your forecast, then come back here a
 
 | Step | Page | What to do |
 |------|------|------------|
-| 1 | **Sites** | Pick which dark-sky sites to include. Use *Activate by proximity* to find sites near your location, or toggle individual sites on/off in the site list. |
-| 2 | **Preferences** | Set your timezone (used for night/day boundaries) and a minimum score threshold to filter out poor nights. |
-| 3 | **Planner** ← you are here | Hit **Run Forecast** to fetch weather data for all active sites and score every upcoming night. |
+| 1 | **Location** | Enter your home base (city, zip, or address). This unlocks distance-to-site display in your results and pre-fills the proximity filter on the Sites page. |
+| 2 | **Sites** | Choose which dark-sky sites to include. Use *Activate by proximity* to enable all sites within a radius of your location, or toggle individual sites on/off in the list. |
+| 3 | **Preferences** | Set your timezone (used for night/day boundaries), minimum score threshold to filter weak nights, and hard disqualifier limits for cloud cover, precipitation, and visibility. |
+| 4 | **Planner** ← you are here | Hit **Run Forecast** to pull weather data for all active sites and score every upcoming night. |
 
 ---
 
 ### Reading your results
 
-After running a forecast you'll see a ranked table and a heatmap.
+After running, you'll see expandable cards for each qualifying night and a heatmap across all sites and dates.
 
-- **Score (0–100)** — Composite night quality weighted across cloud cover, moon, atmospheric stability, and humidity. **70+** is worth the drive; **below 40** is likely a bust.
+- **Score (0–100)** — Composite night quality weighted across cloud cover, moon phase, atmospheric stability, and humidity. **70+** is worth the drive; **below 40** is likely a bust.
 - **Cloud %** — Average nighttime cloud cover. Under 20% is ideal; above 50% is likely a washout.
-- **Moon** — Combines illumination percentage and hours above the horizon. Higher is better (a darker sky).
-- **Heatmap** — Compare all sites across all nights at a glance. Green = great, red = poor.
+- **Moon** — Combines illumination percentage and hours above the horizon before dark ends. Higher score = darker sky.
+- **Seeing / Transparency** — From 7timer (1–8 scale, 1 is best). Only available for the next ~3 days; dashes beyond that are a data-source limit, not a problem with the site.
+- **Heatmap** — Compare all sites and nights at a glance. Green = great, red = poor. Color scale anchors to your minimum score threshold.
+- **Disqualified nights** — Collapsed at the bottom; tap to see which nights were excluded and why.
 
-Scores only use nighttime hours (when `is_day = 0` at each site's location), so daytime weather never skews your results.
+Scores only use nighttime hours at each site's coordinates, so daytime weather never skews your results.
 """)
 
     st.divider()
@@ -139,8 +144,9 @@ else:
     if not nights:
         st.warning("No forecast data returned. Check that sites are active and APIs are reachable.")
     else:
-        scored      = [n for n in nights if not n.get("disqualified")]
-        disqualified = [n for n in nights if n.get("disqualified")]
+        today = datetime.now(ZoneInfo(st.session_state.timezone)).date()
+        scored       = [n for n in nights if not n.get("disqualified") and datetime.fromisoformat(n["date"]).date() >= today]
+        disqualified = [n for n in nights if n.get("disqualified")     and datetime.fromisoformat(n["date"]).date() >= today]
         filtered    = [n for n in scored if n["composite"] >= threshold]
 
         if not filtered and not disqualified:
@@ -154,14 +160,64 @@ else:
 
             # ── Ranked cards ──────────────────────────────────────────────────
             st.subheader("Best Nights")
-            ranked = sorted(filtered, key=lambda n: -n["composite"])
+            st.info(
+                "**† Seeing & Transparency** come from [7timer.info](http://7timer.info), "
+                "a free service purpose-built for astronomers that models atmospheric seeing "
+                "(how steady the air is) and sky transparency (how clear/dark the sky is). "
+                "Both use a **1–8 scale where 1 is best**. "
+                "The 7timer forecast only extends ~3 days, so nights beyond that will show — for these two fields — "
+                "that's a hard limit of the data source, not a problem with the site.",
+                icon="🔭",
+            )
+
+            ctrl_l, ctrl_r = st.columns([3, 1])
+            with ctrl_l:
+                sort_by = st.radio(
+                    "Sort by",
+                    options=["Best Score", "Date", "Location"],
+                    horizontal=True,
+                    key="results_sort",
+                )
+            with ctrl_r:
+                only_7timer = st.toggle("7timer data only", key="results_7timer")
+
+            display = [
+                n for n in filtered
+                if not only_7timer
+                or n["stats"]["seeing_7timer"] is not None
+                or n["stats"]["transparency_7timer"] is not None
+            ]
+
+            if sort_by == "Date":
+                ranked = sorted(display, key=lambda n: (n["date"], -n["composite"]))
+            elif sort_by == "Location":
+                ranked = sorted(display, key=lambda n: (n["site"], n["date"]))
+            else:
+                ranked = sorted(display, key=lambda n: -n["composite"])
+
+            if only_7timer and not ranked:
+                st.info("No nights with 7timer data in the current results. 7timer only covers the next ~3 days.")
+
+            # Build distance lookup from user location → site name
+            _user_loc = st.session_state.get("user_location")
+            if _user_loc:
+                _sites = _load_active_sites()
+                _site_dist = {
+                    s["name"]: _haversine(_user_loc["lat"], _user_loc["lon"], s["lat"], s["lon"])
+                    for s in _sites
+                }
+            else:
+                _site_dist = {}
+
             for night in ranked:
                 score  = night["composite"]
                 stats  = night["stats"]
                 factors = night["factors"]
                 date_str = datetime.fromisoformat(night["date"]).strftime("%a %-d %b")
                 color  = _score_color(score)
-                label  = f":{color}[**{score:.0f}**] &nbsp; {date_str} &nbsp;·&nbsp; {night['site']}"
+                dist = _site_dist.get(night["site"])
+                dist_str = f" · {dist_display(dist)}" if dist is not None else ""
+                label  = f":{color}[**{score:.0f}**] &nbsp; {date_str} &nbsp;·&nbsp; {night['site']}{dist_str}"
                 with st.expander(label):
                     c1, c2, c3, c4 = st.columns(4)
                     _colored_metric(c1, "Cloud Cover", _fmt(stats["avg_cloud_cover"], suffix="%"),   _norm(stats["avg_cloud_cover"],          0, 100, False))
@@ -173,15 +229,6 @@ else:
                     _colored_metric(c6, "Stability",   _fmt(factors["lifted_index"]),                _norm(factors["lifted_index"],           0, 100, True))
                     _colored_metric(c7, "Seeing †",    _fmt(stats["seeing_7timer"],   ".1f"),        _norm(stats["seeing_7timer"],            1,   8, False))
                     _colored_metric(c8, "Transp. †",   _fmt(stats["transparency_7timer"], ".1f"),   _norm(stats["transparency_7timer"],      1,   8, False))
-            st.info(
-                "**† Seeing & Transparency** come from [7timer.info](http://7timer.info), "
-                "a free service purpose-built for astronomers that models atmospheric seeing "
-                "(how steady the air is) and sky transparency (how clear/dark the sky is). "
-                "Both use a **1–8 scale where 1 is best**. "
-                "The 7timer forecast only extends ~3 days, so nights beyond that will show — for these two fields — "
-                "that's a hard limit of the data source, not a problem with the site.",
-                icon="🔭",
-            )
 
             # ── Calendar heatmap ──────────────────────────────────────────────
             st.subheader("Night Quality Heatmap")
@@ -231,6 +278,8 @@ else:
                     },
                 )
 
+
+render_sidebar()
 
 st.divider()
 st.markdown("""
