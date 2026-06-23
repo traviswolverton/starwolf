@@ -2,7 +2,10 @@ import json
 import math
 import requests
 from pathlib import Path
-from db import get_connection
+
+from sqlalchemy import text
+
+from db import get_engine
 
 NOMINATIM_URL  = "https://nominatim.openstreetmap.org/search"
 _HEADERS       = {"User-Agent": "stargazing-app/1.0"}
@@ -25,7 +28,6 @@ _CA_POSTAL_RE  = __import__("re").compile(r"^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$
 def geocode(query: str) -> tuple[float, float, str]:
     q = query.strip()
 
-    # Canadian postal codes: use GeoGratis (Nominatim doesn't support them)
     if _CA_POSTAL_RE.match(q):
         resp = requests.get(_GEOGRATIS_URL, params={"q": q}, headers=_HEADERS, timeout=10)
         resp.raise_for_status()
@@ -60,9 +62,8 @@ def search_dark_sky_sites(lat: float, lon: float, radius_km: float) -> list[dict
 
 def find_nearest_existing(lat: float, lon: float) -> tuple[str, float] | None:
     """Returns (name, distance_km) of nearest DB site within 10 km, or None."""
-    con = get_connection()
-    rows = con.execute("SELECT name, lat, lon FROM sites").fetchall()
-    con.close()
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("SELECT name, lat, lon FROM sites")).fetchall()
     best_name, best_dist = None, float("inf")
     for name, slat, slon in rows:
         d = _haversine(lat, lon, slat, slon)
@@ -74,13 +75,11 @@ def find_nearest_existing(lat: float, lon: float) -> tuple[str, float] | None:
 
 
 def import_sites(sites: list[dict]) -> int:
-    con = get_connection()
-    cur = con.cursor()
-    for s in sites:
-        cur.execute(
-            "INSERT INTO sites (name, lat, lon, elevation_m, notes, active) VALUES (?,?,?,?,?,1)",
-            (s["name"], s["lat"], s["lon"], s.get("elevation_m"), s.get("notes")),
+    with get_engine().begin() as conn:
+        conn.execute(
+            text("INSERT INTO sites (name, lat, lon, elevation_m, notes, active) "
+                 "VALUES (:name, :lat, :lon, :elev, :notes, 1)"),
+            [{"name": s["name"], "lat": s["lat"], "lon": s["lon"],
+              "elev": s.get("elevation_m"), "notes": s.get("notes")} for s in sites],
         )
-    con.commit()
-    con.close()
     return len(sites)

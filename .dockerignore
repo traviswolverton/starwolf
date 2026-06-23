@@ -1,0 +1,8 @@
+venv/
+stargazing.db
+.streamlit/secrets.toml
+__pycache__/
+*.pyc
+*.pyo
+.git/
+api_research/

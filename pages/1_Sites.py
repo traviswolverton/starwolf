@@ -1,7 +1,8 @@
 import pandas as pd
 import streamlit as st
 
-from db import get_connection, init_db
+from sqlalchemy import text
+from db import get_engine, init_db
 from osm_import import _haversine, find_nearest_existing, geocode, import_sites, search_dark_sky_sites
 from utils import KM_TO_MI, dist_unit, km_to_display, sync_site_active, init_session_settings, render_sidebar
 
@@ -44,9 +45,8 @@ with st.expander("Activate by proximity"):
             try:
                 with st.spinner("Updating…"):
                     lat, lon, display = geocode(prox_location.strip())
-                    con = get_connection()
-                    all_sites = con.execute("SELECT id, name, lat, lon FROM sites").fetchall()
-                    con.close()
+                    with get_engine().connect() as conn:
+                        all_sites = conn.execute(text("SELECT id, name, lat, lon FROM sites")).fetchall()
                     new_active = dict(st.session_state.site_active)
                     for site_id, name, slat, slon in all_sites:
                         new_active[site_id] = _haversine(lat, lon, slat, slon) <= prox_radius_km
@@ -79,9 +79,8 @@ with col_off:
 # ── Site list editor ───────────────────────────────────────────────────────────
 
 def load_sites() -> pd.DataFrame:
-    con = get_connection()
-    df = pd.read_sql("SELECT * FROM sites ORDER BY name", con)
-    con.close()
+    with get_engine().connect() as conn:
+        df = pd.read_sql(text("SELECT * FROM sites ORDER BY name"), conn)
     active = st.session_state.site_active
     df["active"] = df["id"].map(lambda i: active.get(i, True)).astype(bool)
     loc = st.session_state.get("user_location")
@@ -93,19 +92,18 @@ def load_sites() -> pd.DataFrame:
 
 
 def save_sites(df: pd.DataFrame) -> None:
-    con = get_connection()
-    cur = con.cursor()
-    cur.execute("DELETE FROM sites")
-    for _, row in df.iterrows():
-        cur.execute(
-            "INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active) VALUES (?,?,?,?,?,?,?)",
-            (row["name"], row["lat"], row["lon"], row.get("bortle_class"),
-             row.get("elevation_m"), row.get("notes"), int(row["active"])),
+    with get_engine().begin() as conn:
+        conn.execute(text("DELETE FROM sites"))
+        conn.execute(
+            text("INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active) "
+                 "VALUES (:name, :lat, :lon, :bortle, :elev, :notes, :active)"),
+            [{"name": row["name"], "lat": row["lat"], "lon": row["lon"],
+              "bortle": row.get("bortle_class"), "elev": row.get("elevation_m"),
+              "notes": row.get("notes"), "active": int(row["active"])}
+             for _, row in df.iterrows()],
         )
-    con.commit()
-    rows = con.execute("SELECT id, active FROM sites").fetchall()
+        rows = conn.execute(text("SELECT id, active FROM sites")).fetchall()
     st.session_state.site_active = {row[0]: bool(row[1]) for row in rows}
-    con.close()
 
 
 st.subheader("Site List")

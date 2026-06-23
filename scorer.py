@@ -5,7 +5,8 @@ from astral import LocationInfo
 from astral.moon import phase as moon_phase, moonrise
 from astral.sun import night as astral_night
 
-from db import get_connection
+from sqlalchemy import text
+from db import get_engine
 
 
 # ── per-factor scorers (each returns 0–100) ────────────────────────────────────
@@ -87,9 +88,8 @@ def _7timer_by_night(seven_timer_data: dict, tz_str: str) -> dict:
 
 
 def _load_weights() -> dict:
-    con = get_connection()
-    rows = con.execute("SELECT factor, weight FROM scoring_weights").fetchall()
-    con.close()
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("SELECT factor, weight FROM scoring_weights")).fetchall()
     return dict(rows)
 
 

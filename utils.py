@@ -1,5 +1,6 @@
 import streamlit as st
-from db import get_connection, get_settings
+from sqlalchemy import text
+from db import get_engine, get_settings
 
 KM_TO_MI = 0.621371
 
@@ -38,9 +39,8 @@ def sync_site_active() -> None:
     Subsequent renders: picks up newly imported sites, drops deleted ones,
     without resetting existing per-session choices.
     """
-    con = get_connection()
-    rows = con.execute("SELECT id, active FROM sites").fetchall()
-    con.close()
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("SELECT id, active FROM sites")).fetchall()
     db_state = {row[0]: bool(row[1]) for row in rows}
     if "site_active" not in st.session_state:
         st.session_state.site_active = db_state
@@ -81,7 +81,7 @@ def init_session_settings() -> None:
 
 
 def render_sidebar() -> None:
-    """Show the user's stored location at the bottom of the sidebar."""
+    """Show the user's stored location and credits at the bottom of the sidebar."""
     loc = st.session_state.get("user_location")
     st.sidebar.divider()
     if loc:
@@ -90,3 +90,17 @@ def render_sidebar() -> None:
     else:
         st.sidebar.caption("📍 No location set")
         st.sidebar.page_link("pages/0_Location.py", label="Set your location →")
+
+    st.sidebar.divider()
+    st.sidebar.caption("**Credits**")
+    st.sidebar.caption(
+        "**Data:** [Open-Meteo](https://open-meteo.com) · "
+        "[7timer!](http://7timer.info) · "
+        "[astral](https://astral.readthedocs.io) · "
+        "[IDA](https://darksky.org) · "
+        "[OSM](https://nominatim.org)  \n"
+        "**App:** [Streamlit](https://streamlit.io) · "
+        "[Claude](https://anthropic.com)  \n"
+        "**By** Seth & Travis Wolverton · "
+        "[Source](https://gitea.wolvertons.net/travis/stargazing-app)"
+    )

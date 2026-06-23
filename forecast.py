@@ -1,51 +1,57 @@
 import requests
-import pandas as pd
+from sqlalchemy import text
 
-from db import get_connection, get_settings
+from cache import cache_get, cache_set
+from db import get_engine, get_settings
 
-OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+OPEN_METEO_URL  = "https://api.open-meteo.com/v1/forecast"
 SEVEN_TIMER_URL = "http://www.7timer.info/bin/api.pl"
 
 OPEN_METEO_VARS = [
-    "cloud_cover",
-    "cloud_cover_low",
-    "cloud_cover_mid",
-    "cloud_cover_high",
-    "visibility",
-    "relative_humidity_2m",
-    "dewpoint_2m",
-    "lifted_index",
-    "cape",
-    "wind_speed_10m",
-    "precipitation_probability",
-    "is_day",
+    "cloud_cover", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high",
+    "visibility", "relative_humidity_2m", "dewpoint_2m",
+    "lifted_index", "cape", "wind_speed_10m",
+    "precipitation_probability", "is_day",
 ]
+
+# Cache TTLs
+_TTL_OPEN_METEO = 3600    # 1 hour  — Open-Meteo updates hourly
+_TTL_7TIMER     = 10800   # 3 hours — 7timer updates every 6h
 
 
 def _fetch_open_meteo(lat: float, lon: float, forecast_days: int, timezone: str) -> dict:
+    key = f"openmeteo:{lat:.4f}:{lon:.4f}:{forecast_days}:{timezone}"
+    cached = cache_get(key)
+    if cached is not None:
+        return cached
+
     resp = requests.get(
         OPEN_METEO_URL,
-        params={
-            "latitude": lat,
-            "longitude": lon,
-            "hourly": OPEN_METEO_VARS,
-            "forecast_days": forecast_days,
-            "timezone": timezone,
-        },
+        params={"latitude": lat, "longitude": lon, "hourly": OPEN_METEO_VARS,
+                "forecast_days": forecast_days, "timezone": timezone},
         timeout=10,
     )
     resp.raise_for_status()
-    return resp.json()
+    data = resp.json()
+    cache_set(key, data, _TTL_OPEN_METEO)
+    return data
 
 
 def _fetch_7timer(lat: float, lon: float) -> dict:
+    key = f"7timer:{lat:.4f}:{lon:.4f}"
+    cached = cache_get(key)
+    if cached is not None:
+        return cached
+
     resp = requests.get(
         SEVEN_TIMER_URL,
         params={"lat": lat, "lon": lon, "product": "astro", "output": "json"},
         timeout=10,
     )
     resp.raise_for_status()
-    return resp.json()
+    data = resp.json()
+    cache_set(key, data, _TTL_7TIMER)
+    return data
 
 
 def fetch_site_forecast(site: dict, forecast_days: int, timezone: str) -> dict:
@@ -77,9 +83,9 @@ def fetch_all_forecasts() -> list:
     settings = get_settings()
     forecast_days = int(settings.get("forecast_days", 10))
     timezone = settings.get("timezone", "America/Chicago")
-    con = get_connection()
-    sites = pd.read_sql("SELECT * FROM sites WHERE active = 1", con).to_dict("records")
-    con.close()
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("SELECT * FROM sites WHERE active = 1")).fetchall()
+    sites = [dict(r._mapping) for r in rows]
     return [fetch_site_forecast(site, forecast_days, timezone) for site in sites]
 
 

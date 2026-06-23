@@ -1,9 +1,9 @@
-import streamlit as st
-
-from db import get_connection, init_db
-from utils import init_session_settings, render_sidebar
-
 import pandas as pd
+import streamlit as st
+from sqlalchemy import text
+
+from db import get_engine, init_db
+from utils import init_session_settings, render_sidebar
 
 init_db()
 init_session_settings()
@@ -53,23 +53,19 @@ tab_weights, tab_settings = st.tabs(["Scoring Weights", "App Settings"])
 
 
 def load_weights() -> pd.DataFrame:
-    con = get_connection()
-    df = pd.read_sql("SELECT * FROM scoring_weights ORDER BY factor", con)
-    con.close()
+    with get_engine().connect() as conn:
+        df = pd.read_sql(text("SELECT * FROM scoring_weights ORDER BY factor"), conn)
     return df.drop(columns=["id"])
 
 
 def save_weights(df: pd.DataFrame) -> None:
-    con = get_connection()
-    cur = con.cursor()
-    cur.execute("DELETE FROM scoring_weights")
-    for _, row in df.iterrows():
-        cur.execute(
-            "INSERT INTO scoring_weights (factor, weight, description) VALUES (?,?,?)",
-            (row["factor"], row["weight"], row.get("description")),
+    with get_engine().begin() as conn:
+        conn.execute(text("DELETE FROM scoring_weights"))
+        conn.execute(
+            text("INSERT INTO scoring_weights (factor, weight, description) VALUES (:factor, :weight, :desc)"),
+            [{"factor": row["factor"], "weight": row["weight"], "desc": row.get("description")}
+             for _, row in df.iterrows()],
         )
-    con.commit()
-    con.close()
 
 
 with tab_weights:
@@ -98,23 +94,18 @@ with tab_weights:
 
 
 def load_settings() -> pd.DataFrame:
-    con = get_connection()
-    df = pd.read_sql("SELECT * FROM app_settings ORDER BY key", con)
-    con.close()
-    return df
+    with get_engine().connect() as conn:
+        return pd.read_sql(text("SELECT * FROM app_settings ORDER BY key"), conn)
 
 
 def save_settings(df: pd.DataFrame) -> None:
-    con = get_connection()
-    cur = con.cursor()
-    cur.execute("DELETE FROM app_settings")
-    for _, row in df.iterrows():
-        cur.execute(
-            "INSERT INTO app_settings (key, value, description) VALUES (?,?,?)",
-            (row["key"], row["value"], row.get("description")),
+    with get_engine().begin() as conn:
+        conn.execute(text("DELETE FROM app_settings"))
+        conn.execute(
+            text("INSERT INTO app_settings (key, value, description) VALUES (:key, :value, :desc)"),
+            [{"key": row["key"], "value": row["value"], "desc": row.get("description")}
+             for _, row in df.iterrows()],
         )
-    con.commit()
-    con.close()
 
 
 with tab_settings:

@@ -5,7 +5,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from db import get_connection, get_settings, init_db
+from sqlalchemy import text
+from db import get_engine, get_settings, init_db
 from osm_import import _haversine
 from utils import dist_display, sync_site_active, init_session_settings, render_sidebar
 
@@ -26,9 +27,8 @@ init_session_settings()
 
 
 def _load_active_sites() -> list[dict]:
-    con = get_connection()
-    sites = pd.read_sql("SELECT * FROM sites ORDER BY name", con).to_dict("records")
-    con.close()
+    with get_engine().connect() as conn:
+        sites = pd.read_sql(text("SELECT * FROM sites ORDER BY name"), conn).to_dict("records")
     active = st.session_state.site_active
     return [s for s in sites if active.get(s["id"], True)]
 
@@ -280,18 +280,3 @@ else:
 
 
 render_sidebar()
-
-st.divider()
-st.markdown("""
-**Data sources & credits**
-| | |
-|---|---|
-| **Weather & atmosphere** | [Open-Meteo](https://open-meteo.com) — free, no API key, 16-day hourly forecast |
-| **Astronomical seeing** | [7timer!](http://www.7timer.info) — purpose-built for astronomers |
-| **Moon phase / rise / set** | `astral` Python library — fully offline |
-| **Dark sky site data** | [IDA / DarkSky International](https://darksky.org) — designated places dataset |
-| **Geocoding** | [Nominatim / OpenStreetMap](https://nominatim.org) & [Natural Resources Canada](https://geogratis.gc.ca) |
-| **App** | Built with [Streamlit](https://streamlit.io) · AI assistance by [Claude](https://anthropic.com) |
-| **Authors** | Seth & Travis Wolverton |
-| **Source** | [gitea.wolvertons.net/travis/stargazing-app](https://gitea.wolvertons.net/travis/stargazing-app) |
-""")

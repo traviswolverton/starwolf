@@ -3,3 +3,6 @@ astral
 pandas
 streamlit
 plotly
+sqlalchemy
+psycopg2-binary
+redis
