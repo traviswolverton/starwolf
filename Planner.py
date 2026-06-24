@@ -14,7 +14,6 @@ init_db()
 
 st.set_page_config(page_icon="🔭", page_title="Stargazing Planner")
 
-st.image("starwolf-logo.svg", width=200)
 st.title("Stargazing Trip Planner")
 
 if "show_results" not in st.session_state:
