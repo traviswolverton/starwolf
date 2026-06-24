@@ -6,3 +6,4 @@ __pycache__/
 *.pyo
 .git/
 api_research/
+migrate_sqlite_to_postgres.py

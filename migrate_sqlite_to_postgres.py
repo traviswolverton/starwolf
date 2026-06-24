@@ -30,6 +30,13 @@ def main():
     print()
 
     sqlite_con = sqlite3.connect(SQLITE_PATH)
+
+    # Create tables before migrating data
+    os.environ["DATABASE_URL"] = db_url
+    from db import init_db
+    init_db()
+    print("Schema initialised.")
+
     engine = create_engine(db_url)
 
     with engine.begin() as conn:
