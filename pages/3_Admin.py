@@ -8,7 +8,7 @@ from utils import init_session_settings, render_sidebar
 init_db()
 init_session_settings()
 
-st.set_page_config(page_title="Admin — Stargazing Planner")
+st.set_page_config(page_icon="🔭", page_title="Admin — Stargazing Planner")
 st.title("Admin")
 
 

@@ -12,7 +12,7 @@ from utils import dist_display, sync_site_active, init_session_settings, render_
 
 init_db()
 
-st.set_page_config(page_title="Stargazing Planner")
+st.set_page_config(page_icon="🔭", page_title="Stargazing Planner")
 
 st.image("starwolf-logo.svg", width=200)
 st.title("Stargazing Trip Planner")

@@ -7,7 +7,7 @@ from utils import init_session_settings, render_sidebar
 init_db()
 init_session_settings()
 
-st.set_page_config(page_title="Feedback — Stargazing Planner")
+st.set_page_config(page_icon="🔭", page_title="Feedback — Stargazing Planner")
 st.title("Submit Feedback")
 st.caption("Feature ideas, bug reports, or anything else — it goes straight into our issue tracker.")
 

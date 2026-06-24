@@ -10,7 +10,7 @@ from utils import init_session_settings, render_sidebar
 init_db()
 init_session_settings()
 
-st.set_page_config(page_title="Location — Stargazing Planner")
+st.set_page_config(page_icon="🔭", page_title="Location — Stargazing Planner")
 st.title("Your Location")
 st.caption(
     "Used to show distances to each site and pre-fill the proximity filter. "

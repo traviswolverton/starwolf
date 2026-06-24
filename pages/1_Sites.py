@@ -10,7 +10,7 @@ init_db()
 sync_site_active()
 init_session_settings()
 
-st.set_page_config(page_title="Sites — Stargazing Planner")
+st.set_page_config(page_icon="🔭", page_title="Sites — Stargazing Planner")
 st.title("Dark-Sky Sites")
 
 if "osm_results" not in st.session_state:

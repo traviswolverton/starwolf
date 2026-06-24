@@ -6,7 +6,7 @@ from utils import KM_TO_MI, init_session_settings, render_sidebar
 init_db()
 init_session_settings()
 
-st.set_page_config(page_title="Preferences — Stargazing Planner")
+st.set_page_config(page_icon="🔭", page_title="Preferences — Stargazing Planner")
 st.title("Preferences")
 st.caption("These settings apply to your current session only and reset when you close the tab.")
 
