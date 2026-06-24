@@ -32,19 +32,23 @@ The app is a Streamlit multi-page app. Entry point: `Planner.py`.
 
 ```
 stargazing-app/
-├── Planner.py            # Main forecast page (entry point)
+├── Planner.py                      # Main forecast page (entry point)
 ├── pages/
-│   ├── 0_Location.py     # Set/clear user home location
-│   ├── 1_Sites.py        # Site catalog management
-│   ├── 2_Preferences.py  # Per-session user settings
-│   └── 3_Admin.py        # Password-gated admin panel
-├── forecast.py           # Open-Meteo + 7timer API client
-├── scorer.py             # Composite night quality scorer
-├── db.py                 # SQLite schema, seed data, helpers
-├── utils.py              # Shared session state + sidebar helpers
-├── osm_import.py         # Geocoding + IDA dark-sky site importer
-├── run.sh                # Dev launcher
-└── stargazing.db         # SQLite database (git-ignored)
+│   ├── 0_Location.py               # Set/clear user home location
+│   ├── 1_Sites.py                  # Site catalog management
+│   ├── 2_Preferences.py            # Per-session user settings
+│   ├── 3_Admin.py                  # Password-gated admin panel
+│   └── 4_Feedback.py               # In-app feedback → Gitea issues
+├── forecast.py                     # Open-Meteo + 7timer API client (Redis-cached)
+├── scorer.py                       # Composite night quality scorer
+├── cache.py                        # Redis wrapper with silent fallback
+├── db.py                           # PostgreSQL schema, seed data, SQLAlchemy engine
+├── utils.py                        # Shared session state + sidebar helpers
+├── osm_import.py                   # Geocoding + IDA dark-sky site importer
+├── migrate_sqlite_to_postgres.py   # One-time SQLite → Postgres migration script
+├── Dockerfile                      # python:3.12-slim app image
+├── docker-compose.yml              # app + postgres:16 + redis:7
+└── run.sh                          # Local dev launcher (requires DATABASE_URL set)
 ```
 
 ### Pages
@@ -257,46 +261,88 @@ Shared helpers used across all pages:
 
 ## Setup
 
+### Prerequisites
+
+- [Docker](https://docs.docker.com/engine/install/) with the Compose plugin
+- Your user in the `docker` group: `sudo usermod -aG docker $USER && newgrp docker`
+
+### 1. Clone and configure secrets
+
 ```bash
 git clone https://gitea.wolvertons.net/travis/stargazing-app
 cd stargazing-app
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
 ```
 
-**Admin password** (optional): create `.streamlit/secrets.toml`:
+Create `.streamlit/secrets.toml` (git-ignored):
 ```toml
-admin_password = "your-password-here"
+admin_password  = "your-admin-password"
+gitea_token     = "your-gitea-token"   # for the in-app feedback form
 ```
 
-If not set, the Admin page falls back to the `ADMIN_PASSWORD` environment variable, then allows open access.
+### 2. Start the stack
 
-**Run:**
 ```bash
-./run.sh
-# or
-streamlit run Planner.py
+docker compose up -d
+```
+
+This starts three containers:
+- **app** — Streamlit on port 8501
+- **db** — PostgreSQL 16 (data in `postgres_data` Docker volume)
+- **redis** — Redis 7 (data in `redis_data` Docker volume)
+
+The app waits for Postgres to pass its healthcheck before starting. Tables are created and seeded automatically on first boot.
+
+### 3. Verify
+
+```bash
+docker compose ps          # all three should be healthy/Up
+curl localhost:8501/_stcore/health   # should return: ok
 ```
 
 Opens at `http://localhost:8501`.
 
-**Production (systemd):**
-```ini
-[Unit]
-Description=Stargazing Trip Planner
-After=network.target
+### Updating
 
-[Service]
-Type=simple
-User=travis
-WorkingDirectory=/opt/stargazing-app
-ExecStart=/opt/stargazing-app/venv/bin/streamlit run Planner.py --server.port 8501 --server.headless true
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
+```bash
+git pull
+docker compose up -d --build   # rebuilds the app image, leaves db/redis untouched
 ```
 
-The SQLite database (`stargazing.db`) is created and seeded on first run. It is git-ignored.
+### Environment variables
+
+| Variable | Set in | Description |
+|----------|--------|-------------|
+| `DATABASE_URL` | `docker-compose.yml` | PostgreSQL connection string |
+| `REDIS_URL` | `docker-compose.yml` | Redis connection string |
+| `ADMIN_PASSWORD` | `.streamlit/secrets.toml` | Admin page password (fallback to env var) |
+
+### Caching
+
+API responses are cached in Redis automatically:
+
+| Source | TTL | Cache key |
+|--------|-----|-----------|
+| Open-Meteo | 1 hour | `openmeteo:{lat}:{lon}:{days}:{tz}` |
+| 7timer | 3 hours | `7timer:{lat}:{lon}` |
+
+Cache is **transparent** — if Redis is unreachable the app falls back to live API calls without erroring.
+
+Inspect cache keys after a forecast run:
+```bash
+docker compose exec redis redis-cli keys "*"
+```
+
+### Data persistence
+
+Postgres and Redis data live in named Docker volumes and survive container restarts. They are only removed if you explicitly run `docker compose down -v`.
+
+### Migrating from SQLite
+
+If upgrading from a previous SQLite-based install:
+```bash
+# Expose Postgres port temporarily (add ports: ["5432:5432"] to db in docker-compose.yml)
+docker compose up -d
+
+DATABASE_URL=postgresql://stargazing:stargazing@localhost:5432/stargazing \
+    python migrate_sqlite_to_postgres.py
+```
