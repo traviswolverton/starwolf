@@ -23,22 +23,27 @@ Source: [gitea.wolvertons.net/travis/stargazing-app](https://gitea.wolvertons.ne
 - Proximity filter: activate all sites within a configurable radius of any location
 - Imperial/metric toggle: distances and visibility threshold throughout the UI
 - Password-protected Admin page for scoring weights and app-wide settings
+- Dual composite scores — telescope and naked eye — with Bortle class modifier
+- REST API on port 8000 for programmatic access to the same forecast and scoring pipeline
+- Visitor map and stats (IP geolocation)
 
 ---
 
 ## App Structure
 
-The app is a Streamlit multi-page app. Entry point: `Planner.py`.
+The app is a Streamlit multi-page app. Entry point: `Planner.py`. A FastAPI service (`api.py`) runs alongside it as a separate Docker container on port 8000.
 
 ```
 stargazing-app/
 ├── Planner.py                      # Main forecast page (entry point)
+├── api.py                          # FastAPI REST API (port 8000)
 ├── pages/
 │   ├── 0_Location.py               # Set/clear user home location
 │   ├── 1_Sites.py                  # Site catalog management
-│   ├── 2_Preferences.py            # Per-session user settings
+│   ├── 2_Preferences.py            # Per-session user settings + live scoring weights
 │   ├── 3_Admin.py                  # Password-gated admin panel
-│   └── 4_Feedback.py               # In-app feedback → Gitea issues
+│   ├── 4_Feedback.py               # In-app feedback → Gitea issues
+│   └── 5_Visitors.py               # Visitor map and stats (IP geolocation)
 ├── forecast.py                     # Open-Meteo + 7timer API client (Redis-cached)
 ├── scorer.py                       # Composite night quality scorer
 ├── cache.py                        # Redis wrapper with silent fallback
@@ -47,7 +52,8 @@ stargazing-app/
 ├── osm_import.py                   # Geocoding + IDA dark-sky site importer
 ├── migrate_sqlite_to_postgres.py   # One-time SQLite → Postgres migration script
 ├── Dockerfile                      # python:3.12-slim app image
-├── docker-compose.yml              # app + postgres:16 + redis:7
+├── docker-compose.yml              # app + api + postgres:16 + redis:7
+├── API_GUIDE.md                    # Full REST API documentation
 └── run.sh                          # Local dev launcher (requires DATABASE_URL set)
 ```
 
@@ -58,8 +64,10 @@ stargazing-app/
 | **Planner** | Run forecast, view ranked result cards and heatmap |
 | **Location** | Geocode a home location; drives distance display and proximity filter |
 | **Sites** | Manage the site catalog — activate/deactivate, add by address, import from IDA |
-| **Preferences** | Session timezone, min score threshold, hard disqualifiers, unit system |
+| **Preferences** | Session timezone, min score threshold, hard disqualifiers, unit system, live scoring weights |
 | **Admin** | Password-gated; scoring weights and app-wide settings (forecast horizon, etc.) |
+| **Feedback** | Submit bug reports and feature requests directly to the Gitea issue tracker |
+| **Visitors** | Map and table of recent visitors (IP geolocation via ip-api.com) |
 
 ### Session State
 
@@ -94,19 +102,35 @@ All user-facing settings are stored per-session in `st.session_state` — multip
 
 ## Scoring
 
-### Composite Score
+### Composite Scores
 
-A weighted 0–100 composite is computed per site per night using only nighttime hours (`is_day == 0` from Open-Meteo). Hours after midnight are assigned to the previous evening's night.
+Two 0–100 composites are computed per site per night using only nighttime hours (`is_day == 0` from Open-Meteo). Hours after midnight are assigned to the previous evening's night.
+
+#### Telescope score
 
 | Factor | Weight | Source |
 |--------|--------|--------|
 | Cloud cover (total) | 35% | Open-Meteo `cloud_cover` |
-| High cloud (cirrus) | 15% | Open-Meteo `cloud_cover_high` |
 | Moon | 25% | `astral` (offline) |
+| High cloud (cirrus) | 15% | Open-Meteo `cloud_cover_high` |
 | Lifted Index (stability) | 15% | Open-Meteo `lifted_index` |
 | Humidity | 10% | Open-Meteo `relative_humidity_2m` |
 
-Weights are stored in the `scoring_weights` table and editable by Admin. 7timer seeing and transparency are displayed in result cards but do not affect the composite score.
+Telescope weights are stored in the `scoring_weights` table and editable by Admin.
+
+#### Naked eye score
+
+| Factor | Weight | Source |
+|--------|--------|--------|
+| Cloud cover (total) | 40% | Open-Meteo `cloud_cover` |
+| Moon | 35% | `astral` (offline) |
+| High cloud (cirrus) | 10% | Open-Meteo `cloud_cover_high` |
+| Humidity | 10% | Open-Meteo `relative_humidity_2m` |
+| Lifted Index (stability) | 5% | Open-Meteo `lifted_index` |
+
+Naked eye weights are fixed constants (`NAKED_EYE_WEIGHTS` in `scorer.py`). After the weighted composite is calculated, a **Bortle class modifier** (0.55–1.0×) is applied based on the site's sky darkness rating to reflect light pollution impact on unaided viewing.
+
+7timer seeing and transparency are displayed in result cards but do not affect either composite score.
 
 ### Hard Disqualifiers
 
@@ -124,7 +148,7 @@ Before scoring, each night is checked against three user-configurable thresholds
 
 ## Data Model
 
-All persistent configuration is stored in a local SQLite database (`stargazing.db`, git-ignored). Three tables:
+All persistent state is stored in a PostgreSQL 16 database running as a Docker service. Three tables:
 
 ### `sites`
 
@@ -161,7 +185,21 @@ Key/value pairs for admin-configurable application settings.
 
 ---
 
-## API Reference
+## REST API
+
+The app exposes a scored forecast API on port 8000. See **[API_GUIDE.md](API_GUIDE.md)** for full documentation including parameters, response schema, curl/Python examples, and caching details.
+
+```bash
+# Quick example
+curl "http://localhost:8000/v1/forecast?lat=30.67&lon=-104.02&days=7&bortle_class=2"
+
+# Interactive docs
+open http://localhost:8000/docs
+```
+
+---
+
+## External Data Sources
 
 ### Open-Meteo
 
@@ -221,14 +259,16 @@ No API key required. Free service. Coverage: ~72 hours (24 × 3-hour slots).
 
 - `score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None) -> list` — scores all nights in one site's forecast
 - `score_all(forecasts: list, tz_str: str, disqualifiers: dict | None) -> list` — scores all sites, sorted by date then score (desc)
+- `NAKED_EYE_WEIGHTS` — dict of fixed naked eye factor weights
 
 Each scored night dict:
 ```python
 {
-    "site":      "Enchanted Rock SP",
-    "date":      "2026-06-27",
-    "composite": 88.0,
-    "factors":   {"cloud_cover": 100.0, "high_cloud": 100.0, "moon": 99.7, ...},
+    "site":       "Enchanted Rock SP",
+    "date":       "2026-06-27",
+    "composite":  88.0,    # telescope score
+    "naked_eye":  82.3,    # naked eye score, Bortle-adjusted
+    "factors":    {"cloud_cover": 100.0, "high_cloud": 100.0, "moon": 99.7, ...},
     "stats": {
         "avg_cloud_cover":     0.0,
         "avg_high_cloud":      0.0,
@@ -237,6 +277,7 @@ Each scored night dict:
         "night_hours":         9,
         "seeing_7timer":       3.2,   # None if beyond 7timer range
         "transparency_7timer": 4.0,
+        "bortle_class":        2,     # None if not set on the site
     },
     # Only present if disqualified:
     "disqualified": "Cloud cover 91% > 85% limit",
@@ -285,8 +326,9 @@ gitea_token     = "your-gitea-token"   # for the in-app feedback form
 docker compose up -d
 ```
 
-This starts three containers:
+This starts four containers:
 - **app** — Streamlit on port 8501
+- **api** — FastAPI / uvicorn on port 8000
 - **db** — PostgreSQL 16 (data in `postgres_data` Docker volume)
 - **redis** — Redis 7 (data in `redis_data` Docker volume)
 
@@ -295,8 +337,9 @@ The app waits for Postgres to pass its healthcheck before starting. Tables are c
 ### 3. Verify
 
 ```bash
-docker compose ps          # all three should be healthy/Up
+docker compose ps          # all four should be healthy/Up
 curl localhost:8501/_stcore/health   # should return: ok
+curl localhost:8000/healthz          # should return: {"status":"ok"}
 ```
 
 Opens at `http://localhost:8501`.

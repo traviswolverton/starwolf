@@ -156,6 +156,21 @@ def render_sidebar() -> None:
         st.sidebar.page_link("pages/0_Location.py", label="Set your location →")
 
     st.sidebar.divider()
+    with st.sidebar.expander("🔌 API"):
+        st.caption(
+            "Forecast API — port **8000**  \n"
+            "`GET /v1/forecast`  \n"
+            "`?lat=&lon=&days=7`  \n"
+            "`&bortle_class=1-9`  \n"
+            "`&timezone=<IANA>`"
+        )
+        st.page_link(
+            "http://localhost:8000/docs",
+            label="Interactive docs →",
+            icon="📄",
+        )
+
+    st.sidebar.divider()
     st.sidebar.caption("**Credits**")
     st.sidebar.caption(
         "**Data:** [Open-Meteo](https://open-meteo.com) · "
