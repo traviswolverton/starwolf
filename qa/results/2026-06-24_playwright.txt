@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /opt/stargazing-app/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /opt/stargazing-app
+configfile: pytest.ini
+plugins: base-url-2.1.0, anyio-4.14.0, playwright-0.8.0
+collecting ... collected 21 items
+
+tests/test_playwright.py::TestPlannerLanding::test_default_state_button_enabled[chromium] PASSED [  4%]
+tests/test_playwright.py::TestPlannerLanding::test_default_state_location_card_not_set[chromium] PASSED [  9%]
+tests/test_playwright.py::TestPlannerLanding::test_preferences_card_always_visible[chromium] PASSED [ 14%]
+tests/test_playwright.py::TestPlannerLanding::test_how_it_works_collapsed_by_default[chromium] PASSED [ 19%]
+tests/test_playwright.py::TestPlannerLanding::test_reading_results_collapsed_by_default[chromium] PASSED [ 23%]
+tests/test_playwright.py::TestPlannerLanding::test_button_disabled_after_deactivate_all[chromium] PASSED [ 28%]
+tests/test_playwright.py::TestPlannerLanding::test_site_count_in_caption[chromium] PASSED [ 33%]
+tests/test_playwright.py::TestLocationPage::test_empty_input_shows_warning[chromium] PASSED [ 38%]
+tests/test_playwright.py::TestLocationPage::test_set_location_button_present[chromium] PASSED [ 42%]
+tests/test_playwright.py::TestLocationPage::test_add_as_site_button_disabled_with_empty_name[chromium] PASSED [ 47%]
+tests/test_playwright.py::TestSitesPage::test_empty_proximity_input_shows_warning[chromium] PASSED [ 52%]
+tests/test_playwright.py::TestSitesPage::test_empty_osm_search_shows_warning[chromium] PASSED [ 57%]
+tests/test_playwright.py::TestSitesPage::test_empty_address_lookup_shows_warning[chromium] PASSED [ 61%]
+tests/test_playwright.py::TestSitesPage::test_activate_all_shows_success[chromium] PASSED [ 66%]
+tests/test_playwright.py::TestSitesPage::test_deactivate_all_then_planner_button_disabled[chromium] PASSED [ 71%]
+tests/test_playwright.py::TestPreferencesPage::test_reset_to_defaults_button_present[chromium] PASSED [ 76%]
+tests/test_playwright.py::TestPreferencesPage::test_reset_to_defaults_runs_without_error[chromium] PASSED [ 80%]
+tests/test_playwright.py::TestPreferencesPage::test_timezone_shown_in_planner_caption[chromium] PASSED [ 85%]
+tests/test_playwright.py::TestFeedbackPage::test_submit_disabled_with_empty_fields[chromium] PASSED [ 90%]
+tests/test_playwright.py::TestFeedbackPage::test_submit_enabled_with_title_and_description[chromium] PASSED [ 95%]
+tests/test_playwright.py::TestFeedbackPage::test_submit_enabled_without_name[chromium] PASSED [100%]
+
+============================= 21 passed in 24.93s ==============================
