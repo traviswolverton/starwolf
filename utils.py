@@ -82,9 +82,13 @@ def init_session_settings() -> None:
 
 def render_sidebar() -> None:
     """Show the user's stored location and credits at the bottom of the sidebar."""
-    st.sidebar.image("starwolf-logo.svg", use_container_width=True)
+    st.logo("starwolf-logo.svg")
     st.markdown("""
 <style>
+/* Override st.logo() max-height so the logo renders at full sidebar width */
+[data-testid="stLogo"] { height: auto !important; max-height: unset !important; }
+[data-testid="stLogo"] img { height: auto !important; max-height: unset !important; width: 100% !important; }
+
 @media screen and (max-width: 640px) {
     /* Reflow 4-column grids to 2×2 on mobile */
     [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
