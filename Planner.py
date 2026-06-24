@@ -124,6 +124,14 @@ Use the pages in the left sidebar to set up your forecast, then come back here a
         f"manage in **Sites**, adjust timezone and score threshold in **Preferences**."
     )
 
+    if not st.session_state.get("user_location"):
+        st.warning(
+            "**No location set.** Distances to sites won't appear in results, "
+            "and the proximity filter on the Sites page won't be pre-filled.",
+            icon="📍",
+        )
+        st.page_link("pages/0_Location.py", label="Set your location →", icon="📍")
+
     if st.button("Run Forecast", type="primary", disabled=not active_sites):
         with st.spinner("Fetching forecasts…"):
             st.session_state.nights = _fetch_and_score()

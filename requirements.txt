@@ -6,3 +6,4 @@ plotly
 sqlalchemy
 psycopg2-binary
 redis
+streamlit-geolocation

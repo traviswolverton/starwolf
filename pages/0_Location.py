@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_geolocation import streamlit_geolocation
 
 from db import init_db
 from osm_import import geocode
@@ -10,12 +11,60 @@ init_session_settings()
 st.set_page_config(page_title="Location — Stargazing Planner")
 st.title("Your Location")
 st.caption(
-    "Setting your location enables distance-to-site display in results and "
-    "pre-fills the proximity filter on the Sites page. "
-    "Location is stored in your session only — never sent to a server or saved."
+    "Used to show distances to each site and pre-fill the proximity filter. "
+    "Stored in your session only — never saved to a server."
 )
 
 loc = st.session_state.user_location
+
+# ── Browser geolocation ────────────────────────────────────────────────────────
+st.subheader("Use device location", anchor=False)
+st.caption("Tap the button below to let your browser share your current position.")
+
+geo = streamlit_geolocation()
+
+if geo and geo.get("latitude") is not None:
+    lat, lon = geo["latitude"], geo["longitude"]
+    if (
+        not loc
+        or abs(loc["lat"] - lat) > 0.0001
+        or abs(loc["lon"] - lon) > 0.0001
+    ):
+        try:
+            with st.spinner("Reverse-geocoding…"):
+                # Use Nominatim reverse geocode to get a human-readable label
+                import requests as _req
+                resp = _req.get(
+                    "https://nominatim.openstreetmap.org/reverse",
+                    params={"lat": lat, "lon": lon, "format": "json"},
+                    headers={"User-Agent": "stargazing-planner"},
+                    timeout=5,
+                )
+                data = resp.json()
+                display = data.get("display_name", f"{lat:.4f}, {lon:.4f}")
+                # Shorten to city/state level if possible
+                addr = data.get("address", {})
+                parts = [
+                    addr.get("city") or addr.get("town") or addr.get("village"),
+                    addr.get("state"),
+                    addr.get("country_code", "").upper(),
+                ]
+                display = ", ".join(p for p in parts if p) or display
+        except Exception:
+            display = f"{lat:.4f}, {lon:.4f}"
+
+        st.session_state.user_location = {
+            "text": display,
+            "lat": lat,
+            "lon": lon,
+            "display": display,
+        }
+        st.rerun()
+
+st.divider()
+
+# ── Manual entry ───────────────────────────────────────────────────────────────
+st.subheader("Or enter manually", anchor=False)
 
 loc_input = st.text_input(
     "Address, city, zip, or postal code",
