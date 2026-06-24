@@ -82,6 +82,22 @@ def init_session_settings() -> None:
 
 def render_sidebar() -> None:
     """Show the user's stored location and credits at the bottom of the sidebar."""
+    st.markdown("""
+<style>
+@media screen and (max-width: 640px) {
+    /* Reflow 4-column grids to 2×2 on mobile */
+    [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
+    [data-testid="stColumn"] { min-width: 45% !important; }
+    /* Tighter page padding */
+    .block-container { padding-left: 1rem !important; padding-right: 1rem !important; }
+    /* Prevent overflow; let tables scroll horizontally */
+    [data-testid="stDataFrame"], [data-testid="stDataEditor"] { overflow-x: auto !important; }
+    /* Wrap long expander labels */
+    [data-testid="stExpander"] summary p { white-space: normal !important; word-break: break-word !important; }
+}
+</style>
+""", unsafe_allow_html=True)
+
     loc = st.session_state.get("user_location")
     st.sidebar.divider()
     if loc:

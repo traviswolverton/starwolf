@@ -98,27 +98,24 @@ if not st.session_state.show_results:
 
 Use the pages in the left sidebar to set up your forecast, then come back here and hit **Run Forecast**.
 
-| Step | Page | What to do |
-|------|------|------------|
-| 1 | **Location** | Enter your home base (city, zip, or address). This unlocks distance-to-site display in your results and pre-fills the proximity filter on the Sites page. |
-| 2 | **Sites** | Choose which dark-sky sites to include. Use *Activate by proximity* to enable all sites within a radius of your location, or toggle individual sites on/off in the list. |
-| 3 | **Preferences** | Set your timezone (used for night/day boundaries), minimum score threshold to filter weak nights, and hard disqualifier limits for cloud cover, precipitation, and visibility. |
-| 4 | **Planner** ← you are here | Hit **Run Forecast** to pull weather data for all active sites and score every upcoming night. |
+**1 · Location** — Enter your home base (city, zip, or address) to unlock distances and pre-fill the proximity filter on the Sites page.
+
+**2 · Sites** — Choose which dark-sky sites to include. Use *Activate by proximity* or toggle sites individually.
+
+**3 · Preferences** — Set your timezone, minimum score threshold, and hard disqualifier limits (cloud cover, precipitation, visibility).
+
+**4 · Planner** ← you are here — Hit **Run Forecast** to score every upcoming night across all active sites.
 
 ---
 
 ### Reading your results
 
-After running, you'll see expandable cards for each qualifying night and a heatmap across all sites and dates.
-
-- **Score (0–100)** — Composite night quality weighted across cloud cover, moon phase, atmospheric stability, and humidity. **70+** is worth the drive; **below 40** is likely a bust.
-- **Cloud %** — Average nighttime cloud cover. Under 20% is ideal; above 50% is likely a washout.
-- **Moon** — Combines illumination percentage and hours above the horizon before dark ends. Higher score = darker sky.
-- **Seeing / Transparency** — From 7timer (1–8 scale, 1 is best). Only available for the next ~3 days; dashes beyond that are a data-source limit, not a problem with the site.
-- **Heatmap** — Compare all sites and nights at a glance. Green = great, red = poor. Color scale anchors to your minimum score threshold.
-- **Disqualified nights** — Collapsed at the bottom; tap to see which nights were excluded and why.
-
-Scores only use nighttime hours at each site's coordinates, so daytime weather never skews your results.
+- **Score (0–100)** — Composite quality across cloud cover, moon phase, stability, and humidity. **70+** is worth the drive; **below 40** is likely a bust.
+- **Cloud %** — Average nighttime cloud cover. Under 20% is ideal.
+- **Moon** — Combines illumination and hours above the horizon. Higher = darker sky.
+- **Seeing / Transparency** — From 7timer (1–8 scale, 1 is best). Only available for the next ~3 days.
+- **Heatmap** — All sites and nights at a glance. Green = great, red = poor.
+- **Disqualified nights** — Collapsed at the bottom; tap to see what was excluded and why.
 """)
 
     st.divider()
@@ -253,11 +250,12 @@ else:
                 coloraxis_colorbar=dict(title="Score", tickvals=tickvals),
                 margin=dict(l=0, r=0, t=40, b=0),
                 xaxis=dict(side="top"),
+                height=max(200, len(pivot) * 55),
             )
             fig.update_traces(
                 hovertemplate="<b>%{y}</b><br>%{x}<br>Score: %{z:.1f}<extra></extra>"
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
         if disqualified:
             with st.expander(f"Disqualified nights ({len(disqualified)})"):
