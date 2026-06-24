@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timedelta, date, timezone
 from zoneinfo import ZoneInfo
 
@@ -94,7 +95,7 @@ def _load_weights() -> dict:
 
 
 def _avg(values: list) -> float | None:
-    clean = [v for v in values if v is not None]
+    clean = [v for v in values if v is not None and not (isinstance(v, float) and math.isnan(v))]
     return sum(clean) / len(clean) if clean else None
 
 

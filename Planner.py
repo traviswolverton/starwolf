@@ -1,3 +1,4 @@
+import math
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -57,7 +58,14 @@ def _score_color(score: float) -> str:
 
 
 def _fmt(value, fmt=".0f", suffix="", fallback="—") -> str:
-    return f"{value:{fmt}}{suffix}" if value is not None else fallback
+    if value is None:
+        return fallback
+    try:
+        if math.isnan(float(value)):
+            return fallback
+    except (TypeError, ValueError):
+        pass
+    return f"{value:{fmt}}{suffix}"
 
 
 def _norm(value, lo: float, hi: float, higher_is_better: bool = True) -> float | None:
