@@ -199,7 +199,7 @@ else:
             with ctrl_l:
                 sort_by = st.radio(
                     "Sort by",
-                    options=["Best Score", "Date", "Location"],
+                    options=["🔭 Telescope Score", "👁 Naked Eye Score", "Date", "Location"],
                     horizontal=True,
                     key="results_sort",
                 )
@@ -217,7 +217,9 @@ else:
                 ranked = sorted(display, key=lambda n: (n["date"], -n["composite"]))
             elif sort_by == "Location":
                 ranked = sorted(display, key=lambda n: (n["site"], n["date"]))
-            else:
+            elif sort_by == "👁 Naked Eye Score":
+                ranked = sorted(display, key=lambda n: -(n.get("naked_eye") or 0))
+            else:  # 🔭 Telescope Score
                 ranked = sorted(display, key=lambda n: -n["composite"])
 
             if only_7timer and not ranked:
@@ -239,10 +241,17 @@ else:
                 stats  = night["stats"]
                 factors = night["factors"]
                 date_str = datetime.fromisoformat(night["date"]).strftime("%a %-d %b")
-                color  = _score_color(score)
                 dist = _site_dist.get(night["site"])
                 dist_str = f" · {dist_display(dist)}" if dist is not None else ""
-                label  = f":{color}[**{score:.0f}**] &nbsp; {date_str} &nbsp;·&nbsp; {night['site']}{dist_str}"
+                tel_color = _score_color(score)
+                naked_eye = night.get("naked_eye")
+                eye_color = _score_color(naked_eye) if naked_eye is not None else "gray"
+                naked_eye_str = f"**{naked_eye:.0f}**" if naked_eye is not None else "—"
+                label = (
+                    f"🔭 :{tel_color}[**{score:.0f}**]"
+                    f"  👁 :{eye_color}[{naked_eye_str}]"
+                    f" &nbsp; {date_str} &nbsp;·&nbsp; {night['site']}{dist_str}"
+                )
                 with st.expander(label):
                     c1, c2, c3, c4 = st.columns(4)
                     _colored_metric(c1, "Cloud Cover", _fmt(stats["avg_cloud_cover"], suffix="%"),   _norm(stats["avg_cloud_cover"],          0, 100, False))
@@ -254,11 +263,18 @@ else:
                     _colored_metric(c6, "Stability",   _fmt(factors["lifted_index"]),                _norm(factors["lifted_index"],           0, 100, True))
                     _colored_metric(c7, "Seeing †",    _fmt(stats["seeing_7timer"],   ".1f"),        _norm(stats["seeing_7timer"],            1,   8, False))
                     _colored_metric(c8, "Transp. †",   _fmt(stats["transparency_7timer"], ".1f"),   _norm(stats["transparency_7timer"],      1,   8, False))
+                    (c9,) = st.columns(1)
+                    bortle = stats.get("bortle_class")
+                    bortle_display = f"Class {bortle}" if bortle is not None else "—"
+                    bortle_norm = _norm(bortle, 1, 9, higher_is_better=False) if bortle is not None else None
+                    _colored_metric(c9, "Bortle", bortle_display, bortle_norm)
 
             # ── Calendar heatmap ──────────────────────────────────────────────
             st.subheader("Night Quality Heatmap")
+            heatmap_score = st.radio("Heatmap score", ["🔭 Telescope", "👁 Naked Eye"], horizontal=True, key="heatmap_score")
+            score_key = "composite" if heatmap_score == "🔭 Telescope" else "naked_eye"
             pivot = (
-                pd.DataFrame([{"site": n["site"], "date": n["date"], "score": n["composite"]} for n in filtered])
+                pd.DataFrame([{"site": n["site"], "date": n["date"], "score": n[score_key]} for n in filtered])
                 .pivot_table(index="site", columns="date", values="score", aggfunc="first")
             )
             pivot.columns = [datetime.fromisoformat(d).strftime("%a %-d %b") for d in pivot.columns]

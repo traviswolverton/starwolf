@@ -30,6 +30,18 @@ def _score_humidity(rh: float) -> float:
     return max(0.0, min(100.0, (100.0 - rh) / 40.0 * 100.0))
 
 
+def _bortle_naked_eye_modifier(bortle_class: int | None) -> float:
+    """
+    Returns a multiplier (0.7–1.0) applied to the naked eye composite.
+    Bortle 1–2 → no penalty; Bortle 3–4 → mild; Bortle 5–6 → moderate; Bortle 7+ → heavy.
+    Returns 1.0 if bortle_class is None (unknown site).
+    """
+    if bortle_class is None:
+        return 1.0
+    modifiers = {1: 1.0, 2: 1.0, 3: 0.92, 4: 0.84, 5: 0.75, 6: 0.70, 7: 0.65, 8: 0.60, 9: 0.55}
+    return modifiers.get(bortle_class, 1.0)
+
+
 def _score_moon(obs_date: date, lat: float, lon: float, tz_str: str) -> float:
     """0–100, higher = better (low illumination + sets before dark ends)."""
     loc = LocationInfo(latitude=lat, longitude=lon, timezone=tz_str)
@@ -55,6 +67,16 @@ def _score_moon(obs_date: date, lat: float, lon: float, tz_str: str) -> float:
 
     moon_penalty = (illum / 100) * (1 - dark_hrs / 9)
     return round(max(0.0, min(100.0, (1 - moon_penalty) * 100)), 1)
+
+
+# Naked eye viewing weights — Bortle-adjusted, seeing irrelevant
+NAKED_EYE_WEIGHTS = {
+    "cloud_cover":  0.40,
+    "moon":         0.35,
+    "high_cloud":   0.10,
+    "humidity":     0.10,
+    "lifted_index": 0.05,
+}
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -160,10 +182,17 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
             "humidity":     _score_humidity(avg_rh if avg_rh is not None else 50),
         }
 
+        bortle = site.get("bortle_class")
+
         composite = sum(
             factor_scores.get(factor, 50.0) * weight
             for factor, weight in weights.items()
         )
+
+        naked_eye_composite = sum(
+            factor_scores.get(factor, 50.0) * weight
+            for factor, weight in NAKED_EYE_WEIGHTS.items()
+        ) * _bortle_naked_eye_modifier(bortle)
 
         # 7timer supplemental seeing + transparency (not in composite score)
         st7_slots = st7_nights.get(night_date, [])
@@ -174,6 +203,7 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
             "site":      site["name"],
             "date":      night_date.isoformat(),
             "composite": round(composite, 1),
+            "naked_eye": round(naked_eye_composite, 1),
             "factors":   {k: round(v, 1) for k, v in factor_scores.items()},
             "stats": {
                 "avg_cloud_cover":  round(avg_cloud, 1)    if avg_cloud is not None else None,
@@ -183,6 +213,7 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
                 "night_hours":      len(idxs),
                 "seeing_7timer":    round(sum(st7_seeing) / len(st7_seeing), 1) if st7_seeing else None,
                 "transparency_7timer": round(sum(st7_trans) / len(st7_trans), 1) if st7_trans else None,
+                "bortle_class":     bortle,
             },
         }
         if disq_reasons:
