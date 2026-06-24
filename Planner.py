@@ -93,6 +93,14 @@ if not st.session_state.show_results:
     active_sites = _load_active_sites()
     total_sites = len(st.session_state.site_active)
 
+    if not st.session_state.get("user_location"):
+        st.warning(
+            "**No location set.** Distances to sites won't appear in results, "
+            "and the proximity filter on the Sites page won't be pre-filled.",
+            icon="📍",
+        )
+        st.page_link("pages/0_Location.py", label="Set your location →", icon="📍")
+
     st.markdown("""
 ### How it works
 
@@ -123,14 +131,6 @@ Use the pages in the left sidebar to set up your forecast, then come back here a
         f"{len(active_sites)} of {total_sites} site(s) active this session — "
         f"manage in **Sites**, adjust timezone and score threshold in **Preferences**."
     )
-
-    if not st.session_state.get("user_location"):
-        st.warning(
-            "**No location set.** Distances to sites won't appear in results, "
-            "and the proximity filter on the Sites page won't be pre-filled.",
-            icon="📍",
-        )
-        st.page_link("pages/0_Location.py", label="Set your location →", icon="📍")
 
     if st.button("Run Forecast", type="primary", disabled=not active_sites):
         with st.spinner("Fetching forecasts…"):
