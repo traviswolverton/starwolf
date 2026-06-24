@@ -82,7 +82,7 @@ def init_session_settings() -> None:
 
 def render_sidebar() -> None:
     """Show the user's stored location and credits at the bottom of the sidebar."""
-    st.logo("starwolf-logo.svg", size="large")
+    st.sidebar.image("starwolf-logo.svg", use_container_width=True)
     st.markdown("""
 <style>
 @media screen and (max-width: 640px) {
