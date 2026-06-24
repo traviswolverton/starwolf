@@ -100,17 +100,43 @@ if not st.session_state.show_results:
     active_sites = _load_active_sites()
     total_sites = len(st.session_state.site_active)
 
-    if not st.session_state.get("user_location"):
-        st.warning(
-            "**No location set.** Distances to sites won't appear in results, "
-            "and the proximity filter on the Sites page won't be pre-filled.",
-            icon="📍",
-        )
-        st.page_link("pages/0_Location.py", label="Set your location →", icon="📍")
+    if st.button("Run Forecast", type="primary", use_container_width=True, disabled=not active_sites):
+        st.session_state.nights = _fetch_and_score()
+        st.session_state.show_results = True
+        st.rerun()
+    st.caption(f"{len(active_sites)} of {total_sites} sites active · {st.session_state.timezone}")
 
-    st.markdown("""
-### How it works
+    col_loc, col_sites, col_prefs = st.columns(3)
 
+    loc = st.session_state.get("user_location")
+    with col_loc:
+        with st.container(border=True):
+            if loc:
+                st.markdown("✅ **Location**")
+                st.caption(loc["display"])
+            else:
+                st.markdown("⚙️ **Location**")
+                st.caption("Not set")
+                st.page_link("pages/0_Location.py", label="Set location →")
+
+    with col_sites:
+        with st.container(border=True):
+            if len(active_sites) > 0:
+                st.markdown("✅ **Sites**")
+                st.caption(f"{len(active_sites)} of {total_sites} active")
+            else:
+                st.markdown("⚙️ **Sites**")
+                st.caption("No sites active")
+            st.page_link("pages/1_Sites.py", label="Manage sites →")
+
+    with col_prefs:
+        with st.container(border=True):
+            st.markdown("✅ **Preferences**")
+            st.caption(f"Threshold {st.session_state.min_score_threshold} · {st.session_state.timezone}")
+            st.page_link("pages/2_Preferences.py", label="Adjust →")
+
+    with st.expander("How it works", expanded=False):
+        st.markdown("""
 Use the pages in the left sidebar to set up your forecast, then come back here and hit **Run Forecast**.
 
 **1 · Location** — Enter your home base (city, zip, or address) to unlock distances and pre-fill the proximity filter on the Sites page.
@@ -120,11 +146,10 @@ Use the pages in the left sidebar to set up your forecast, then come back here a
 **3 · Preferences** — Set your timezone, minimum score threshold, and hard disqualifier limits (cloud cover, precipitation, visibility).
 
 **4 · Planner** ← you are here — Hit **Run Forecast** to score every upcoming night across all active sites.
+""")
 
----
-
-### Reading your results
-
+    with st.expander("Reading your results", expanded=False):
+        st.markdown("""
 - **Score (0–100)** — Composite quality across cloud cover, moon phase, stability, and humidity. **70+** is worth the drive; **below 40** is likely a bust.
 - **Cloud %** — Average nighttime cloud cover. Under 20% is ideal.
 - **Moon** — Combines illumination and hours above the horizon. Higher = darker sky.
@@ -132,18 +157,6 @@ Use the pages in the left sidebar to set up your forecast, then come back here a
 - **Heatmap** — All sites and nights at a glance. Green = great, red = poor.
 - **Disqualified nights** — Collapsed at the bottom; tap to see what was excluded and why.
 """)
-
-    st.divider()
-    st.caption(
-        f"{len(active_sites)} of {total_sites} site(s) active this session — "
-        f"manage in **Sites**, adjust timezone and score threshold in **Preferences**."
-    )
-
-    if st.button("Run Forecast", type="primary", disabled=not active_sites):
-        with st.spinner("Fetching forecasts…"):
-            st.session_state.nights = _fetch_and_score()
-        st.session_state.show_results = True
-        st.rerun()
 
 else:
     if st.button("← Back"):
