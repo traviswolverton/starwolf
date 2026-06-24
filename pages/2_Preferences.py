@@ -1,6 +1,9 @@
+import pandas as pd
 import streamlit as st
 
-from db import get_settings, init_db
+from sqlalchemy import text
+from db import get_engine, get_settings, init_db
+from scorer import NAKED_EYE_WEIGHTS
 from utils import KM_TO_MI, init_session_settings, render_sidebar
 
 init_db()
@@ -122,6 +125,64 @@ else:
     )
 if min_vis_km != st.session_state.disq_min_visibility_km:
     st.session_state.disq_min_visibility_km = min_vis_km
+
+# ── Reset ──────────────────────────────────────────────────────────────────────
+
+# ── Scoring Weights ────────────────────────────────────────────────────────────
+
+st.divider()
+st.subheader("Scoring Weights")
+st.caption(
+    "How each factor contributes to the two composite scores. "
+    "Telescope weights are stored in the database; naked eye weights are fixed constants."
+)
+
+_FACTOR_LABELS = {
+    "cloud_cover":  "Cloud Cover",
+    "high_cloud":   "High Cloud",
+    "moon":         "Moon",
+    "lifted_index": "Stability (LI)",
+    "humidity":     "Humidity",
+}
+
+with get_engine().connect() as _conn:
+    _tel_rows = _conn.execute(
+        text("SELECT factor, weight, description FROM scoring_weights ORDER BY weight DESC")
+    ).fetchall()
+
+_col_tel, _col_eye = st.columns(2)
+
+with _col_tel:
+    st.markdown("**🔭 Telescope**")
+    st.dataframe(
+        pd.DataFrame([
+            {
+                "Factor":  _FACTOR_LABELS.get(r.factor, r.factor),
+                "Weight":  f"{r.weight * 100:.0f}%",
+                "Notes":   r.description,
+            }
+            for r in _tel_rows
+        ]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+with _col_eye:
+    st.markdown("**👁 Naked Eye**")
+    _desc = {r.factor: r.description for r in _tel_rows}
+    st.dataframe(
+        pd.DataFrame([
+            {
+                "Factor":  _FACTOR_LABELS.get(f, f),
+                "Weight":  f"{w * 100:.0f}%",
+                "Notes":   _desc.get(f, ""),
+            }
+            for f, w in sorted(NAKED_EYE_WEIGHTS.items(), key=lambda x: -x[1])
+        ]),
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.caption("Plus a Bortle class modifier (0.55–1.0×) applied to the total.")
 
 # ── Reset ──────────────────────────────────────────────────────────────────────
 
