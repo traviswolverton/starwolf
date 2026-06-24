@@ -1,3 +1,6 @@
+import hashlib
+
+import requests as _req
 import streamlit as st
 from sqlalchemy import text
 from db import get_engine, get_settings
@@ -80,8 +83,48 @@ def init_session_settings() -> None:
         st.session_state.units = "metric"
 
 
+def _log_visitor() -> None:
+    if st.session_state.get("_visitor_logged"):
+        return
+    st.session_state._visitor_logged = True
+    try:
+        headers = st.context.headers
+        ip = (
+            headers.get("X-Forwarded-For", "").split(",")[0].strip()
+            or headers.get("X-Real-Ip", "")
+        )
+        if not ip or ip in ("127.0.0.1", "::1", ""):
+            return
+        ip_hash = hashlib.sha256(ip.encode()).hexdigest()
+        # Skip if we already logged this IP in the last 24 hours
+        with get_engine().connect() as conn:
+            seen = conn.execute(
+                text("SELECT 1 FROM visitors WHERE ip_hash = :h AND visited_at > NOW() - INTERVAL '24 hours' LIMIT 1"),
+                {"h": ip_hash},
+            ).fetchone()
+        if seen:
+            return
+        geo = _req.get(
+            f"http://ip-api.com/json/{ip}?fields=status,city,regionName,country,countryCode,lat,lon",
+            timeout=3,
+        ).json()
+        if geo.get("status") != "success":
+            return
+        with get_engine().begin() as conn:
+            conn.execute(
+                text("INSERT INTO visitors (ip_hash, city, region, country, country_code, lat, lon) "
+                     "VALUES (:h, :city, :region, :country, :cc, :lat, :lon)"),
+                {"h": ip_hash, "city": geo["city"], "region": geo["regionName"],
+                 "country": geo["country"], "cc": geo["countryCode"],
+                 "lat": geo["lat"], "lon": geo["lon"]},
+            )
+    except Exception:
+        pass  # never break the app for analytics
+
+
 def render_sidebar() -> None:
     """Show the user's stored location and credits at the bottom of the sidebar."""
+    _log_visitor()
     st.logo("starwolf-logo.svg")
     st.markdown("""
 <style>

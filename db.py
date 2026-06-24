@@ -87,6 +87,23 @@ def init_db() -> None:
             )
         """))
 
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS visitors (
+                id           SERIAL PRIMARY KEY,
+                visited_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                ip_hash      TEXT        NOT NULL,
+                city         TEXT,
+                region       TEXT,
+                country      TEXT,
+                country_code TEXT,
+                lat          REAL,
+                lon          REAL
+            )
+        """))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS visitors_visited_at_idx ON visitors (visited_at)"
+        ))
+
         if conn.execute(text("SELECT COUNT(*) FROM sites")).scalar() == 0:
             conn.execute(
                 text("INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active) "
