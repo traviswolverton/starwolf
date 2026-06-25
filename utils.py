@@ -176,6 +176,18 @@ def render_sidebar() -> None:
         )
 
     st.sidebar.divider()
+    with st.sidebar.expander("📋 Release Notes", expanded=False):
+        from release_notes import load_release_notes
+        releases = load_release_notes().get("releases", [])
+        if not releases:
+            st.caption("No release notes available.")
+        for release in releases:
+            version_str = f" — v{release['version']}" if release.get("version") else ""
+            st.markdown(f"**{release['date']}{version_str}**")
+            for note in release.get("notes", []):
+                st.markdown(f"- {note}")
+
+    st.sidebar.divider()
     st.sidebar.caption("**Credits**")
     st.sidebar.caption(
         "**Data:** [Open-Meteo](https://open-meteo.com) · "
