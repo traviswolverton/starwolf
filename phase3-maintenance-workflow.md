@@ -12,16 +12,18 @@ Its structure is:
   "releases": [
     {
       "date": "YYYY-MM-DD",
-      "notes": [
-        "User-facing bullet one.",
-        "User-facing bullet two."
+      "features": [
+        "Added something new the user can do or see."
+      ],
+      "fixes": [
+        "Fixed an issue where something wasn't working correctly."
       ]
     }
   ]
 }
 ```
 
-Releases are ordered newest-first. One entry per deployment date; if multiple changes ship the same day, their notes are merged into a single entry.
+Releases are ordered newest-first. One entry per deployment date; if multiple changes ship the same day, their notes are merged into a single entry. Either `features` or `fixes` may be an empty array if there's nothing to report in that category.
 
 ---
 

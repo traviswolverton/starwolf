@@ -3,7 +3,7 @@
 A multi-user Streamlit web app for planning optimal stargazing nights at dark-sky sites. Pulls live weather and atmospheric data, combines it with moon phase calculations and astronomer-specific seeing forecasts, and scores each site/night combination so you can pick the best window for your trip.
 
 Live instance: [starwolf.wolvertons.net](https://starwolf.wolvertons.net)
-Source: [gitea.wolvertons.net/travis/stargazing-app](https://gitea.wolvertons.net/travis/stargazing-app)
+Source: [github.com/traviswolverton/starwolf](https://github.com/traviswolverton/starwolf)
 
 ---
 
@@ -42,8 +42,9 @@ stargazing-app/
 │   ├── 1_Sites.py                  # Site catalog management
 │   ├── 2_Preferences.py            # Per-session user settings + live scoring weights
 │   ├── 3_Admin.py                  # Password-gated admin panel
-│   ├── 4_Feedback.py               # In-app feedback → Gitea issues
-│   └── 5_Visitors.py               # Visitor map and stats (IP geolocation)
+│   ├── 4_Feedback.py               # In-app feedback → GitHub issues
+│   ├── 5_Visitors.py               # Visitor map and stats (IP geolocation)
+│   └── 6_About.py                  # Data sources, architecture, and credits
 ├── forecast.py                     # Open-Meteo + 7timer API client (Redis-cached)
 ├── scorer.py                       # Composite night quality scorer
 ├── cache.py                        # Redis wrapper with silent fallback
@@ -66,8 +67,9 @@ stargazing-app/
 | **Sites** | Manage the site catalog — activate/deactivate, add by address, import from IDA |
 | **Preferences** | Session timezone, min score threshold, hard disqualifiers, unit system, live scoring weights |
 | **Admin** | Password-gated; scoring weights and app-wide settings (forecast horizon, etc.) |
-| **Feedback** | Submit bug reports and feature requests directly to the Gitea issue tracker |
+| **Feedback** | Submit bug reports and feature requests directly to the GitHub issue tracker |
 | **Visitors** | Map and table of recent visitors (IP geolocation via ip-api.com) |
+| **About** | Data source attribution, scoring explanation, architecture overview, and credits |
 
 ### Session State
 
@@ -310,14 +312,14 @@ Shared helpers used across all pages:
 ### 1. Clone and configure secrets
 
 ```bash
-git clone https://gitea.wolvertons.net/travis/stargazing-app
-cd stargazing-app
+git clone https://github.com/traviswolverton/starwolf
+cd starwolf
 ```
 
 Create `.streamlit/secrets.toml` (git-ignored):
 ```toml
-admin_password  = "your-admin-password"
-gitea_token     = "your-gitea-token"   # for the in-app feedback form
+admin_password = "your-admin-password"
+github_token   = "your-github-token"   # fine-grained PAT, Issues: Read & Write
 ```
 
 ### 2. Start the stack
