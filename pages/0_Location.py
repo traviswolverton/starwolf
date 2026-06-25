@@ -95,14 +95,12 @@ if st.session_state.get("_prompt_add_site") and st.session_state.user_location:
                             },
                         )
                     del st.session_state._prompt_add_site
-                    # Force site_active to re-sync on next load
                     st.session_state.pop("site_active", None)
-                    st.success(f"**{site_name.strip()}** added to your site catalog.")
-                    st.rerun()
+                    st.switch_page("Planner.py")
         with col_skip:
             if st.button("Skip", use_container_width=True):
                 del st.session_state._prompt_add_site
-                st.rerun()
+                st.switch_page("Planner.py")
 
     st.divider()
 
@@ -110,9 +108,13 @@ if st.session_state.get("_prompt_add_site") and st.session_state.user_location:
 if st.session_state.user_location and not st.session_state.get("_prompt_add_site"):
     l = st.session_state.user_location
     st.info(f"📍 **{l['display']}**  \n`{l['lat']:.4f}, {l['lon']:.4f}`")
-    if st.button("Clear location"):
-        st.session_state.user_location = None
-        st.rerun()
+    col_back, col_clear = st.columns([2, 1])
+    with col_back:
+        st.page_link("Planner.py", label="← Back to Planner")
+    with col_clear:
+        if st.button("Clear location", use_container_width=True):
+            st.session_state.user_location = None
+            st.rerun()
     st.divider()
 
 # ── Browser geolocation ────────────────────────────────────────────────────────
