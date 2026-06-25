@@ -10,6 +10,8 @@ from sqlalchemy import text
 from db import get_engine, get_settings, init_db
 from osm_import import _haversine
 from utils import KM_TO_MI, dist_display, dist_unit, sync_site_active, init_session_settings, render_sidebar
+from release_notes import get_notes_since, get_notes_last_n_days
+from visit_tracker import get_cookie_manager, get_last_visit, set_last_visit
 
 init_db()
 
@@ -92,6 +94,39 @@ def _colored_metric(col, label: str, display: str, norm: float | None) -> None:
         f"</div>",
         unsafe_allow_html=True,
     )
+
+
+# ── What's New ────────────────────────────────────────────────────────────────
+
+if "whats_new_shown" not in st.session_state:
+    st.session_state.whats_new_shown = False
+
+if not st.session_state.whats_new_shown:
+    _cm = get_cookie_manager()
+    _last_visit = get_last_visit(_cm)
+
+    if _last_visit is not None:
+        _new_releases = get_notes_since(_last_visit)
+        _heading = "✨ What's New Since Your Last Visit"
+    else:
+        _new_releases = get_notes_last_n_days(7)
+        _heading = "✨ What's New in StarWolf"
+
+    if _new_releases:
+        with st.container():
+            st.markdown(f"### {_heading}")
+            for _r in _new_releases:
+                _v = f" — v{_r['version']}" if _r.get("version") else ""
+                st.markdown(f"**{_r['date']}{_v}**")
+                for _note in _r.get("notes", []):
+                    st.markdown(f"- {_note}")
+            if st.button("Got it!", key="whats_new_dismiss"):
+                set_last_visit(_cm)
+                st.session_state.whats_new_shown = True
+                st.rerun()
+    else:
+        set_last_visit(_cm)
+        st.session_state.whats_new_shown = True
 
 
 # ── Site selection / results ───────────────────────────────────────────────────
