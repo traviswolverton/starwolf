@@ -69,14 +69,6 @@ def _score_moon(obs_date: date, lat: float, lon: float, tz_str: str) -> float:
     return round(max(0.0, min(100.0, (1 - moon_penalty) * 100)), 1)
 
 
-# Naked eye viewing weights — Bortle-adjusted, seeing irrelevant
-NAKED_EYE_WEIGHTS = {
-    "cloud_cover":  0.40,
-    "moon":         0.35,
-    "high_cloud":   0.10,
-    "humidity":     0.10,
-    "lifted_index": 0.05,
-}
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -116,6 +108,12 @@ def _load_weights() -> dict:
     return dict(rows)
 
 
+def _load_naked_eye_weights() -> dict:
+    with get_engine().connect() as conn:
+        rows = conn.execute(text("SELECT factor, weight FROM naked_eye_weights")).fetchall()
+    return dict(rows)
+
+
 def _avg(values: list) -> float | None:
     clean = [v for v in values if v is not None and not (isinstance(v, float) and math.isnan(v))]
     return sum(clean) / len(clean) if clean else None
@@ -140,6 +138,7 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
         return []
 
     weights = _load_weights()
+    naked_eye_weights = _load_naked_eye_weights()
 
     hourly = om["hourly"]
     times = hourly["time"]
@@ -191,7 +190,7 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
 
         naked_eye_composite = sum(
             factor_scores.get(factor, 50.0) * weight
-            for factor, weight in NAKED_EYE_WEIGHTS.items()
+            for factor, weight in naked_eye_weights.items()
         ) * _bortle_naked_eye_modifier(bortle)
 
         # 7timer supplemental seeing + transparency (not in composite score)

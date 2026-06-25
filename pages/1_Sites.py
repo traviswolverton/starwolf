@@ -140,7 +140,12 @@ with col_off:
 
 def load_sites() -> pd.DataFrame:
     with get_engine().connect() as conn:
-        df = pd.read_sql(text("SELECT * FROM sites ORDER BY name"), conn)
+        df = pd.read_sql(text("""
+            SELECT s.*, COALESCE(st.display_name, s.site_type) AS site_type_display
+            FROM sites s
+            LEFT JOIN site_types st ON s.site_type = st.code
+            ORDER BY s.name
+        """), conn)
     active = st.session_state.site_active
     df["active"] = df["id"].map(lambda i: active.get(i, True)).astype(bool)
     df["map"] = df.apply(
@@ -159,11 +164,12 @@ def save_sites(df: pd.DataFrame) -> None:
     with get_engine().begin() as conn:
         conn.execute(text("DELETE FROM sites"))
         conn.execute(
-            text("INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active) "
-                 "VALUES (:name, :lat, :lon, :bortle, :elev, :notes, :active)"),
+            text("INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active, site_type) "
+                 "VALUES (:name, :lat, :lon, :bortle, :elev, :notes, :active, :site_type)"),
             [{"name": row["name"], "lat": row["lat"], "lon": row["lon"],
               "bortle": row.get("bortle_class"), "elev": row.get("elevation_m"),
-              "notes": row.get("notes"), "active": int(row["active"])}
+              "notes": row.get("notes"), "active": int(row["active"]),
+              "site_type": row.get("site_type")}
              for _, row in df.iterrows()],
         )
         rows = conn.execute(text("SELECT id, active FROM sites")).fetchall()
@@ -189,13 +195,14 @@ if has_dist:
         lambda v: round(v * KM_TO_MI) if is_imperial else v
     )
 
-col_order = ["map", "name", "lat", "lon", "bortle_class", "elevation_m", "notes", "active"]
+col_order = ["map", "name", "site_type_display", "lat", "lon", "bortle_class", "elevation_m", "notes", "active"]
 if has_dist:
     col_order = ["dist_km"] + col_order
 
 col_config = {
-    "map":          st.column_config.LinkColumn("Map", display_text="🗺️", disabled=True, width="small"),
-    "name":         st.column_config.TextColumn("Name", required=True),
+    "map":               st.column_config.LinkColumn("Map", display_text="🗺️", disabled=True, width="small"),
+    "name":              st.column_config.TextColumn("Name", required=True),
+    "site_type_display": st.column_config.TextColumn("Type", disabled=True, width="medium"),
     "lat":          st.column_config.NumberColumn("Latitude",  format="%.4f", min_value=-90,  max_value=90),
     "lon":          st.column_config.NumberColumn("Longitude", format="%.4f", min_value=-180, max_value=180),
     "bortle_class": st.column_config.NumberColumn("Bortle Class", min_value=1, max_value=9, step=1),
@@ -219,7 +226,7 @@ edited_sites = st.data_editor(
 )
 if is_admin and st.button("Save Sites"):
     save_sites(
-        edited_sites.drop(columns=["dist_km", "map"], errors="ignore").dropna(subset=["name"])
+        edited_sites.drop(columns=["dist_km", "map", "site_type_display"], errors="ignore").dropna(subset=["name"])
     )
     st.success("Sites saved.")
 

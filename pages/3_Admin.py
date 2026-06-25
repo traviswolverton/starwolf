@@ -52,7 +52,7 @@ if not _check_password():
 
 # ── Admin tabs ─────────────────────────────────────────────────────────────────
 
-tab_weights, tab_settings, tab_bortle = st.tabs(["Scoring Weights", "App Settings", "Bortle Lookup"])
+tab_weights, tab_naked_eye, tab_settings, tab_bortle = st.tabs(["Telescope Weights", "Naked Eye Weights", "App Settings", "Bortle Lookup"])
 
 
 def load_weights() -> pd.DataFrame:
@@ -72,8 +72,8 @@ def save_weights(df: pd.DataFrame) -> None:
 
 
 with tab_weights:
-    st.subheader("Scoring Weights")
-    st.caption("Weights must sum to 1.00. Each factor contributes that fraction to the 0–100 night quality score.")
+    st.subheader("Telescope Weights")
+    st.caption("Weights must sum to 1.00. Each factor contributes that fraction to the 0–100 telescope night quality score.")
     weights_df = load_weights()
     edited_weights = st.data_editor(
         weights_df,
@@ -94,6 +94,51 @@ with tab_weights:
     if st.button("Save Weights", disabled=(abs(total - 1.0) > 0.001)):
         save_weights(edited_weights.dropna(subset=["factor"]))
         st.success("Weights saved.")
+
+
+def load_naked_eye_weights() -> pd.DataFrame:
+    with get_engine().connect() as conn:
+        df = pd.read_sql(text("SELECT * FROM naked_eye_weights ORDER BY factor"), conn)
+    return df.drop(columns=["id"])
+
+
+def save_naked_eye_weights(df: pd.DataFrame) -> None:
+    with get_engine().begin() as conn:
+        conn.execute(text("DELETE FROM naked_eye_weights"))
+        conn.execute(
+            text("INSERT INTO naked_eye_weights (factor, weight, description) VALUES (:factor, :weight, :desc)"),
+            [{"factor": row["factor"], "weight": row["weight"], "desc": row.get("description")}
+             for _, row in df.iterrows()],
+        )
+
+
+with tab_naked_eye:
+    st.subheader("Naked Eye Weights")
+    st.caption(
+        "Weights must sum to 1.00. "
+        "Seeing stability matters less for naked eye; moon and cloud cover dominate. "
+        "A Bortle penalty (separate from these weights) is also applied based on each site's light pollution."
+    )
+    naked_eye_df = load_naked_eye_weights()
+    edited_naked_eye = st.data_editor(
+        naked_eye_df,
+        num_rows="dynamic",
+        use_container_width=True,
+        column_config={
+            "factor":      st.column_config.TextColumn("Factor", required=True),
+            "weight":      st.column_config.NumberColumn("Weight", min_value=0.0, max_value=1.0, format="%.2f", required=True),
+            "description": st.column_config.TextColumn("Description", width="large"),
+        },
+        key="naked_eye_weights_editor",
+    )
+    ne_total = edited_naked_eye["weight"].sum()
+    if abs(ne_total - 1.0) > 0.001:
+        st.warning(f"Weights sum to **{ne_total:.3f}** — must equal 1.00 before saving.")
+    else:
+        st.success(f"Weights sum to **{ne_total:.2f}**")
+    if st.button("Save Naked Eye Weights", disabled=(abs(ne_total - 1.0) > 0.001)):
+        save_naked_eye_weights(edited_naked_eye.dropna(subset=["factor"]))
+        st.success("Naked eye weights saved.")
 
 
 def load_settings() -> pd.DataFrame:

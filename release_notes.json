@@ -4,7 +4,11 @@
       "date": "2026-06-25",
       "features": [
         "Added a GitHub icon in the bottom-right corner — always visible, links to the source code.",
-        "The sidebar menu button on mobile now pulses green so it's easier to spot."
+        "The sidebar menu button on mobile now pulses green so it's easier to spot.",
+        "Each site in the catalog now shows its category — IDA Certified, Texas State Park, National Park, National Forest, Observatory, or IDA Dark Sky Community.",
+        "Added 30+ new Texas stargazing sites to the catalog, including Davis Mountains, Enchanted Rock, Big Bend, McDonald Observatory, and IDA Dark Sky Communities like Fredericksburg and Fort Davis.",
+        "Naked eye scoring weights are now configurable in the Admin panel — adjust how much cloud cover, moon phase, and other factors influence the 👁 score, just like you can for the 🔭 score.",
+        "Renamed 'Scoring Weights' to 'Telescope Weights' in the Admin panel to make the distinction clear."
       ],
       "fixes": [
         "Restructured release notes into Features / Bug Fixes sections.",

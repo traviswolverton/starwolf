@@ -13,9 +13,19 @@ def _load_ida_sites() -> list[dict]:
     return [
         {"name": s["name"], "lat": s["lat"], "lon": s["lon"],
          "bortle": s.get("bortle_class"), "elev": s.get("elevation_m"),
-         "notes": s.get("notes"), "active": 0}
+         "notes": s.get("notes"), "active": 0, "site_type": "ida_certified"}
         for s in sites
     ]
+
+_SITE_TYPES_SEED = [
+    ("ida_certified",   "IDA Certified"),
+    ("tx_state_park",   "Texas State Park"),
+    ("national_park",   "National Park"),
+    ("national_forest", "National Forest"),
+    ("observatory",     "Observatory"),
+    ("private",         "Private"),
+    ("community",       "IDA Dark Sky Community"),
+]
 
 _WEIGHTS_SEED = [
     ("cloud_cover",  0.35, "Total sky coverage penalty"),
@@ -23,6 +33,14 @@ _WEIGHTS_SEED = [
     ("moon",         0.25, "Moon illumination + hours above horizon"),
     ("lifted_index", 0.15, "Atmospheric stability / seeing proxy"),
     ("humidity",     0.10, "Dew risk and sky transparency"),
+]
+
+_NAKED_EYE_WEIGHTS_SEED = [
+    ("cloud_cover",  0.40, "Total sky coverage penalty"),
+    ("moon",         0.35, "Moon illumination + hours above horizon (dominant for naked eye)"),
+    ("high_cloud",   0.10, "High cirrus penalty"),
+    ("humidity",     0.10, "Dew risk and sky transparency"),
+    ("lifted_index", 0.05, "Atmospheric stability (less critical for naked eye than telescope)"),
 ]
 
 _SETTINGS_SEED = [
@@ -78,11 +96,29 @@ def init_db() -> None:
                 bortle_class  INTEGER,
                 elevation_m   REAL,
                 notes         TEXT,
-                active        INTEGER NOT NULL DEFAULT 1
+                active        INTEGER NOT NULL DEFAULT 1,
+                site_type     TEXT    CHECK (site_type IN (
+                                  'ida_certified', 'tx_state_park', 'national_park',
+                                  'national_forest', 'observatory', 'private', 'community'
+                              ))
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS site_types (
+                code         TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL
             )
         """))
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS scoring_weights (
+                id          SERIAL PRIMARY KEY,
+                factor      TEXT NOT NULL UNIQUE,
+                weight      REAL NOT NULL,
+                description TEXT
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS naked_eye_weights (
                 id          SERIAL PRIMARY KEY,
                 factor      TEXT NOT NULL UNIQUE,
                 weight      REAL NOT NULL,
@@ -114,10 +150,27 @@ def init_db() -> None:
             "CREATE INDEX IF NOT EXISTS visitors_visited_at_idx ON visitors (visited_at)"
         ))
 
+        # Migrate existing installs that predate the site_type column
+        conn.execute(text("""
+            ALTER TABLE sites ADD COLUMN IF NOT EXISTS site_type TEXT CHECK (site_type IN (
+                'ida_certified', 'tx_state_park', 'national_park',
+                'national_forest', 'observatory', 'private', 'community'
+            ))
+        """))
+        conn.execute(text(
+            "UPDATE sites SET site_type = 'ida_certified' WHERE site_type IS NULL"
+        ))
+
+        if conn.execute(text("SELECT COUNT(*) FROM site_types")).scalar() == 0:
+            conn.execute(
+                text("INSERT INTO site_types (code, display_name) VALUES (:code, :display_name)"),
+                [{"code": c, "display_name": d} for c, d in _SITE_TYPES_SEED],
+            )
+
         if conn.execute(text("SELECT COUNT(*) FROM sites")).scalar() == 0:
             conn.execute(
-                text("INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active) "
-                     "VALUES (:name, :lat, :lon, :bortle, :elev, :notes, :active)"),
+                text("INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active, site_type) "
+                     "VALUES (:name, :lat, :lon, :bortle, :elev, :notes, :active, :site_type)"),
                 _load_ida_sites(),
             )
 
@@ -125,6 +178,12 @@ def init_db() -> None:
             conn.execute(
                 text("INSERT INTO scoring_weights (factor, weight, description) VALUES (:factor, :weight, :desc)"),
                 [{"factor": r[0], "weight": r[1], "desc": r[2]} for r in _WEIGHTS_SEED],
+            )
+
+        if conn.execute(text("SELECT COUNT(*) FROM naked_eye_weights")).scalar() == 0:
+            conn.execute(
+                text("INSERT INTO naked_eye_weights (factor, weight, description) VALUES (:factor, :weight, :desc)"),
+                [{"factor": r[0], "weight": r[1], "desc": r[2]} for r in _NAKED_EYE_WEIGHTS_SEED],
             )
 
         if conn.execute(text("SELECT COUNT(*) FROM app_settings")).scalar() == 0:
