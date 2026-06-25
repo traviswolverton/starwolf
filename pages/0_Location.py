@@ -2,10 +2,13 @@ import requests as _req
 import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
 from sqlalchemy import text
+from timezonefinder import TimezoneFinder
 
 from db import get_engine, init_db
 from osm_import import geocode, _haversine
 from utils import init_session_settings, render_sidebar
+
+_tf = TimezoneFinder()
 
 init_db()
 init_session_settings()
@@ -27,6 +30,10 @@ def _set_location(lat: float, lon: float, text_label: str, display: str) -> None
         "lon": lon,
         "display": display,
     }
+    tz = _tf.timezone_at(lat=lat, lng=lon)
+    if tz:
+        st.session_state.timezone = tz
+        st.session_state.timezone_auto = True
     st.session_state._prompt_add_site = True
 
 

@@ -51,6 +51,9 @@ COMMON_TIMEZONES = [
     "UTC",
 ]
 
+if st.session_state.get("timezone_auto"):
+    st.caption(f"Auto-detected from your location: **{st.session_state.timezone}**. Override below if needed.")
+
 tz_options = COMMON_TIMEZONES[:]
 if st.session_state.timezone not in tz_options:
     tz_options.insert(0, st.session_state.timezone)
@@ -64,6 +67,7 @@ tz = st.selectbox(
 )
 if tz != st.session_state.timezone:
     st.session_state.timezone = tz
+    st.session_state.timezone_auto = False
     st.rerun()
 
 # ── Minimum Score Threshold ────────────────────────────────────────────────────
@@ -189,7 +193,19 @@ with _col_eye:
 st.divider()
 if st.button("Reset to defaults"):
     settings = get_settings()
-    st.session_state.timezone = settings.get("timezone", "America/Chicago")
+    loc = st.session_state.get("user_location")
+    if loc:
+        from timezonefinder import TimezoneFinder
+        tz_auto = TimezoneFinder().timezone_at(lat=loc["lat"], lng=loc["lon"])
+        if tz_auto:
+            st.session_state.timezone = tz_auto
+            st.session_state.timezone_auto = True
+        else:
+            st.session_state.timezone = settings.get("timezone", "America/Chicago")
+            st.session_state.timezone_auto = False
+    else:
+        st.session_state.timezone = settings.get("timezone", "America/Chicago")
+        st.session_state.timezone_auto = False
     st.session_state.min_score_threshold = int(settings.get("min_score_threshold", "40"))
     st.session_state.disq_max_cloud_cover = int(settings.get("disq_max_cloud_cover", "85"))
     st.session_state.disq_max_precip_prob = int(settings.get("disq_max_precip_prob", "40"))

@@ -20,44 +20,45 @@ is_imperial = st.session_state.units == "imperial"
 
 # ── Activate by proximity ──────────────────────────────────────────────────────
 
-with st.expander("Activate by proximity"):
-    # Pre-fill from stored user location if the widget hasn't been touched yet
-    if "prox_location" not in st.session_state and st.session_state.user_location:
-        st.session_state.prox_location = st.session_state.user_location["text"]
+st.subheader("Activate by Proximity")
 
-    prox_location = st.text_input("Location, zip, or postal code", key="prox_location")
+# Pre-fill from stored user location if the widget hasn't been touched yet
+if "prox_location" not in st.session_state and st.session_state.user_location:
+    st.session_state.prox_location = st.session_state.user_location["text"]
 
-    if is_imperial:
-        prox_radius_display = st.slider("Radius (mi)", min_value=6, max_value=3000, value=300, step=10)
-        prox_radius_km = prox_radius_display / KM_TO_MI
+prox_location = st.text_input("Location, zip, or postal code", key="prox_location")
+
+if is_imperial:
+    prox_radius_display = st.slider("Radius (mi)", min_value=6, max_value=3000, value=300, step=10)
+    prox_radius_km = prox_radius_display / KM_TO_MI
+else:
+    prox_radius_km = st.slider("Radius (km)", min_value=10, max_value=5000, value=500, step=10)
+    prox_radius_display = prox_radius_km
+
+if st.button("Activate Sites in Range"):
+    if not prox_location.strip():
+        st.warning("Enter a location.")
     else:
-        prox_radius_km = st.slider("Radius (km)", min_value=10, max_value=5000, value=500, step=10)
-        prox_radius_display = prox_radius_km
-
-    if st.button("Activate Sites in Range"):
-        if not prox_location.strip():
-            st.warning("Enter a location.")
-        else:
-            try:
-                with st.spinner("Updating…"):
-                    lat, lon, display = geocode(prox_location.strip())
-                    with get_engine().connect() as conn:
-                        all_sites = conn.execute(text("SELECT id, name, lat, lon FROM sites")).fetchall()
-                    new_active = dict(st.session_state.site_active)
-                    for site_id, name, slat, slon in all_sites:
-                        new_active[site_id] = _haversine(lat, lon, slat, slon) <= prox_radius_km
-                    st.session_state.site_active = new_active
-                # Save as user location if none is set yet
-                if not st.session_state.user_location:
-                    st.session_state.user_location = {"text": prox_location.strip(), "lat": lat, "lon": lon, "display": display}
-                activated = sum(1 for site_id, _, slat, slon in all_sites if new_active[site_id])
-                unit = dist_unit()
-                st.success(f"Activated {activated} site(s) within {prox_radius_display:.0f} {unit} of {display.split(',')[0]}.")
-                st.rerun()
-            except ValueError as e:
-                st.error(str(e))
-            except Exception as e:
-                st.error(f"Failed: {e}")
+        try:
+            with st.spinner("Updating…"):
+                lat, lon, display = geocode(prox_location.strip())
+                with get_engine().connect() as conn:
+                    all_sites = conn.execute(text("SELECT id, name, lat, lon FROM sites")).fetchall()
+                new_active = dict(st.session_state.site_active)
+                for site_id, name, slat, slon in all_sites:
+                    new_active[site_id] = _haversine(lat, lon, slat, slon) <= prox_radius_km
+                st.session_state.site_active = new_active
+            # Save as user location if none is set yet
+            if not st.session_state.user_location:
+                st.session_state.user_location = {"text": prox_location.strip(), "lat": lat, "lon": lon, "display": display}
+            activated = sum(1 for site_id, _, slat, slon in all_sites if new_active[site_id])
+            unit = dist_unit()
+            st.success(f"Activated {activated} site(s) within {prox_radius_display:.0f} {unit} of {display.split(',')[0]}.")
+            st.rerun()
+        except ValueError as e:
+            st.error(str(e))
+        except Exception as e:
+            st.error(f"Failed: {e}")
 
 # ── Bulk activate / deactivate ────────────────────────────────────────────────
 

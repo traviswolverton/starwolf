@@ -9,3 +9,4 @@ redis
 streamlit-geolocation
 fastapi
 uvicorn[standard]
+timezonefinder
