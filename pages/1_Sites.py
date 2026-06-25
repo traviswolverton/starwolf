@@ -94,7 +94,7 @@ def _bortle_ui(lat: float, lon: float, key: str) -> int | None:
 
 # ── Add home base ─────────────────────────────────────────────────────────────
 
-if _loc and is_admin:
+if _loc:
     dup = find_nearest_existing(_loc["lat"], _loc["lon"])
     with st.expander("Add your location as a site", expanded=not dup):
         if dup:
@@ -225,10 +225,6 @@ if is_admin and st.button("Save Sites"):
 
 
 # ── Add Site by Address ────────────────────────────────────────────────────────
-
-if not is_admin:
-    render_sidebar()
-    st.stop()
 
 with st.expander("Add Site by Address"):
     addr_input = st.text_input("Address, place name, zip, or postal code", key="addr_input")
