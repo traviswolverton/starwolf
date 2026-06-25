@@ -161,14 +161,23 @@ Use the pages in the left sidebar to set up your forecast, then come back here a
                     )
                     r_display = r_km
                 if st.button("Activate nearby", use_container_width=True):
-                    with get_engine().connect() as conn:
-                        all_db_sites = conn.execute(text("SELECT id, lat, lon FROM sites")).fetchall()
-                    st.session_state.site_active = {
-                        sid: _haversine(loc["lat"], loc["lon"], slat, slon) <= r_km
-                        for sid, slat, slon in all_db_sites
-                    }
-                    st.session_state.planner_radius_km = int(r_km)
-                    st.rerun()
+                    try:
+                        with get_engine().connect() as conn:
+                            all_db_sites = conn.execute(text("SELECT id, lat, lon FROM sites")).fetchall()
+                        new_active = {
+                            sid: _haversine(loc["lat"], loc["lon"], slat, slon) <= r_km
+                            for sid, slat, slon in all_db_sites
+                        }
+                        n = sum(1 for v in new_active.values() if v)
+                        st.session_state.site_active = new_active
+                        st.session_state.planner_radius_km = int(r_km)
+                        if n:
+                            st.toast(f"Activated {n} site(s) within {r_display:.0f} {dist_unit()} of {loc['display'].split(',')[0]}.")
+                        else:
+                            st.toast(f"No sites found within {r_display:.0f} {dist_unit()} — try a larger radius.", icon="⚠️")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Activation failed: {e}")
             st.page_link("pages/1_Sites.py", label="Manage sites →")
 
     with col_prefs:
