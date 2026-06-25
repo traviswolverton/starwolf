@@ -18,6 +18,43 @@ In production substitute your host, e.g. `http://starwolf.wolvertons.net:8000`.
 
 ## Endpoints
 
+### `GET /v1/sites` — Bulk Site Export
+
+Returns all sites in the catalog with their full metadata. No parameters. Always returns every site regardless of active status.
+
+#### Response
+
+```json
+{
+  "count": 42,
+  "sites": [
+    {
+      "id":           100,
+      "name":         "Big Bend Ranch State Park",
+      "lat":          29.4,
+      "lon":          -103.75,
+      "bortle_class": 1,
+      "elevation_m":  null,
+      "notes":        "Bortle 1; darkest skies in Texas ...",
+      "active":       1,
+      "site_type":    "ida_certified"
+    }
+  ]
+}
+```
+
+#### Field notes
+
+| Field | Description |
+|---|---|
+| `id` | Stable integer primary key. |
+| `bortle_class` | 1–9 light pollution scale; `null` if unknown. |
+| `elevation_m` | Elevation in metres; `null` if not recorded. |
+| `active` | `1` = included in UI forecasts by default; `0` = hidden. |
+| `site_type` | One of: `ida_certified`, `tx_state_park`, `national_park`, `national_forest`, `observatory`, `private`, `community`. `null` if unclassified. |
+
+---
+
 ### `GET /v1/forecast`
 
 Score upcoming nights at a given location.
@@ -89,7 +126,16 @@ Score upcoming nights at a given location.
 | `seven_timer_tier.score` | Blended 0–100 value (65% seeing + 35% transparency, both inverted from the 1–8 scale). `null` when `tier` is `"no_data"`. |
 | `seven_timer_tier.seeing` | Same as `stats.seeing_7timer`. Included for convenience. |
 | `seven_timer_tier.transparency` | Same as `stats.transparency_7timer`. Included for convenience. |
-| `errors` | Non-empty if Open-Meteo or 7timer failed. Score data may still be partial. |
+| `errors` | Non-empty if 7timer failed. Open-Meteo failures produce a 502 instead (see below). |
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `422 Unprocessable Entity` | A parameter failed validation — `lat`/`lon` out of range, `days` outside 1–16, etc. FastAPI returns a structured `detail` array. |
+| `502 Bad Gateway` | Open-Meteo is unreachable or returned an error. The `detail` field contains the reason (e.g. `"Open-Meteo: Latitude must be in range of -90 to 90°"`). |
+
+7timer failures are treated as soft errors — the response still returns with HTTP 200, scored nights are included, and `errors[]` contains the 7timer error string. Seeing, transparency, and `seven_timer_tier` will show `null` / `"no_data"` for all nights.
 
 #### Score bands
 
@@ -154,6 +200,9 @@ The **Bortle modifier** is applied multiplicatively to the naked eye composite:
 ### curl
 
 ```bash
+# Bulk site export
+curl "http://localhost:8000/v1/sites"
+
 # Basic — 7 days at McDonald Observatory area, Bortle 2
 curl "http://localhost:8000/v1/forecast?lat=30.67&lon=-104.02&bortle_class=2"
 
@@ -190,6 +239,17 @@ for night in data["nights"]:
         f"  👁 {night['naked_eye']:.0f}"
         f"  cloud={night['stats']['avg_cloud_cover']}%"
     )
+```
+
+### Bulk site export
+
+```python
+resp = requests.get("http://localhost:8000/v1/sites", timeout=10)
+resp.raise_for_status()
+sites = resp.json()["sites"]
+
+# e.g. filter to IDA-certified dark sky places
+ida_sites = [s for s in sites if s["site_type"] == "ida_certified"]
 ```
 
 ### Filter to best nights client-side

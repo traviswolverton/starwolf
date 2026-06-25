@@ -31,7 +31,9 @@ def _fetch_open_meteo(lat: float, lon: float, forecast_days: int, timezone: str)
                 "forecast_days": forecast_days, "timezone": timezone},
         timeout=10,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        reason = resp.json().get("reason") if resp.content else None
+        raise ValueError(reason or f"HTTP {resp.status_code}")
     data = resp.json()
     cache_set(key, data, _TTL_OPEN_METEO)
     return data

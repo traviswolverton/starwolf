@@ -77,6 +77,9 @@ If you catch yourself reading something "just to be safe," stop. Read it when th
 
 ## Stargazing App Context
 
+### API Documentation
+After completing any turn where you touched `api.py`, `forecast.py`, or `scorer.py` in a way that changes the shape of API requests or responses (new fields, removed fields, changed error behavior, new parameters), immediately update both `API_GUIDE.md` and the inline docstring in `api.py`. Changes that only affect internal logic with no effect on the request/response contract can be omitted.
+
 ### Release Notes
 After completing any turn where you touched a user-facing file (pages, UI logic, scoring, site data), immediately update `release_notes.json` — do not wait for a commit or push. Prepend a new entry with plain-English bullets following the style guide in `phase3-maintenance-workflow.md`. Pure backend or infrastructure changes with no user-visible effect can be omitted. When in doubt, include it.
 

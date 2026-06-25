@@ -3,6 +3,9 @@
     {
       "date": "2026-06-25",
       "features": [
+        "New API endpoint GET /v1/sites returns the full site catalog (name, coordinates, Bortle class, type, notes) for external use.",
+        "Forecast API now returns HTTP 502 with a clear error message when Open-Meteo is unavailable, instead of silently returning empty results.",
+        "Added an API Guide page (sidebar: API) that documents all endpoints, fields, and examples.",
         "Added a collapsible 'How scores are calculated' section on the results page — shows telescope and naked eye factor weights as visual bars so you can understand why one night scores higher than another.",
         "7timer seeing and transparency data now powers a new 'seven_timer_tier' field in scored results — rates atmospheric quality as mediocre / good / excellent (65% seeing, 35% transparency blend on an inverted 1–8 scale).",
         "Added a GitHub icon in the bottom-right corner — always visible, links to the source code.",
