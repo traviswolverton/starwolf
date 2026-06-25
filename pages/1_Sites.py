@@ -22,6 +22,7 @@ if "addr_result" not in st.session_state:
     st.session_state.addr_result = None
 
 is_imperial = st.session_state.units == "imperial"
+is_admin = bool(st.session_state.get("admin_authenticated"))
 
 # ── Activate by proximity ──────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ def _bortle_ui(lat: float, lon: float, key: str) -> int | None:
 
 # ── Add home base ─────────────────────────────────────────────────────────────
 
-if _loc:
+if _loc and is_admin:
     dup = find_nearest_existing(_loc["lat"], _loc["lon"])
     with st.expander("Add your location as a site", expanded=not dup):
         if dup:
@@ -142,6 +143,10 @@ def load_sites() -> pd.DataFrame:
         df = pd.read_sql(text("SELECT * FROM sites ORDER BY name"), conn)
     active = st.session_state.site_active
     df["active"] = df["id"].map(lambda i: active.get(i, True)).astype(bool)
+    df["map"] = df.apply(
+        lambda r: f"https://www.openstreetmap.org/?mlat={r['lat']}&mlon={r['lon']}#map=12/{r['lat']}/{r['lon']}",
+        axis=1,
+    )
     loc = st.session_state.get("user_location")
     if loc:
         df["dist_km"] = df.apply(
@@ -166,11 +171,15 @@ def save_sites(df: pd.DataFrame) -> None:
 
 
 st.subheader("Site List")
-st.info(
-    "The **Active** column reflects your current session. "
-    "Saving persists name/coordinate edits to the shared catalog and sets the default active state for new sessions.",
-    icon="ℹ️",
-)
+if is_admin:
+    st.info(
+        "The **Active** column reflects your current session. "
+        "Saving persists name/coordinate edits to the shared catalog and sets the default active state for new sessions.",
+        icon="ℹ️",
+    )
+else:
+    st.info("Site catalog is read-only. Log in as Admin to add, edit, or remove sites.", icon="🔒")
+
 sites_df = load_sites()
 has_dist = "dist_km" in sites_df.columns
 
@@ -180,11 +189,12 @@ if has_dist:
         lambda v: round(v * KM_TO_MI) if is_imperial else v
     )
 
-col_order = ["name", "lat", "lon", "bortle_class", "elevation_m", "notes", "active"]
+col_order = ["map", "name", "lat", "lon", "bortle_class", "elevation_m", "notes", "active"]
 if has_dist:
     col_order = ["dist_km"] + col_order
 
 col_config = {
+    "map":          st.column_config.LinkColumn("Map", display_text="🗺️", disabled=True, width="small"),
     "name":         st.column_config.TextColumn("Name", required=True),
     "lat":          st.column_config.NumberColumn("Latitude",  format="%.4f", min_value=-90,  max_value=90),
     "lon":          st.column_config.NumberColumn("Longitude", format="%.4f", min_value=-180, max_value=180),
@@ -200,18 +210,25 @@ if has_dist:
 
 edited_sites = st.data_editor(
     sites_df,
-    num_rows="dynamic",
+    num_rows="dynamic" if is_admin else "fixed",
+    disabled=not is_admin,
     use_container_width=True,
     column_order=col_order,
     column_config=col_config,
     key="sites_editor",
 )
-if st.button("Save Sites"):
-    save_sites(edited_sites.drop(columns=["dist_km"], errors="ignore").dropna(subset=["name"]))
+if is_admin and st.button("Save Sites"):
+    save_sites(
+        edited_sites.drop(columns=["dist_km", "map"], errors="ignore").dropna(subset=["name"])
+    )
     st.success("Sites saved.")
 
 
 # ── Add Site by Address ────────────────────────────────────────────────────────
+
+if not is_admin:
+    render_sidebar()
+    st.stop()
 
 with st.expander("Add Site by Address"):
     addr_input = st.text_input("Address, place name, zip, or postal code", key="addr_input")
