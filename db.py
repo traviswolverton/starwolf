@@ -32,6 +32,7 @@ _SETTINGS_SEED = [
     ("disq_max_cloud_cover",   "85",              "Hard disqualifier: max avg nighttime cloud cover (%)"),
     ("disq_max_precip_prob",   "40",              "Hard disqualifier: max avg nighttime precipitation probability (%)"),
     ("disq_min_visibility_km", "10",              "Hard disqualifier: min avg nighttime visibility (km)"),
+    ("default_radius_km",      "500",             "Default proximity radius for activating sites on the Planner page (km)"),
 ]
 
 

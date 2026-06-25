@@ -9,7 +9,7 @@ import streamlit as st
 from sqlalchemy import text
 from db import get_engine, get_settings, init_db
 from osm_import import _haversine
-from utils import dist_display, sync_site_active, init_session_settings, render_sidebar
+from utils import KM_TO_MI, dist_display, sync_site_active, init_session_settings, render_sidebar
 
 init_db()
 
@@ -144,6 +144,31 @@ Use the pages in the left sidebar to set up your forecast, then come back here a
             else:
                 st.markdown("⚙️ **Sites**")
                 st.caption("No sites active")
+            if loc:
+                is_imperial = st.session_state.units == "imperial"
+                if is_imperial:
+                    r_display = st.number_input(
+                        "Radius (mi)", min_value=30, max_value=3000, step=30,
+                        value=round(st.session_state.planner_radius_km * KM_TO_MI),
+                        key="planner_radius_input",
+                    )
+                    r_km = r_display / KM_TO_MI
+                else:
+                    r_km = st.number_input(
+                        "Radius (km)", min_value=50, max_value=5000, step=50,
+                        value=st.session_state.planner_radius_km,
+                        key="planner_radius_input",
+                    )
+                    r_display = r_km
+                if st.button("Activate nearby", use_container_width=True):
+                    with get_engine().connect() as conn:
+                        all_db_sites = conn.execute(text("SELECT id, lat, lon FROM sites")).fetchall()
+                    st.session_state.site_active = {
+                        sid: _haversine(loc["lat"], loc["lon"], slat, slon) <= r_km
+                        for sid, slat, slon in all_db_sites
+                    }
+                    st.session_state.planner_radius_km = int(r_km)
+                    st.rerun()
             st.page_link("pages/1_Sites.py", label="Manage sites →")
 
     with col_prefs:

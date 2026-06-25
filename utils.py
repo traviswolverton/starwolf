@@ -58,7 +58,7 @@ def sync_site_active() -> None:
 _SESSION_SETTING_KEYS = [
     "timezone", "min_score_threshold",
     "disq_max_cloud_cover", "disq_max_precip_prob", "disq_min_visibility_km",
-    "user_location", "units",
+    "user_location", "units", "planner_radius_km",
 ]
 
 
@@ -81,6 +81,8 @@ def init_session_settings() -> None:
         st.session_state.user_location = None
     if "units" not in st.session_state:
         st.session_state.units = "metric"
+    if "planner_radius_km" not in st.session_state:
+        st.session_state.planner_radius_km = int(settings.get("default_radius_km", "500"))
 
 
 def _log_visitor() -> None:
