@@ -199,5 +199,5 @@ based on its forecasts. Always check current conditions before traveling to a re
 st.divider()
 st.caption(
     "StarWolf · Built with [Streamlit](https://streamlit.io) and [Claude](https://anthropic.com) · "
-    "[Source](https://gitea.wolvertons.net/travis/stargazing-app)"
+    "[Source](https://github.com/traviswolverton/starwolf)"
 )

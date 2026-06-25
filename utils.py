@@ -223,5 +223,5 @@ def render_sidebar() -> None:
         "**App:** [Streamlit](https://streamlit.io) · "
         "[Claude](https://anthropic.com)  \n"
         "**By** Seth & Travis Wolverton · "
-        "[Source](https://gitea.wolvertons.net/travis/stargazing-app)"
+        "[Source](https://github.com/traviswolverton/starwolf)"
     )

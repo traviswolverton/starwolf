@@ -11,11 +11,11 @@ st.set_page_config(page_icon="🔭", page_title="Feedback — Stargazing Planner
 st.title("Submit Feedback")
 st.caption("Feature ideas, bug reports, or anything else — it goes straight into our issue tracker.")
 
-GITEA_API   = "https://gitea.wolvertons.net/api/v1"
-GITEA_REPO  = "travis/stargazing-app"
+GITHUB_API  = "https://api.github.com"
+GITHUB_REPO = "traviswolverton/starwolf"
 
 def _get_token() -> str | None:
-    return st.secrets.get("gitea_token") if hasattr(st.secrets, "get") else None
+    return st.secrets.get("github_token") if hasattr(st.secrets, "get") else None
 
 
 feedback_type = st.radio(
@@ -77,11 +77,12 @@ if st.button("Submit", type="primary", disabled=not (title.strip() and descripti
 
         try:
             resp = requests.post(
-                f"{GITEA_API}/repos/{GITEA_REPO}/issues",
+                f"{GITHUB_API}/repos/{GITHUB_REPO}/issues",
                 json=payload,
                 headers={
-                    "Authorization": f"token {token}",
-                    "Content-Type":  "application/json",
+                    "Authorization":        f"Bearer {token}",
+                    "Accept":               "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
                 },
                 timeout=10,
             )
