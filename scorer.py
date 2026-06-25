@@ -119,6 +119,21 @@ def _avg(values: list) -> float | None:
     return sum(clean) / len(clean) if clean else None
 
 
+def _seven_timer_tier(seeing_avg: float | None, trans_avg: float | None) -> dict:
+    if seeing_avg is None or trans_avg is None:
+        return {"tier": "no_data", "score": None, "seeing": seeing_avg, "transparency": trans_avg}
+    seeing_score = (8 - seeing_avg) / 7 * 100
+    trans_score  = (8 - trans_avg)  / 7 * 100
+    blended = round(0.65 * seeing_score + 0.35 * trans_score, 1)
+    if blended >= 70:
+        tier = "excellent"
+    elif blended >= 40:
+        tier = "good"
+    else:
+        tier = "mediocre"
+    return {"tier": tier, "score": blended, "seeing": seeing_avg, "transparency": trans_avg}
+
+
 # ── public API ─────────────────────────────────────────────────────────────────
 
 def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = None) -> list:
@@ -198,21 +213,25 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
         st7_seeing = [s["seeing"] for s in st7_slots if "seeing" in s]
         st7_trans  = [s["transparency"] for s in st7_slots if "transparency" in s]
 
+        avg_st7_seeing = round(sum(st7_seeing) / len(st7_seeing), 1) if st7_seeing else None
+        avg_st7_trans  = round(sum(st7_trans)  / len(st7_trans),  1) if st7_trans  else None
+
         entry = {
-            "site":      site["name"],
-            "date":      night_date.isoformat(),
-            "composite": round(composite, 1),
-            "naked_eye": round(naked_eye_composite, 1),
-            "factors":   {k: round(v, 1) for k, v in factor_scores.items()},
+            "site":             site["name"],
+            "date":             night_date.isoformat(),
+            "composite":        round(composite, 1),
+            "naked_eye":        round(naked_eye_composite, 1),
+            "factors":          {k: round(v, 1) for k, v in factor_scores.items()},
+            "seven_timer_tier": _seven_timer_tier(avg_st7_seeing, avg_st7_trans),
             "stats": {
-                "avg_cloud_cover":  round(avg_cloud, 1)    if avg_cloud is not None else None,
-                "avg_high_cloud":   round(avg_hi_cloud, 1) if avg_hi_cloud is not None else None,
-                "avg_humidity":     round(avg_rh, 1)       if avg_rh is not None else None,
-                "avg_lifted_index": round(avg_li, 2)       if avg_li is not None else None,
-                "night_hours":      len(idxs),
-                "seeing_7timer":    round(sum(st7_seeing) / len(st7_seeing), 1) if st7_seeing else None,
-                "transparency_7timer": round(sum(st7_trans) / len(st7_trans), 1) if st7_trans else None,
-                "bortle_class":     bortle,
+                "avg_cloud_cover":     round(avg_cloud, 1)    if avg_cloud is not None else None,
+                "avg_high_cloud":      round(avg_hi_cloud, 1) if avg_hi_cloud is not None else None,
+                "avg_humidity":        round(avg_rh, 1)       if avg_rh is not None else None,
+                "avg_lifted_index":    round(avg_li, 2)       if avg_li is not None else None,
+                "night_hours":         len(idxs),
+                "seeing_7timer":       avg_st7_seeing,
+                "transparency_7timer": avg_st7_trans,
+                "bortle_class":        bortle,
             },
         }
         if disq_reasons:

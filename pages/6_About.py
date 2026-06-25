@@ -136,6 +136,7 @@ and preference overrides without a login system.
 Lightweight REST API on port 8000 (`api.py`) that exposes the forecast
 engine for external consumers. Auto-docs at `/docs`.
 """)
+    st.page_link("pages/7_API.py", label="Read the API Guide →", icon="📡")
 
     st.subheader("Data Layer")
     st.markdown("""

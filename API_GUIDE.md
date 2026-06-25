@@ -63,7 +63,12 @@ Score upcoming nights at a given location.
         "transparency_7timer":   4.0,
         "bortle_class":          2
       },
-      "disqualified": null
+      "seven_timer_tier": {
+        "tier":         "excellent",
+        "score":        80.7,
+        "seeing":       3.0,
+        "transparency": 4.0
+      }
     }
   ],
   "errors": []
@@ -80,7 +85,10 @@ Score upcoming nights at a given location.
 | `stats.seeing_7timer` | Atmospheric steadiness from 7timer (1–8, 1 = best). `null` beyond ~3 days. |
 | `stats.transparency_7timer` | Sky clarity from 7timer (1–8, 1 = best). `null` beyond ~3 days. |
 | `stats.bortle_class` | Echoes the `bortle_class` query param; `null` if not supplied. |
-| `disqualified` | Always `null` from the API — no threshold filtering is applied. All nights are returned. |
+| `seven_timer_tier.tier` | Blended 7timer quality: `"excellent"` (≥70), `"good"` (40–69), `"mediocre"` (<40), or `"no_data"` when 7timer is unavailable. |
+| `seven_timer_tier.score` | Blended 0–100 value (65% seeing + 35% transparency, both inverted from the 1–8 scale). `null` when `tier` is `"no_data"`. |
+| `seven_timer_tier.seeing` | Same as `stats.seeing_7timer`. Included for convenience. |
+| `seven_timer_tier.transparency` | Same as `stats.transparency_7timer`. Included for convenience. |
 | `errors` | Non-empty if Open-Meteo or 7timer failed. Score data may still be partial. |
 
 #### Score bands
@@ -124,7 +132,7 @@ The two scores use different factor weights:
 | Stability (LI) | 15% | 5% |
 | Humidity | 10% | 10% |
 
-Telescope weights are stored in the database and can be adjusted by an admin. Naked eye weights are fixed constants. Seeing and transparency (7timer) are displayed in the UI and stats payload but do not contribute to either composite.
+Both telescope and naked eye weights are stored in the database and can be adjusted by an admin. Seeing and transparency (7timer) are displayed in the UI and stats payload but do not contribute to either composite — they inform `seven_timer_tier` instead.
 
 The **Bortle modifier** is applied multiplicatively to the naked eye composite:
 

@@ -46,6 +46,7 @@ def get_forecast(
     - **naked_eye** — naked eye score (0–100), Bortle-adjusted if `bortle_class` is supplied
     - **factors** — per-factor 0–100 scores used to build the composite
     - **stats** — raw averages (cloud cover, humidity, etc.) and 7timer data where available
+    - **seven_timer_tier** — blended 7timer quality tier (`excellent`/`good`/`mediocre`/`no_data`) with a 0–100 score; `no_data` when 7timer data is unavailable (beyond ~3 days)
     """
     settings = get_settings()
     tz = timezone or settings.get("timezone", "America/Chicago")

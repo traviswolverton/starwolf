@@ -85,6 +85,14 @@ def _norm(value, lo: float, hi: float, higher_is_better: bool = True) -> float |
     return n if higher_is_better else 1 - n
 
 
+@st.cache_data(ttl=3600)
+def _get_scoring_weights() -> tuple[dict, dict]:
+    with get_engine().connect() as conn:
+        tel = dict(conn.execute(text("SELECT factor, weight FROM scoring_weights ORDER BY weight DESC")).fetchall())
+        eye = dict(conn.execute(text("SELECT factor, weight FROM naked_eye_weights ORDER BY weight DESC")).fetchall())
+    return tel, eye
+
+
 def _colored_metric(col, label: str, display: str, norm: float | None) -> None:
     """Render a labelled value in col with a red→yellow→green color based on norm."""
     if norm is None:
@@ -269,6 +277,27 @@ else:
 
             # ── Ranked cards ──────────────────────────────────────────────────
             st.subheader("Best Nights")
+
+            with st.expander("📊 How scores are calculated", expanded=False):
+                _tel_w, _eye_w = _get_scoring_weights()
+                _factor_labels = {
+                    "cloud_cover":  "☁️ Cloud Cover",
+                    "moon":         "🌙 Moon",
+                    "high_cloud":   "🌥 High Cloud",
+                    "lifted_index": "🌪 Stability (LI)",
+                    "humidity":     "💧 Humidity",
+                }
+                _sc_tel, _sc_eye = st.columns(2)
+                with _sc_tel:
+                    st.markdown("**🔭 Telescope Score**")
+                    for _f, _w in sorted(_tel_w.items(), key=lambda x: -x[1]):
+                        st.progress(_w, text=f"{_factor_labels.get(_f, _f)} — {_w * 100:.0f}%")
+                with _sc_eye:
+                    st.markdown("**👁 Naked Eye Score**")
+                    for _f, _w in sorted(_eye_w.items(), key=lambda x: -x[1]):
+                        st.progress(_w, text=f"{_factor_labels.get(_f, _f)} — {_w * 100:.0f}%")
+                    st.caption("✦ Score is further adjusted ±0–45% by site Bortle class (Bortle 1–2 = no penalty; Bortle 7+ = up to 45% reduction)")
+
             st.info(
                 "**† Seeing & Transparency** come from [7timer.info](http://7timer.info), "
                 "a free service purpose-built for astronomers that models atmospheric seeing "

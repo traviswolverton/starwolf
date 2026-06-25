@@ -3,6 +3,8 @@
     {
       "date": "2026-06-25",
       "features": [
+        "Added a collapsible 'How scores are calculated' section on the results page — shows telescope and naked eye factor weights as visual bars so you can understand why one night scores higher than another.",
+        "7timer seeing and transparency data now powers a new 'seven_timer_tier' field in scored results — rates atmospheric quality as mediocre / good / excellent (65% seeing, 35% transparency blend on an inverted 1–8 scale).",
         "Added a GitHub icon in the bottom-right corner — always visible, links to the source code.",
         "The sidebar menu button on mobile now pulses green so it's easier to spot.",
         "Each site in the catalog now shows its category — IDA Certified, Texas State Park, National Park, National Forest, Observatory, or IDA Dark Sky Community.",

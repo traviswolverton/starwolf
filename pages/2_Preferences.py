@@ -3,7 +3,6 @@ import streamlit as st
 
 from sqlalchemy import text
 from db import get_engine, get_settings, init_db
-from scorer import NAKED_EYE_WEIGHTS
 from utils import KM_TO_MI, init_session_settings, render_sidebar
 
 init_db()
@@ -138,7 +137,7 @@ st.divider()
 st.subheader("Scoring Weights")
 st.caption(
     "How each factor contributes to the two composite scores. "
-    "Telescope weights are stored in the database; naked eye weights are fixed constants."
+    "Both sets of weights are stored in the database and configurable in the Admin panel."
 )
 
 _FACTOR_LABELS = {
@@ -152,6 +151,9 @@ _FACTOR_LABELS = {
 with get_engine().connect() as _conn:
     _tel_rows = _conn.execute(
         text("SELECT factor, weight, description FROM scoring_weights ORDER BY weight DESC")
+    ).fetchall()
+    _eye_rows = _conn.execute(
+        text("SELECT factor, weight FROM naked_eye_weights ORDER BY weight DESC")
     ).fetchall()
 
 _col_tel, _col_eye = st.columns(2)
@@ -177,11 +179,11 @@ with _col_eye:
     st.dataframe(
         pd.DataFrame([
             {
-                "Factor":  _FACTOR_LABELS.get(f, f),
-                "Weight":  f"{w * 100:.0f}%",
-                "Notes":   _desc.get(f, ""),
+                "Factor":  _FACTOR_LABELS.get(r.factor, r.factor),
+                "Weight":  f"{r.weight * 100:.0f}%",
+                "Notes":   _desc.get(r.factor, ""),
             }
-            for f, w in sorted(NAKED_EYE_WEIGHTS.items(), key=lambda x: -x[1])
+            for r in _eye_rows
         ]),
         use_container_width=True,
         hide_index=True,
