@@ -50,6 +50,31 @@ else:
         except Exception as e:
             st.error(f"Failed: {e}")
 
+# ── Add home base ─────────────────────────────────────────────────────────────
+
+if _loc:
+    dup = find_nearest_existing(_loc["lat"], _loc["lon"])
+    with st.expander("Add your location as a site", expanded=not dup):
+        if dup:
+            dup_dist = f"{round(dup[1] * KM_TO_MI)} mi" if is_imperial else f"{dup[1]:.0f} km"
+            st.caption(f"⚠️ Possible duplicate: **{dup[0]}** is already in the catalog ({dup_dist} away).")
+        home_name = st.text_input(
+            "Site name",
+            value=_loc["display"].split(",")[0].strip(),
+            max_chars=80,
+            key="home_site_name",
+        )
+        if st.button("Add as site", type="primary", disabled=not home_name.strip()):
+            import_sites([{
+                "name":        home_name.strip(),
+                "lat":         _loc["lat"],
+                "lon":         _loc["lon"],
+                "elevation_m": None,
+                "notes":       _loc["display"],
+            }])
+            st.success(f"**{home_name.strip()}** added.")
+            st.rerun()
+
 # ── Bulk activate / deactivate ────────────────────────────────────────────────
 
 col_on, col_off = st.columns(2)

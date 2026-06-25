@@ -1,11 +1,10 @@
 import requests as _req
 import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
-from sqlalchemy import text
 from timezonefinder import TimezoneFinder
 
-from db import get_engine, init_db
-from osm_import import geocode, _haversine
+from db import init_db
+from osm_import import geocode
 from utils import init_session_settings, render_sidebar
 
 _tf = TimezoneFinder()
@@ -34,80 +33,14 @@ def _set_location(lat: float, lon: float, text_label: str, display: str) -> None
     if tz:
         st.session_state.timezone = tz
         st.session_state.timezone_auto = True
-    st.session_state._prompt_add_site = True
 
-
-def _nearby_site(lat: float, lon: float, threshold_km: float = 2.0):
-    """Return the nearest existing site if it's within threshold_km, else None."""
-    with get_engine().connect() as conn:
-        rows = conn.execute(text("SELECT name, lat, lon FROM sites")).fetchall()
-    best, best_dist = None, float("inf")
-    for name, slat, slon in rows:
-        d = _haversine(lat, lon, slat, slon)
-        if d < best_dist:
-            best, best_dist = name, d
-    if best_dist <= threshold_km:
-        return best, best_dist
-    return None, None
-
-
-# ── Add-as-site prompt ────────────────────────────────────────────────────────
-if st.session_state.get("_prompt_add_site") and st.session_state.user_location:
-    l = st.session_state.user_location
-    st.success(f"📍 Location set: **{l['display']}**")
-
-    nearby, nearby_dist = _nearby_site(l["lat"], l["lon"])
-    if nearby:
-        st.info(
-            f"**{nearby}** is already in your site catalog ({nearby_dist:.1f} km away). "
-            "You can still add your home base as a separate site if you'd like.",
-            icon="ℹ️",
-        )
-
-    with st.container(border=True):
-        st.markdown("**Add your home base as a stargazing site?**")
-        st.caption(
-            "It will appear in forecast results and proximity filtering just like any other site."
-        )
-        site_name = st.text_input(
-            "Site name",
-            value=l["display"].split(",")[0].strip(),
-            max_chars=80,
-            key="_new_site_name",
-        )
-        col_yes, col_skip = st.columns(2)
-        with col_yes:
-            if st.button("Add as site", type="primary", use_container_width=True):
-                if not site_name.strip():
-                    st.warning("Enter a name for the site.")
-                else:
-                    with get_engine().begin() as conn:
-                        conn.execute(
-                            text(
-                                "INSERT INTO sites (name, lat, lon, notes, active) "
-                                "VALUES (:name, :lat, :lon, :notes, 1)"
-                            ),
-                            {
-                                "name": site_name.strip(),
-                                "lat": l["lat"],
-                                "lon": l["lon"],
-                                "notes": "Home base",
-                            },
-                        )
-                    del st.session_state._prompt_add_site
-                    st.session_state.pop("site_active", None)
-                    st.switch_page("Planner.py")
-        with col_skip:
-            if st.button("Skip", use_container_width=True):
-                del st.session_state._prompt_add_site
-                st.switch_page("Planner.py")
-
-    st.divider()
 
 # ── Current location display ──────────────────────────────────────────────────
-if st.session_state.user_location and not st.session_state.get("_prompt_add_site"):
+if st.session_state.user_location:
     l = st.session_state.user_location
     st.info(f"📍 **{l['display']}**  \n`{l['lat']:.4f}, {l['lon']:.4f}`")
+    st.caption("Want to add this as a stargazing site? You can do that on the Sites page.")
+    st.page_link("pages/1_Sites.py", label="Go to Sites →")
     col_back, col_clear = st.columns([2, 1])
     with col_back:
         st.page_link("Planner.py", label="← Back to Planner")
@@ -150,7 +83,7 @@ if geo and geo.get("latitude") is not None:
             display = f"{lat:.4f}, {lon:.4f}"
 
         _set_location(lat, lon, display, display)
-        st.rerun()
+        st.switch_page("Planner.py")
 
 st.divider()
 
@@ -171,7 +104,7 @@ if st.button("Set Location", type="primary"):
             with st.spinner("Looking up…"):
                 lat, lon, display = geocode(loc_input.strip())
             _set_location(lat, lon, loc_input.strip(), display)
-            st.rerun()
+            st.switch_page("Planner.py")
         except ValueError as e:
             st.error(str(e))
         except Exception as e:
