@@ -102,32 +102,30 @@ if "whats_new_shown" not in st.session_state:
     st.session_state.whats_new_shown = False
 
 if not st.session_state.whats_new_shown:
-    _cm = get_cookie_manager()
-    _last_visit = get_last_visit(_cm)
+    _cm = get_cookie_manager()  # renders hidden component; triggers one auto-rerun on first load
 
-    if _last_visit is not None:
-        _new_releases = get_notes_since(_last_visit)
-        _heading = "What's New Since Your Last Visit"
-    else:
-        _new_releases = get_notes_last_n_days(7)
-        _heading = "What's New in StarWolf"
+    if "_whats_new_releases" not in st.session_state:
+        _last_visit = get_last_visit(_cm)
+        if _last_visit is not None:
+            st.session_state._whats_new_releases = get_notes_since(_last_visit)
+            st.session_state._whats_new_heading = "What's New Since Your Last Visit"
+        else:
+            st.session_state._whats_new_releases = get_notes_last_n_days(7)
+            st.session_state._whats_new_heading = "What's New in StarWolf"
 
-    if _new_releases:
-        # Mark shown and write cookie BEFORE opening the dialog.
-        # st.dialog X-dismiss doesn't trigger a rerun, so the True flag persists
-        # and prevents reopening when the user next interacts with the page.
-        st.session_state.whats_new_shown = True
-        set_last_visit(_cm)
-
-        @st.dialog(f"✨ {_heading}")
-        def _whats_new_dialog():
-            for _r in _new_releases:
+    _wn_releases = st.session_state._whats_new_releases
+    if _wn_releases:
+        with st.container(border=True):
+            _col_h, _col_x = st.columns([10, 1])
+            _col_h.markdown(f"**✨ {st.session_state._whats_new_heading}**")
+            if _col_x.button("✕", key="whats_new_dismiss", help="Dismiss"):
+                set_last_visit(_cm)
+                st.session_state.whats_new_shown = True
+                st.rerun()
+            for _r in _wn_releases:
                 st.markdown(f"**{_r['date']}**")
                 for _note in _r.get("notes", []):
                     st.markdown(f"- {_note}")
-            st.button("Got it!", type="primary", use_container_width=True, on_click=st.rerun)
-
-        _whats_new_dialog()
     else:
         set_last_visit(_cm)
         st.session_state.whats_new_shown = True
