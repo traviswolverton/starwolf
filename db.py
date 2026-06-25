@@ -33,6 +33,10 @@ _SETTINGS_SEED = [
     ("disq_max_precip_prob",   "40",              "Hard disqualifier: max avg nighttime precipitation probability (%)"),
     ("disq_min_visibility_km", "10",              "Hard disqualifier: min avg nighttime visibility (km)"),
     ("default_radius_km",      "500",             "Default proximity radius for activating sites on the Planner page (km)"),
+    ("ollama_url",             "http://localhost:11434/api/generate", "Ollama API endpoint"),
+    ("ollama_model",           "llama3.1:8b",     "Ollama model name (run 'ollama list' to see available models)"),
+    ("ollama_timeout",         "30",              "Ollama request timeout in seconds"),
+    ("ollama_summary_max_rows","10",              "Max scored nights to include in the AI summary context"),
 ]
 
 

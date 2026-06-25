@@ -3,8 +3,9 @@ import logging
 
 import requests
 
-from ai_config import OLLAMA_MODEL, OLLAMA_SUMMARY_MAX_ROWS, OLLAMA_TIMEOUT, OLLAMA_URL
+import ai_config
 from cache import cache_get, cache_set
+from db import get_settings
 
 _TTL_SUMMARY = 3600  # match Open-Meteo TTL — summary is only as fresh as the forecast
 
@@ -30,7 +31,9 @@ If conditions are generally poor across the board, say so honestly but encouragi
 
 def build_context_table(nights: list) -> str:
     """Return a markdown table of the top-scored nights for use as LLM context."""
-    top = sorted(nights, key=lambda n: -n["composite"])[:OLLAMA_SUMMARY_MAX_ROWS]
+    settings = get_settings()
+    max_rows = int(settings.get("ollama_summary_max_rows", ai_config.OLLAMA_SUMMARY_MAX_ROWS))
+    top = sorted(nights, key=lambda n: -n["composite"])[:max_rows]
 
     header = "| Site | Date | Telescope | Naked Eye | Cloud% | Moon | Humidity% | Seeing† | Transp.† | Bortle |"
     sep    = "|------|------|-----------|-----------|--------|------|-----------|---------|----------|--------|"
@@ -59,19 +62,24 @@ def build_context_table(nights: list) -> str:
 
 def generate_forecast_summary(context_table: str) -> str | None:
     """Call Ollama and return a plain-language summary, or None on any failure."""
+    settings = get_settings()
+    url     = settings.get("ollama_url",     ai_config.OLLAMA_URL)
+    model   = settings.get("ollama_model",   ai_config.OLLAMA_MODEL)
+    timeout = int(settings.get("ollama_timeout", ai_config.OLLAMA_TIMEOUT))
+
     payload = {
-        "model": OLLAMA_MODEL,
+        "model": model,
         "system": _SYSTEM_PROMPT,
         "prompt": _USER_PROMPT_TEMPLATE.format(context_table=context_table),
         "stream": False,
     }
     try:
-        resp = requests.post(OLLAMA_URL, json=payload, timeout=OLLAMA_TIMEOUT)
+        resp = requests.post(url, json=payload, timeout=timeout)
         resp.raise_for_status()
         text = resp.json().get("response", "").strip()
         return text if text else None
     except requests.exceptions.ConnectionError:
-        _log.debug("Ollama not reachable at %s", OLLAMA_URL)
+        _log.debug("Ollama not reachable at %s", url)
         return None
     except Exception as e:
         _log.debug("Ollama request failed: %s", e)
