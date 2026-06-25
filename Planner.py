@@ -9,7 +9,7 @@ import streamlit as st
 from sqlalchemy import text
 from db import get_engine, get_settings, init_db
 from osm_import import _haversine
-from utils import KM_TO_MI, dist_display, sync_site_active, init_session_settings, render_sidebar
+from utils import KM_TO_MI, dist_display, dist_unit, sync_site_active, init_session_settings, render_sidebar
 
 init_db()
 
