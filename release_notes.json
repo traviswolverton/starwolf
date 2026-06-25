@@ -13,7 +13,10 @@
         "Added a Release Notes section to the sidebar so you can always see what's changed.",
         "Added a 'What's New' prompt that appears at the top of the planner after updates and shows only what changed since your last visit.",
         "Added an AI forecast summary (powered by Ollama running locally) that reads your top-scored nights and tells you in plain language which site and night look best — appears automatically after you run a forecast.",
-        "Added an About page with full data source attribution, license summaries, and a forecast disclaimer."
+        "Added a Metric / Imperial quick switch to the sidebar so you can change units without going to Preferences.",
+        "Switched to a dark starry-night theme — deep navy background with green accents throughout.",
+        "Added an on/off toggle in Admin to enable or disable AI features entirely — when disabled, the summary section won't appear even if Ollama is running.",
+        "Added an About page with full data source attribution, license summaries, a technical architecture overview, and a forecast disclaimer."
       ]
     }
   ]

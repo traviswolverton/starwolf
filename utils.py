@@ -160,15 +160,23 @@ def render_sidebar() -> None:
         st.sidebar.caption("📍 No location set")
         st.sidebar.page_link("pages/0_Location.py", label="Set your location →")
 
-    # Keep segmented control in sync if units changed elsewhere (e.g. Preferences)
-    _expected = "mi" if st.session_state.get("units") == "imperial" else "km"
-    if st.session_state.get("_sidebar_units_sel") != _expected:
-        st.session_state._sidebar_units_sel = _expected
+    # Initialize toggle on first render
+    if "_sidebar_units_sel" not in st.session_state:
+        st.session_state["_sidebar_units_sel"] = "Imperial" if st.session_state.get("units") == "imperial" else "Metric"
+    # Sync toggle when units was changed externally (e.g. Preferences page).
+    # _toggle_units_set tracks what the toggle itself last wrote, so we only
+    # override when a different source changed units — not when the toggle did.
+    _toggle_set = st.session_state.get("_toggle_units_set")
+    _curr_units = st.session_state.get("units", "metric")
+    if _toggle_set is not None and _curr_units != _toggle_set:
+        st.session_state["_sidebar_units_sel"] = "Imperial" if _curr_units == "imperial" else "Metric"
+
     _units_sel = st.sidebar.segmented_control(
-        "Units", options=["km", "mi"], key="_sidebar_units_sel"
+        "Units", options=["Metric", "Imperial"], key="_sidebar_units_sel"
     )
     if _units_sel:
-        st.session_state.units = "imperial" if _units_sel == "mi" else "metric"
+        st.session_state.units = "imperial" if _units_sel == "Imperial" else "metric"
+        st.session_state["_toggle_units_set"] = st.session_state.units
 
     st.sidebar.divider()
     with st.sidebar.expander("🔌 API"):
