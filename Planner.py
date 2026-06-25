@@ -12,7 +12,7 @@ from osm_import import _haversine
 from utils import KM_TO_MI, dist_display, dist_unit, sync_site_active, init_session_settings, render_sidebar
 from release_notes import get_notes_since, get_notes_last_n_days
 from visit_tracker import get_cookie_manager, get_last_visit, set_last_visit
-from ai_summary import get_cached_summary
+from ai_summary import get_cached_summary, is_ollama_available
 
 init_db()
 
@@ -26,6 +26,10 @@ if "nights" not in st.session_state:
     st.session_state.nights = None
 if "summary_seen" not in st.session_state:
     st.session_state.summary_seen = False
+if "_ai_ready" not in st.session_state:
+    settings = get_settings()
+    enabled = settings.get("ollama_enabled", "0") == "1"
+    st.session_state._ai_ready = enabled and is_ollama_available()
 
 sync_site_active()
 init_session_settings()
@@ -300,7 +304,7 @@ else:
                 st.info("No nights with 7timer data in the current results. 7timer only covers the next ~3 days.")
 
             # ── AI summary ────────────────────────────────────────────────────
-            if ranked:
+            if ranked and st.session_state._ai_ready:
                 expanded_default = not st.session_state.summary_seen
                 with st.expander("🌟 This Week at a Glance — AI Forecast Summary", expanded=expanded_default):
                     st.session_state.summary_seen = True

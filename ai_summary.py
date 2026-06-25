@@ -8,6 +8,7 @@ from cache import cache_get, cache_set
 from db import get_settings
 
 _TTL_SUMMARY = 3600  # match Open-Meteo TTL — summary is only as fresh as the forecast
+_CONNECT_TIMEOUT = 3  # seconds — fast-fail if Ollama isn't reachable
 
 _log = logging.getLogger(__name__)
 
@@ -60,6 +61,20 @@ def build_context_table(nights: list) -> str:
     return "\n".join([header, sep] + rows)
 
 
+def is_ollama_available() -> bool:
+    """Return True if Ollama is reachable. Uses a 3-second connect timeout for fast-fail."""
+    settings = get_settings()
+    url = settings.get("ollama_url", ai_config.OLLAMA_URL)
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    ping_url = f"{parsed.scheme}://{parsed.netloc}/api/tags"
+    try:
+        requests.get(ping_url, timeout=(_CONNECT_TIMEOUT, 5))
+        return True
+    except Exception:
+        return False
+
+
 def generate_forecast_summary(context_table: str) -> str | None:
     """Call Ollama and return a plain-language summary, or None on any failure."""
     settings = get_settings()
@@ -74,7 +89,7 @@ def generate_forecast_summary(context_table: str) -> str | None:
         "stream": False,
     }
     try:
-        resp = requests.post(url, json=payload, timeout=timeout)
+        resp = requests.post(url, json=payload, timeout=(_CONNECT_TIMEOUT, timeout))
         resp.raise_for_status()
         text = resp.json().get("response", "").strip()
         return text if text else None
