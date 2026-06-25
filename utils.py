@@ -225,21 +225,6 @@ def render_sidebar() -> None:
         st.session_state["_toggle_units_set"] = st.session_state.units
 
     st.sidebar.divider()
-    with st.sidebar.expander("🔌 API"):
-        st.caption(
-            "Forecast API — port **8000**  \n"
-            "`GET /v1/forecast`  \n"
-            "`?lat=&lon=&days=7`  \n"
-            "`&bortle_class=1-9`  \n"
-            "`&timezone=<IANA>`"
-        )
-        st.page_link(
-            "http://localhost:8000/docs",
-            label="Interactive docs →",
-            icon="📄",
-        )
-
-    st.sidebar.divider()
     with st.sidebar.expander("📋 Release Notes", expanded=False):
         from release_notes import load_release_notes
         releases = load_release_notes().get("releases", [])
