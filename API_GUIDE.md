@@ -17,6 +17,42 @@ https://starwolf.wolvertons.net/api   # production (proxied via nginx)
 
 ## Endpoints
 
+### `GET /v1/bortle` — Bortle Class Lookup
+
+Returns the Bortle class and sky quality meter (SQM) reading for any lat/lon, derived from the Falchi et al. 2016 World Atlas of Artificial Night Sky Brightness.
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `lat` | float | ✅ | Latitude (−90 to 90) |
+| `lon` | float | ✅ | Longitude (−180 to 180) |
+
+#### Response
+
+```json
+{
+  "bortle": 2,
+  "sqm": 21.94
+}
+```
+
+#### Field notes
+
+| Field | Description |
+|---|---|
+| `bortle` | Bortle class 1–9. 1 = pristine dark sky; 9 = inner-city sky. |
+| `sqm` | Sky Quality Meter reading in mag/arcsec². Higher = darker. |
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `422` | Coordinates are outside the raster extent or have no data. |
+| `503` | World Atlas GeoTIFF is not mounted on this server. |
+
+---
+
 ### `GET /v1/sites` — Bulk Site Export
 
 Returns all sites in the catalog with their full metadata. No parameters. Always returns every site regardless of active status.
@@ -199,6 +235,9 @@ The **Bortle modifier** is applied multiplicatively to the naked eye composite:
 ### curl
 
 ```bash
+# Bortle class lookup
+curl "https://starwolf.wolvertons.net/api/v1/bortle?lat=30.67&lon=-104.02"
+
 # Bulk site export
 curl "https://starwolf.wolvertons.net/api/v1/sites"
 

@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Query
 
 from sqlalchemy import text
 
+from bortle_lookup import lookup_bortle
 from db import get_engine, get_settings, init_db
 from forecast import fetch_site_forecast
 from scorer import score_forecast
@@ -30,6 +31,23 @@ app = FastAPI(
 @app.get("/healthz", include_in_schema=False)
 def health():
     return {"status": "ok"}
+
+
+@app.get("/v1/bortle")
+def get_bortle(
+    lat: float = Query(..., ge=-90,  le=90,  description="Latitude"),
+    lon: float = Query(..., ge=-180, le=180, description="Longitude"),
+) -> dict[str, Any]:
+    """
+    Look up Bortle class and SQM (sky quality) for a lat/lon from the
+    Falchi et al. 2016 World Atlas of Artificial Night Sky Brightness.
+    """
+    try:
+        return lookup_bortle(lat, lon)
+    except FileNotFoundError:
+        raise HTTPException(status_code=503, detail="World Atlas GeoTIFF not available on this server.")
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.get("/v1/sites")
