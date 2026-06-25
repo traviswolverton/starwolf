@@ -151,6 +151,9 @@ def render_sidebar() -> None:
     if loc:
         st.sidebar.caption("📍 **Your location**")
         st.sidebar.write(loc["display"])
+        tz = st.session_state.get("timezone")
+        if tz:
+            st.sidebar.caption(f"🕐 {tz}")
     else:
         st.sidebar.caption("📍 No location set")
         st.sidebar.page_link("pages/0_Location.py", label="Set your location →")
