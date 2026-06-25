@@ -75,7 +75,8 @@ def _bortle_ui(lat: float, lon: float, key: str) -> int | None:
                     with st.spinner("Reading sky brightness data…"):
                         result = lookup_bortle(lat, lon)
                     st.session_state[key] = result["bortle"]
-                    st.caption(f"SQM: {result['sqm']} mag/arcsec²")
+                    st.session_state[f"{key}_input"] = result["bortle"]
+                    st.session_state[f"{key}_sqm"] = result["sqm"]
                     st.rerun()
                 except Exception as e:
                     st.error(f"Lookup failed: {e}")
@@ -84,6 +85,9 @@ def _bortle_ui(lat: float, lon: float, key: str) -> int | None:
                       help=f"GeoTIFF not found at {WORLD_ATLAS_PATH}. Run scripts/download_world_atlas.sh.")
     if bortle_val is not None:
         st.session_state[key] = int(bortle_val)
+    sqm = st.session_state.get(f"{key}_sqm")
+    if sqm is not None:
+        st.caption(f"SQM from lookup: {sqm} mag/arcsec²")
     return bortle_val
 
 
