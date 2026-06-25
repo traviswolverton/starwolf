@@ -76,3 +76,6 @@ If you catch yourself reading something "just to be safe," stop. Read it when th
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
 ## Stargazing App Context
+
+### Release Notes
+Before each commit/push, check whether any changes have a visible user impact. If yes, prepend a new entry to `release_notes.json` with today's date and plain-English bullets following the style guide in `phase3-maintenance-workflow.md`. Pure backend or infrastructure changes with no user-visible effect can be omitted. When in doubt, include it.

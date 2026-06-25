@@ -2,26 +2,16 @@
   "releases": [
     {
       "date": "2026-06-25",
-      "version": "1.2.0",
       "notes": [
-        "Find your way around the planner faster — tips and score explanations are now tucked into collapsible sections so your forecast stays front and center.",
-        "Send feedback or report a problem directly from the app without leaving the page."
-      ]
-    },
-    {
-      "date": "2026-06-18",
-      "version": "1.1.0",
-      "notes": [
-        "Every forecast card now shows a naked eye score (👁) alongside the telescope score (🔭), so you can plan trips with or without equipment.",
-        "Sort your results by naked eye score, telescope score, date, or location — whichever matters most for your next trip."
-      ]
-    },
-    {
-      "date": "2026-06-10",
-      "version": "1.0.0",
-      "notes": [
-        "StarWolf has a logo — look for the telescope under a starry Texas sky in the corner.",
-        "All 97 IDA-certified dark sky sites are now in the catalog, ready to activate by proximity from your location."
+        "Added a naked eye score (👁) to every forecast card alongside the telescope score (🔭), so you can plan trips with or without equipment.",
+        "Sort your results by naked eye score, telescope score, date, or distance from home — whichever matters most for your trip.",
+        "Loaded all 97 IDA-certified dark sky sites into the catalog — tap 'Activate nearby' on the planner to light up everything within your chosen radius.",
+        "Set your location once and the app figures out your timezone automatically, with the option to override it in Preferences.",
+        "Setting your location now drops you straight back on the planner so you can run a forecast immediately.",
+        "Added a Bortle class lookup button that reads light pollution data from the World Atlas of Artificial Night Sky Brightness — no manual entry needed when adding a new site.",
+        "Redesigned the planner page so tips and score explanations are tucked into collapsible sections, keeping your forecast front and center.",
+        "Added a Release Notes section to the sidebar so you can always see what's changed.",
+        "Added a 'What's New' prompt that appears at the top of the planner after updates and shows only what changed since your last visit."
       ]
     }
   ]
