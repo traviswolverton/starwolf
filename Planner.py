@@ -316,10 +316,11 @@ else:
                     else:
                         st.info("AI summary unavailable. Make sure Ollama is running locally (`ollama serve`).")
 
-            # Build distance lookup from user location → site name
+            # Build distance and coords lookups from site name
             _user_loc = st.session_state.get("user_location")
+            _sites = _load_active_sites()
+            _site_coords = {s["name"]: (s["lat"], s["lon"]) for s in _sites}
             if _user_loc:
-                _sites = _load_active_sites()
                 _site_dist = {
                     s["name"]: _haversine(_user_loc["lat"], _user_loc["lon"], s["lat"], s["lon"])
                     for s in _sites
@@ -359,6 +360,11 @@ else:
                     bortle_display = f"Class {bortle}" if bortle is not None else "—"
                     bortle_norm = _norm(bortle, 1, 9, higher_is_better=False) if bortle is not None else None
                     _colored_metric(c9, "Bortle", bortle_display, bortle_norm)
+                    _coords = _site_coords.get(night["site"])
+                    if _coords:
+                        _lat, _lon = _coords
+                        _map_url = f"https://www.openstreetmap.org/?mlat={_lat}&mlon={_lon}#map=12/{_lat}/{_lon}"
+                        st.caption(f"[🗺️ View {night['site']} on OpenStreetMap]({_map_url})")
 
             # ── Calendar heatmap ──────────────────────────────────────────────
             st.subheader("Night Quality Heatmap")
