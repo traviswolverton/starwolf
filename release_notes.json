@@ -11,7 +11,8 @@
         "Added a Bortle class lookup button that reads light pollution data from the World Atlas of Artificial Night Sky Brightness — no manual entry needed when adding a new site.",
         "Redesigned the planner page so tips and score explanations are tucked into collapsible sections, keeping your forecast front and center.",
         "Added a Release Notes section to the sidebar so you can always see what's changed.",
-        "Added a 'What's New' prompt that appears at the top of the planner after updates and shows only what changed since your last visit."
+        "Added a 'What's New' prompt that appears at the top of the planner after updates and shows only what changed since your last visit.",
+        "Added an AI forecast summary (powered by Ollama running locally) that reads your top-scored nights and tells you in plain language which site and night look best — appears automatically after you run a forecast."
       ]
     }
   ]
