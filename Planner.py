@@ -107,23 +107,27 @@ if not st.session_state.whats_new_shown:
 
     if _last_visit is not None:
         _new_releases = get_notes_since(_last_visit)
-        _heading = "✨ What's New Since Your Last Visit"
+        _heading = "What's New Since Your Last Visit"
     else:
         _new_releases = get_notes_last_n_days(7)
-        _heading = "✨ What's New in StarWolf"
+        _heading = "What's New in StarWolf"
 
     if _new_releases:
-        with st.container():
-            st.markdown(f"### {_heading}")
+        # Mark shown and write cookie BEFORE opening the dialog.
+        # st.dialog X-dismiss doesn't trigger a rerun, so the True flag persists
+        # and prevents reopening when the user next interacts with the page.
+        st.session_state.whats_new_shown = True
+        set_last_visit(_cm)
+
+        @st.dialog(f"✨ {_heading}")
+        def _whats_new_dialog():
             for _r in _new_releases:
-                _v = f" — v{_r['version']}" if _r.get("version") else ""
-                st.markdown(f"**{_r['date']}{_v}**")
+                st.markdown(f"**{_r['date']}**")
                 for _note in _r.get("notes", []):
                     st.markdown(f"- {_note}")
-            if st.button("Got it!", key="whats_new_dismiss"):
-                set_last_visit(_cm)
-                st.session_state.whats_new_shown = True
-                st.rerun()
+            st.button("Got it!", type="primary", use_container_width=True, on_click=st.rerun)
+
+        _whats_new_dialog()
     else:
         set_last_visit(_cm)
         st.session_state.whats_new_shown = True
