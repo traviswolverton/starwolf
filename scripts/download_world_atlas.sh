@@ -10,7 +10,7 @@ set -euo pipefail
 DATA_DIR="/opt/stargazing-app/data"
 TIF_PATH="$DATA_DIR/World_Atlas_2015.tif"
 ZIP_PATH="$DATA_DIR/world_atlas.zip"
-DOI_URL="https://datapub.gfz-potsdam.de/download/10.5880.GFZ.1.4.2016.001"
+DOI_URL="https://datapub.gfz-potsdam.de/download/10.5880.GFZ.1.4.2016.001/World_Atlas_2015.zip"
 
 mkdir -p "$DATA_DIR"
 
@@ -19,7 +19,7 @@ if [ -f "$TIF_PATH" ]; then
     exit 0
 fi
 
-echo "Downloading World Atlas zip (~2.9 GB)…"
+echo "Downloading World Atlas zip (~653 MB)…"
 curl -L --progress-bar -o "$ZIP_PATH" "$DOI_URL"
 
 echo "Extracting World_Atlas_2015.tif…"
