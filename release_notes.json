@@ -3,6 +3,7 @@
     {
       "date": "2026-06-25",
       "notes": [
+        "Furthest visitor distance on the Visitors page now respects your Metric / Imperial units setting.",
         "Added a naked eye score (👁) to every forecast card alongside the telescope score (🔭), so you can plan trips with or without equipment.",
         "Sort your results by naked eye score, telescope score, date, or distance from home — whichever matters most for your trip.",
         "Loaded all 97 IDA-certified dark sky sites into the catalog — tap 'Activate nearby' on the planner to light up everything within your chosen radius.",

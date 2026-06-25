@@ -6,7 +6,7 @@ import streamlit as st
 from sqlalchemy import text
 
 from db import get_engine, init_db
-from utils import init_session_settings, render_sidebar
+from utils import dist_display, init_session_settings, render_sidebar
 
 init_db()
 init_session_settings()
@@ -58,7 +58,7 @@ if not df_geo.empty:
     with col_far:
         st.markdown("**🚀 Furthest visitor from Houston**")
         loc_parts = [p for p in [furthest.get("city"), furthest.get("region"), furthest.get("country")] if p]
-        st.metric(", ".join(loc_parts), f"{furthest['dist_km']:,.0f} km away")
+        st.metric(", ".join(loc_parts), f"{dist_display(furthest['dist_km'])} away")
 
     with col_recent:
         st.markdown("**🕐 Most recent visit**")
