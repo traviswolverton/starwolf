@@ -115,6 +115,78 @@ to any external AI service.
 """)
 
 st.divider()
+st.header("Architecture")
+
+st.markdown("""
+StarWolf is a self-hosted Python web app built for a single-server deployment.
+Here's what's running under the hood:
+""")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Frontend")
+    st.markdown("""
+**[Streamlit](https://streamlit.io) 1.58**
+Multi-page app (`Planner.py` + `pages/`). All UI is server-rendered Python —
+no JavaScript framework. Session state handles per-user activation choices
+and preference overrides without a login system.
+
+**[FastAPI](https://fastapi.tiangolo.com)**
+Lightweight REST API on port 8000 (`api.py`) that exposes the forecast
+engine for external consumers. Auto-docs at `/docs`.
+""")
+
+    st.subheader("Data Layer")
+    st.markdown("""
+**[PostgreSQL 16](https://www.postgresql.org)**
+Stores the site catalog, app settings, and visitor log. Accessed via
+[SQLAlchemy](https://www.sqlalchemy.org) Core (no ORM) with
+[psycopg2](https://www.psycopg.org).
+
+**[Redis 7](https://redis.io)**
+Forecast cache with TTL-based expiry (1 hour for Open-Meteo,
+3 hours for 7timer). Cache misses fall through to live API calls;
+Redis is optional — the app degrades gracefully if unavailable.
+""")
+
+with col2:
+    st.subheader("Scoring Engine")
+    st.markdown("""
+**`scorer.py`**
+Computes a 0–100 composite score per site/night by averaging nighttime
+hours across five weighted factors: cloud cover, high cloud, moon phase,
+atmospheric stability (lifted index), and humidity. A separate naked eye
+score applies different weights and a Bortle class modifier. Weights are
+live-editable in the Admin panel.
+
+**`forecast.py`**
+Fetches and merges Open-Meteo (hourly) and 7timer! (6-hourly ASTRO)
+forecasts per site. All network calls are Redis-cached.
+
+**`bortle_lookup.py`**
+Reads a single pixel from the 2.9 GB Falchi et al. 2016 GeoTIFF using
+[rasterio](https://rasterio.readthedocs.io) — lazy read, no full
+file load, returns in milliseconds.
+""")
+
+    st.subheader("Infrastructure")
+    st.markdown("""
+**[Docker Compose](https://docs.docker.com/compose)**
+Four services: `app` (Streamlit), `api` (FastAPI), `db` (Postgres),
+`redis`. The World Atlas GeoTIFF is mounted as a read-only volume
+so it stays off the image layer.
+
+**Nginx** (host)
+Reverse proxy in front of Streamlit. Passes `X-Forwarded-For` for
+IP-based visitor geolocation.
+
+**[Ollama](https://ollama.com)** (host, optional)
+Local LLM inference for AI forecast summaries. Runs outside Docker,
+reachable at `localhost:11434`. No data leaves the machine.
+""")
+
+st.divider()
 st.header("Disclaimer")
 
 st.info("""

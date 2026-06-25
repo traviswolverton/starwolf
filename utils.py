@@ -160,11 +160,15 @@ def render_sidebar() -> None:
         st.sidebar.caption("📍 No location set")
         st.sidebar.page_link("pages/0_Location.py", label="Set your location →")
 
-    _is_imperial = st.sidebar.toggle(
-        "Imperial units",
-        value=st.session_state.get("units") == "imperial",
+    # Keep segmented control in sync if units changed elsewhere (e.g. Preferences)
+    _expected = "mi" if st.session_state.get("units") == "imperial" else "km"
+    if st.session_state.get("_sidebar_units_sel") != _expected:
+        st.session_state._sidebar_units_sel = _expected
+    _units_sel = st.sidebar.segmented_control(
+        "Units", options=["km", "mi"], key="_sidebar_units_sel"
     )
-    st.session_state.units = "imperial" if _is_imperial else "metric"
+    if _units_sel:
+        st.session_state.units = "imperial" if _units_sel == "mi" else "metric"
 
     st.sidebar.divider()
     with st.sidebar.expander("🔌 API"):
