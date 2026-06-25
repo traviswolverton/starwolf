@@ -6,7 +6,3 @@ stargazing.db
 .gitignore
 .streamlit/secrets.toml
 data/
-starwolf_*.md
-phase*.md
-NAKED_EYE_SCORE.md
-PLANNER_REDESIGN.md

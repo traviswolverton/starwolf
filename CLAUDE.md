@@ -91,7 +91,7 @@ After completing any turn where you touched any of the following, immediately up
 - User-facing files: pages, UI logic, scoring, site data
 - API changes: new endpoints, changed request/response shape, new error behavior
 
-Prepend a new entry with plain-English bullets following the style guide in `phase3-maintenance-workflow.md`. Pure infrastructure changes with no user- or developer-visible effect (e.g. Docker internals, CI config) can be omitted. When in doubt, include it.
+Prepend a new entry with plain-English bullets following the style guide in `prompts/phase3-maintenance-workflow.md`. Pure infrastructure changes with no user- or developer-visible effect (e.g. Docker internals, CI config) can be omitted. When in doubt, include it.
 
 A Stop hook will remind you if you end a turn with changed `.py`/`.html`/`.css`/`.js` files but no update to `release_notes.json`. Treat that reminder as a blocker — update release notes before moving on.
 

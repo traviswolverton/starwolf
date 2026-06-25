@@ -1,0 +1,168 @@
+# StarWolf · Feature 001: Plain-Language Forecast Summary
+## Claude Code Implementation Prompt
+
+---
+
+## Context
+
+StarWolf is a Streamlit-based stargazing planning app running as a systemd service on Ubuntu. Before writing any code, **explore the codebase** to understand the existing file structure, scoring logic, caching strategy, and Streamlit layout patterns. Pay particular attention to:
+
+- How scores are computed and stored (likely a pandas DataFrame)
+- The existing Redis/cache layer and its TTL conventions
+- Where API config and constants currently live
+- How the results page is currently structured in Streamlit
+
+Use your findings to finalize any implementation decisions flagged as TBD below.
+
+---
+
+## Feature Summary
+
+After scores are computed, generate a short plain-language forecast summary using a locally-running Ollama model. Display it in a `st.expander` on the results page, positioned between the sort controls and the result cards.
+
+---
+
+## New File: `ai_config.py`
+
+Create a new config file (location TBD — place it alongside wherever API keys and constants currently live). It should contain:
+
+```python
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "llama3"  # swap to mistral or phi3 if resources are constrained
+OLLAMA_TIMEOUT = 30  # seconds
+OLLAMA_SUMMARY_MAX_ROWS = 10  # cap context to top N scored rows
+```
+
+---
+
+## New File: `ai_summary.py`
+
+Create a new module (location TBD based on codebase structure) containing the Ollama integration and prompt logic.
+
+### `build_context_table(df: pd.DataFrame) -> str`
+
+- Takes the scored results DataFrame
+- Sorts by telescope score descending, takes top `OLLAMA_SUMMARY_MAX_ROWS` rows
+- Selects these columns (use whatever the actual column names are in the codebase):
+  - Site name, date, telescope score, naked eye score
+  - Cloud cover %, moon score, humidity
+  - Seeing and transparency if present (7timer! data — may be NaN for some rows)
+  - Bortle class
+- Returns a markdown-formatted table string
+
+### `generate_forecast_summary(context_table: str) -> str | None`
+
+```python
+SYSTEM_PROMPT = """You are a friendly stargazing advisor helping amateur astronomers \
+in Texas plan their observing sessions. You speak casually and helpfully, like a \
+knowledgeable friend — not a weather report. Keep responses to 3–5 sentences. \
+Never mention numeric scores directly. Translate the data into plain language \
+about what the sky will actually feel like."""
+
+USER_PROMPT_TEMPLATE = """Here are the best-scoring stargazing windows for the coming week:
+
+{context_table}
+
+In 3–5 sentences, tell me:
+1. Which single night looks best overall and why (mention the site and date)
+2. Which site has the strongest overall window across the week and what makes it worth the drive
+If conditions are generally poor across the board, say so honestly but encouragingly."""
+```
+
+- POSTs to Ollama using `requests`
+- Uses `stream: False`
+- On `ConnectionError`: return `None` (Ollama not running)
+- On timeout or any other exception: return `None`
+- On empty/whitespace response: return `None`
+- All failures silent — never raise to the caller
+
+### `get_cached_summary(df: pd.DataFrame) -> str | None`
+
+- Generates a cache key by hashing the context table string (e.g. `hashlib.md5`)
+- Checks the existing cache layer (Redis if available, otherwise `st.cache_data`) — **match whatever TTL convention Open-Meteo uses**, since the summary is only as fresh as the underlying scores
+- On cache miss: calls `generate_forecast_summary`, stores result, returns it
+- On cache hit: returns cached value directly
+
+---
+
+## UI Integration
+
+In the results page, add the expander **between the sort controls and the result cards**.
+
+### First-visit behavior (expander open)
+
+Use `st.session_state` to detect whether the user has seen the summary this session. On first load, render the expander with `expanded=True` so the feature is discoverable. On subsequent interactions within the same session, render with `expanded=False`.
+
+```python
+# Suggested session state key
+if "summary_seen" not in st.session_state:
+    st.session_state["summary_seen"] = False
+
+expanded_default = not st.session_state["summary_seen"]
+```
+
+After the expander renders (regardless of whether it's open), set `st.session_state["summary_seen"] = True`.
+
+### Expander label
+
+Make it descriptive enough that a collapsed expander isn't just noise:
+
+```
+🌟 This Week at a Glance — AI Forecast Summary
+```
+
+### Inside the expander
+
+```python
+with st.expander("🌟 This Week at a Glance — AI Forecast Summary", expanded=expanded_default):
+    st.session_state["summary_seen"] = True
+
+    if not results_available:
+        # Don't render at all if no scored results
+        pass
+    else:
+        with st.spinner("Reading the skies..."):
+            summary = get_cached_summary(scored_df)
+
+        if summary:
+            st.markdown(summary)
+            st.caption("✨ Generated by local AI (Ollama) · Conditions may change · Not a professional forecast")
+        else:
+            st.info("AI summary is unavailable right now. Make sure Ollama is running locally (`ollama serve`).")
+```
+
+> **Note:** If no scored results exist, skip rendering the expander entirely — don't show an empty or broken widget.
+
+---
+
+## Failure Handling Matrix
+
+| Scenario | Behavior |
+|---|---|
+| Ollama not running | Expander renders; soft `st.info` message with `ollama serve` hint |
+| Ollama timeout (>30s) | Same |
+| Empty or garbled LLM response | Same |
+| No scored results | Expander not rendered at all |
+| Cache unavailable | Fall through to live Ollama call; log a warning |
+
+---
+
+## Constraints & Reminders
+
+- **Do not add streaming** (`stream: True`) in this pass — that's a follow-on feature
+- **Do not add per-site summaries** — scope is one summary for the full results set
+- **Do not add UI controls** for model selection — `OLLAMA_MODEL` lives in `ai_config.py` only
+- Ollama is already installed on the machine — no installation steps needed
+- The app runs in a Python venv at `/opt/stargazing-app/venv` — install any new dependencies (`requests` is likely already present) into that venv and add to `requirements.txt`
+- Verify `requests` is already a dependency before adding it
+
+---
+
+## Confirmation Checkpoints
+
+Before writing any code, summarize:
+1. Where `ai_config.py` and `ai_summary.py` will live in the project structure
+2. The exact DataFrame column names you'll use to build the context table
+3. Which cache layer you'll use and what TTL you'll apply
+
+Wait for approval before proceeding.
