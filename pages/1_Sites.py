@@ -3,7 +3,7 @@ import streamlit as st
 
 from sqlalchemy import text
 from db import get_engine, init_db
-from osm_import import _haversine, find_nearest_existing, geocode, import_sites, search_dark_sky_sites
+from osm_import import _haversine, find_nearest_existing, geocode, import_sites
 from utils import KM_TO_MI, dist_unit, km_to_display, sync_site_active, init_session_settings, render_sidebar
 
 init_db()
@@ -13,10 +13,6 @@ init_session_settings()
 st.set_page_config(page_icon="🔭", page_title="Sites — Stargazing Planner")
 st.title("Dark-Sky Sites")
 
-if "osm_results" not in st.session_state:
-    st.session_state.osm_results = None
-if "osm_origin" not in st.session_state:
-    st.session_state.osm_origin = None
 if "addr_result" not in st.session_state:
     st.session_state.addr_result = None
 
@@ -150,63 +146,6 @@ edited_sites = st.data_editor(
 if st.button("Save Sites"):
     save_sites(edited_sites.drop(columns=["dist_km"], errors="ignore").dropna(subset=["name"]))
     st.success("Sites saved.")
-
-
-# ── Import IDA Dark Sky Sites ──────────────────────────────────────────────────
-
-st.divider()
-with st.expander("Import IDA Dark Sky Sites"):
-    location_input = st.text_input("Location, zip code, or postal code", key="osm_location")
-
-    if is_imperial:
-        ida_radius_display = st.slider("Search radius (mi)", min_value=6, max_value=620, value=60, step=10)
-        ida_radius_km = round(ida_radius_display / KM_TO_MI)
-    else:
-        ida_radius_km = st.slider("Search radius (km)", min_value=10, max_value=1000, value=100, step=10)
-        ida_radius_display = ida_radius_km
-
-    if st.button("Find Dark Sky Sites"):
-        if not location_input.strip():
-            st.warning("Enter a location to search.")
-        else:
-            try:
-                with st.spinner("Searching…"):
-                    lat, lon, display = geocode(location_input.strip())
-                    results = search_dark_sky_sites(lat, lon, ida_radius_km)
-                st.session_state.osm_origin = (lat, lon, display)
-                st.session_state.osm_results = results
-            except ValueError as e:
-                st.error(str(e))
-            except Exception as e:
-                st.error(f"Search failed: {e}")
-
-    if st.session_state.osm_results is not None:
-        _, _, display = st.session_state.osm_origin
-        st.caption(f"Results near: {display}")
-
-        results = st.session_state.osm_results
-        if not results:
-            st.info("No dark-sky sites found in that area. Try a larger radius.")
-        else:
-            to_import = []
-            for i, site in enumerate(results):
-                dup = find_nearest_existing(site["lat"], site["lon"])
-                dist_val = site["distance_km"]
-                dist_str = f"{round(dist_val * KM_TO_MI)} mi" if is_imperial else f"{dist_val} km"
-                label = f"**{site['name']}** — {dist_str} away"
-                checked = st.checkbox(label, value=(dup is None), key=f"osm_{i}")
-                if dup:
-                    dup_dist = f"{round(dup[1] * KM_TO_MI)} mi" if is_imperial else f"{dup[1]} km"
-                    st.caption(f"  ⚠️ Possible duplicate: {dup[0]} ({dup_dist} away in DB)")
-                if checked:
-                    to_import.append(site)
-
-            if st.button("Import Selected", type="primary", disabled=not to_import):
-                n = import_sites(to_import)
-                st.success(f"Imported {n} site(s).")
-                st.session_state.osm_results = None
-                st.session_state.osm_origin = None
-                st.rerun()
 
 
 # ── Add Site by Address ────────────────────────────────────────────────────────

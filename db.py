@@ -1,17 +1,21 @@
+import json
 import os
+from pathlib import Path
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
 _engine: Engine | None = None
 
-_SITES_SEED = [
-    ("Brazos Bend State Park",      29.37,  -95.63,  5,   20, "Closest dark site to Houston; alligators", 1),
-    ("McDonald Observatory area",   30.67, -104.02,  2, 1490, "Best Bortle in TX; 6+ hr drive",           1),
-    ("Balmorhea State Park",        30.95, -103.77,  2,  920, "Near McDonald; excellent",                 1),
-    ("Sam Houston National Forest", 30.75,  -95.50,  5,   90, "Moderate dark sky, closer option",         1),
-    ("Enchanted Rock SP",           30.50,  -98.82,  4,  450, "Good Hill Country site",                   1),
-]
+def _load_ida_sites() -> list[dict]:
+    path = Path(__file__).parent / "dark_sky_sites.json"
+    sites = json.loads(path.read_text())
+    return [
+        {"name": s["name"], "lat": s["lat"], "lon": s["lon"],
+         "bortle": s.get("bortle_class"), "elev": s.get("elevation_m"),
+         "notes": s.get("notes"), "active": 0}
+        for s in sites
+    ]
 
 _WEIGHTS_SEED = [
     ("cloud_cover",  0.35, "Total sky coverage penalty"),
@@ -108,8 +112,7 @@ def init_db() -> None:
             conn.execute(
                 text("INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active) "
                      "VALUES (:name, :lat, :lon, :bortle, :elev, :notes, :active)"),
-                [{"name": r[0], "lat": r[1], "lon": r[2], "bortle": r[3],
-                  "elev": r[4], "notes": r[5], "active": r[6]} for r in _SITES_SEED],
+                _load_ida_sites(),
             )
 
         if conn.execute(text("SELECT COUNT(*) FROM scoring_weights")).scalar() == 0:
