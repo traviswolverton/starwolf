@@ -5,6 +5,7 @@ services:
       - "8501:8501"
     volumes:
       - ./.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro
+      - ./data:/app/data:ro
     environment:
       DATABASE_URL: postgresql://stargazing:stargazing@db:5432/stargazing
       REDIS_URL: redis://redis:6379
