@@ -126,6 +126,7 @@ def _log_visitor() -> None:
 
 def render_sidebar() -> None:
     """Show the user's stored location and credits at the bottom of the sidebar."""
+    import streamlit.components.v1 as _components
     _log_visitor()
     st.logo("starwolf-logo.svg")
     st.markdown("""
@@ -134,7 +135,18 @@ def render_sidebar() -> None:
 [data-testid="stLogo"] { height: auto !important; max-height: unset !important; }
 [data-testid="stLogo"] img { height: auto !important; max-height: unset !important; width: 100% !important; }
 
+/* ── Mobile sidebar toggle ───────────────────────────────────────────────── */
 @media screen and (max-width: 640px) {
+    [data-testid="stExpandSidebarButton"] {
+        background: rgba(0, 180, 100, 0.25) !important;
+        border: 1px solid rgba(0, 180, 100, 0.6) !important;
+        border-radius: 0 8px 8px 0 !important;
+        animation: sidebar-pulse 2.5s ease-in-out infinite !important;
+    }
+    @keyframes sidebar-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(0, 180, 100, 0.4); }
+        50%       { box-shadow: 0 0 0 6px rgba(0, 180, 100, 0); }
+    }
     /* Reflow 4-column grids to 2×2 on mobile */
     [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
     [data-testid="stColumn"] { min-width: 45% !important; }
@@ -147,6 +159,40 @@ def render_sidebar() -> None:
 }
 </style>
 """, unsafe_allow_html=True)
+
+    # Inject GitHub button into parent DOM — st.markdown strips <a> tags,
+    # so we use a 0-height component iframe that writes to window.parent.document.
+    _components.html("""
+<script>
+(function() {
+    var doc = window.parent.document;
+    if (doc.getElementById('gh-link')) return;
+    var a = doc.createElement('a');
+    a.id = 'gh-link';
+    a.href = 'https://github.com/traviswolverton/starwolf';
+    a.target = '_blank';
+    a.title = 'View source on GitHub';
+    a.style.cssText = 'position:fixed;bottom:1.2rem;right:1.2rem;z-index:9999;'
+        + 'background:#24292e;border-radius:50%;width:2.4rem;height:2.4rem;'
+        + 'display:flex;align-items:center;justify-content:center;'
+        + 'box-shadow:0 2px 8px rgba(0,0,0,0.5);opacity:0.85;'
+        + 'transition:opacity 0.2s,transform 0.2s;text-decoration:none;';
+    a.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="white">'
+        + '<path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57'
+        + ' 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41'
+        + '-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815'
+        + ' 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925'
+        + ' 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23'
+        + ' .96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65'
+        + ' .24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925'
+        + ' .435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57'
+        + ' A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>';
+    a.onmouseover = function() { this.style.opacity='1'; this.style.transform='scale(1.1)'; };
+    a.onmouseout  = function() { this.style.opacity='0.85'; this.style.transform='scale(1)'; };
+    doc.body.appendChild(a);
+})();
+</script>
+""", height=0)
 
     loc = st.session_state.get("user_location")
     st.sidebar.divider()

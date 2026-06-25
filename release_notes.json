@@ -2,7 +2,10 @@
   "releases": [
     {
       "date": "2026-06-25",
-      "features": [],
+      "features": [
+        "Added a GitHub icon in the bottom-right corner — always visible, links to the source code.",
+        "The sidebar menu button on mobile now pulses green so it's easier to spot."
+      ],
       "fixes": [
         "Restructured release notes into Features / Bug Fixes sections.",
         "Furthest visitor distance on the Visitors page now respects your Metric / Imperial units setting."
