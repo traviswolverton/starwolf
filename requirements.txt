@@ -10,3 +10,4 @@ streamlit-geolocation
 fastapi
 uvicorn[standard]
 timezonefinder
+rasterio>=1.3

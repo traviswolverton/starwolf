@@ -77,9 +77,10 @@ def find_nearest_existing(lat: float, lon: float) -> tuple[str, float] | None:
 def import_sites(sites: list[dict]) -> int:
     with get_engine().begin() as conn:
         conn.execute(
-            text("INSERT INTO sites (name, lat, lon, elevation_m, notes, active) "
-                 "VALUES (:name, :lat, :lon, :elev, :notes, 1)"),
+            text("INSERT INTO sites (name, lat, lon, bortle_class, elevation_m, notes, active) "
+                 "VALUES (:name, :lat, :lon, :bortle, :elev, :notes, 1)"),
             [{"name": s["name"], "lat": s["lat"], "lon": s["lon"],
-              "elev": s.get("elevation_m"), "notes": s.get("notes")} for s in sites],
+              "bortle": s.get("bortle_class"), "elev": s.get("elevation_m"),
+              "notes": s.get("notes")} for s in sites],
         )
     return len(sites)

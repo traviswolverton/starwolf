@@ -1,7 +1,10 @@
+import os
+
 import pandas as pd
 import streamlit as st
 from sqlalchemy import text
 
+from bortle_lookup import lookup_bortle, WORLD_ATLAS_PATH
 from db import get_engine, init_db
 from utils import init_session_settings, render_sidebar
 
@@ -49,7 +52,7 @@ if not _check_password():
 
 # ── Admin tabs ─────────────────────────────────────────────────────────────────
 
-tab_weights, tab_settings = st.tabs(["Scoring Weights", "App Settings"])
+tab_weights, tab_settings, tab_bortle = st.tabs(["Scoring Weights", "App Settings", "Bortle Lookup"])
 
 
 def load_weights() -> pd.DataFrame:
@@ -129,5 +132,59 @@ with tab_settings:
     if st.button("Save Settings"):
         save_settings(edited_settings.dropna(subset=["key"]))
         st.success("Settings saved.")
+
+with tab_bortle:
+    st.subheader("Batch Bortle Lookup")
+    st.caption(
+        "Fills in Bortle class for all sites that currently have none, "
+        "using the World Atlas of Artificial Night Sky Brightness (Falchi et al. 2016)."
+    )
+
+    atlas_present = os.path.exists(WORLD_ATLAS_PATH)
+    if not atlas_present:
+        st.error(
+            f"GeoTIFF not found at `{WORLD_ATLAS_PATH}`.  \n"
+            "Run `scripts/download_world_atlas.sh` to download it (~2.9 GB, one-time)."
+        )
+    else:
+        st.success(f"GeoTIFF present: `{WORLD_ATLAS_PATH}`")
+
+    with get_engine().connect() as conn:
+        null_sites = conn.execute(
+            text("SELECT id, name, lat, lon FROM sites WHERE bortle_class IS NULL ORDER BY name")
+        ).fetchall()
+
+    st.metric("Sites missing Bortle", len(null_sites))
+
+    if null_sites:
+        with st.expander(f"Sites without Bortle ({len(null_sites)})", expanded=False):
+            st.dataframe(
+                pd.DataFrame(null_sites, columns=["id", "name", "lat", "lon"]).drop(columns=["id"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    if st.button("Fill Bortle for all null sites", type="primary", disabled=not atlas_present or not null_sites):
+        progress = st.progress(0, text="Looking up…")
+        ok, failed = 0, []
+        for i, (site_id, name, lat, lon) in enumerate(null_sites):
+            try:
+                result = lookup_bortle(lat, lon)
+                with get_engine().begin() as conn:
+                    conn.execute(
+                        text("UPDATE sites SET bortle_class = :b WHERE id = :id"),
+                        {"b": result["bortle"], "id": site_id},
+                    )
+                ok += 1
+            except Exception as e:
+                failed.append(f"{name}: {e}")
+            progress.progress((i + 1) / len(null_sites), text=f"{name}…")
+        progress.empty()
+        if ok:
+            st.success(f"Updated {ok} site(s).")
+        if failed:
+            st.warning("Some lookups failed:\n" + "\n".join(f"- {f}" for f in failed))
+        st.rerun()
+
 
 render_sidebar()
