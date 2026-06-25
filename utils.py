@@ -160,6 +160,12 @@ def render_sidebar() -> None:
         st.sidebar.caption("📍 No location set")
         st.sidebar.page_link("pages/0_Location.py", label="Set your location →")
 
+    _is_imperial = st.sidebar.toggle(
+        "Imperial units",
+        value=st.session_state.get("units") == "imperial",
+    )
+    st.session_state.units = "imperial" if _is_imperial else "metric"
+
     st.sidebar.divider()
     with st.sidebar.expander("🔌 API"):
         st.caption(
