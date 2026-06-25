@@ -2,6 +2,14 @@
   "releases": [
     {
       "date": "2026-06-25",
+      "features": [],
+      "fixes": [
+        "Restructured release notes into Features / Bug Fixes sections.",
+        "Furthest visitor distance on the Visitors page now respects your Metric / Imperial units setting."
+      ]
+    },
+    {
+      "date": "2026-06-24",
       "features": [
         "Added a naked eye score (👁) to every forecast card alongside the telescope score (🔭), so you can plan trips with or without equipment.",
         "Sort your results by naked eye score, telescope score, date, or distance from home — whichever matters most for your trip.",
@@ -19,7 +27,8 @@
         "Added an About page with full data source attribution, license summaries, a technical architecture overview, and a forecast disclaimer."
       ],
       "fixes": [
-        "Furthest visitor distance on the Visitors page now respects your Metric / Imperial units setting."
+        "Added an OSM map link to each forecast result card.",
+        "Fixed the units toggle always resetting to Metric on page load."
       ]
     }
   ]

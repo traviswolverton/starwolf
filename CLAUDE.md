@@ -78,4 +78,6 @@ If you catch yourself reading something "just to be safe," stop. Read it when th
 ## Stargazing App Context
 
 ### Release Notes
-Before each commit/push, check whether any changes have a visible user impact. If yes, prepend a new entry to `release_notes.json` with today's date and plain-English bullets following the style guide in `phase3-maintenance-workflow.md`. Pure backend or infrastructure changes with no user-visible effect can be omitted. When in doubt, include it.
+Before each commit/push, check whether any changes have a visible user impact. If yes, prepend a new entry to `release_notes.json` with plain-English bullets following the style guide in `phase3-maintenance-workflow.md`. Pure backend or infrastructure changes with no user-visible effect can be omitted. When in doubt, include it.
+
+**Date accuracy:** Do NOT use the `currentDate` context variable for release note dates — it is set at session start and can be stale. The server runs UTC but the user is in Houston (CDT, UTC−5). Always run `TZ=America/Chicago date +%Y-%m-%d` to get the correct local date before writing or updating a release entry.
