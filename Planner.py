@@ -131,8 +131,14 @@ if not st.session_state.whats_new_shown:
                 st.rerun()
             for _r in _wn_releases:
                 st.markdown(f"**{_r['date']}**")
-                for _note in _r.get("notes", []):
-                    st.markdown(f"- {_note}")
+                if _r.get("features"):
+                    st.markdown("*Features*")
+                    for _note in _r["features"]:
+                        st.markdown(f"- {_note}")
+                if _r.get("fixes"):
+                    st.markdown("*Bug Fixes*")
+                    for _note in _r["fixes"]:
+                        st.markdown(f"- {_note}")
     else:
         set_last_visit(_cm)
         st.session_state.whats_new_shown = True

@@ -202,8 +202,14 @@ def render_sidebar() -> None:
         for release in releases:
             version_str = f" — v{release['version']}" if release.get("version") else ""
             st.markdown(f"**{release['date']}{version_str}**")
-            for note in release.get("notes", []):
-                st.markdown(f"- {note}")
+            if release.get("features"):
+                st.markdown("*Features*")
+                for note in release["features"]:
+                    st.markdown(f"- {note}")
+            if release.get("fixes"):
+                st.markdown("*Bug Fixes*")
+                for note in release["fixes"]:
+                    st.markdown(f"- {note}")
 
     st.sidebar.divider()
     st.sidebar.caption("**Credits**")
