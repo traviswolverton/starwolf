@@ -9,9 +9,7 @@ render_sidebar()
 
 st.title("Stargazing Forecast API")
 
-# Construct Swagger URL from the request host (same server, port 8000)
-_host = st.context.headers.get("Host", "localhost").split(":")[0]
-st.link_button("🔬 Try it out — Swagger UI →", f"http://{_host}:8000/docs")
+st.link_button("🔬 Try it out — Swagger UI →", "/api/docs")
 st.divider()
 
 # Split API_GUIDE.md into tabs: each ### section → one tab, rest → Overview.

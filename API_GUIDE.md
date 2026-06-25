@@ -2,17 +2,16 @@
 
 The app exposes a REST API on port **8000** that runs the same scoring pipeline as the Streamlit UI. You can query any lat/lon with any date range and get back telescope and naked eye scores for every upcoming night.
 
-Interactive docs (OpenAPI / Swagger UI): `http://localhost:8000/docs`
+Interactive docs (OpenAPI / Swagger UI): `/api/docs`
 
 ---
 
 ## Base URL
 
 ```
-http://localhost:8000
+http://localhost:8000        # direct (local dev)
+https://starwolf.wolvertons.net/api   # production (proxied via nginx)
 ```
-
-In production substitute your host, e.g. `http://starwolf.wolvertons.net:8000`.
 
 ---
 
@@ -201,16 +200,16 @@ The **Bortle modifier** is applied multiplicatively to the naked eye composite:
 
 ```bash
 # Bulk site export
-curl "http://localhost:8000/v1/sites"
+curl "https://starwolf.wolvertons.net/api/v1/sites"
 
 # Basic — 7 days at McDonald Observatory area, Bortle 2
-curl "http://localhost:8000/v1/forecast?lat=30.67&lon=-104.02&bortle_class=2"
+curl "https://starwolf.wolvertons.net/api/v1/forecast?lat=30.67&lon=-104.02&bortle_class=2"
 
 # Longer window in a specific timezone
-curl "http://localhost:8000/v1/forecast?lat=36.10&lon=-112.11&days=14&timezone=America/Phoenix"
+curl "https://starwolf.wolvertons.net/api/v1/forecast?lat=36.10&lon=-112.11&days=14&timezone=America/Phoenix"
 
 # Health check
-curl "http://localhost:8000/healthz"
+curl "https://starwolf.wolvertons.net/api/healthz"
 ```
 
 ### Python
@@ -219,7 +218,7 @@ curl "http://localhost:8000/healthz"
 import requests
 
 resp = requests.get(
-    "http://localhost:8000/v1/forecast",
+    "https://starwolf.wolvertons.net/api/v1/forecast",
     params={
         "lat": 30.67,
         "lon": -104.02,
@@ -244,7 +243,7 @@ for night in data["nights"]:
 ### Bulk site export
 
 ```python
-resp = requests.get("http://localhost:8000/v1/sites", timeout=10)
+resp = requests.get("https://starwolf.wolvertons.net/api/v1/sites", timeout=10)
 resp.raise_for_status()
 sites = resp.json()["sites"]
 
