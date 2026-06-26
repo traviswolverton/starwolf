@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}StarWolf — Django{% endblock %}
+{% block content %}
+<h1>🔭 StarWolf</h1>
+<p>Django is running. Pages will appear here as they migrate from Streamlit.</p>
+{% if user.is_authenticated %}
+  <p>Logged in as <strong>{{ user.email }}</strong> (role: {{ user.role }})</p>
+{% else %}
+  <p>Not logged in — access this through Cloudflare to authenticate.</p>
+{% endif %}
+{% endblock %}
