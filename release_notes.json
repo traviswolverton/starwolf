@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "date": "2026-06-26",
+      "fixes": [
+        "Visitor analytics page now requires admin login — visitor city, region, and map data are no longer publicly visible.",
+        "IP hashes used for visit deduplication are now salted, preventing rainbow-table reversal of visitor IPs.",
+        "API rate limits added — forecast endpoint capped at 30 requests/min per IP, Bortle at 60/min, sites export at 10/min; returns HTTP 429 when exceeded.",
+        "Postgres port 5432 is no longer exposed to the host network — database is only reachable by app containers on the internal Docker network.",
+        "Database credentials moved from hardcoded values to a .env file (gitignored); docker-compose now requires POSTGRES_PASSWORD to be set explicitly."
+      ]
+    },
+    {
       "date": "2026-06-25",
       "features": [
         "New Tonight's Forecast Map page — compute tonight's telescope score for all 2,385 sites at once, shown as a color-coded scatter map (green = good, red = poor). Results are cached; only one computation allowed per day.",

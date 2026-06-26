@@ -6,7 +6,7 @@ from sqlalchemy import text
 
 from bortle_lookup import lookup_bortle, WORLD_ATLAS_PATH
 from db import get_engine, init_db
-from utils import init_session_settings, render_sidebar
+from utils import check_admin_password, init_session_settings, render_sidebar
 
 init_db()
 init_session_settings()
@@ -15,38 +15,7 @@ st.set_page_config(page_icon="🔭", page_title="Admin — Stargazing Planner")
 st.title("Admin")
 
 
-# ── Password gate ──────────────────────────────────────────────────────────────
-
-def _check_password() -> bool:
-    password = st.secrets.get("admin_password") if hasattr(st.secrets, "get") else None
-    if not password:
-        import os
-        password = os.environ.get("ADMIN_PASSWORD")
-    if not password:
-        st.error(
-            "Admin password not configured. "
-            "Add `admin_password = \"your-password\"` to `.streamlit/secrets.toml`."
-        )
-        return False
-
-    if st.session_state.get("admin_authenticated"):
-        col, _ = st.columns([1, 3])
-        if col.button("Log out"):
-            st.session_state.admin_authenticated = False
-            st.rerun()
-        return True
-
-    pwd = st.text_input("Password", type="password")
-    if st.button("Log in"):
-        if pwd == password:
-            st.session_state.admin_authenticated = True
-            st.rerun()
-        else:
-            st.error("Incorrect password.")
-    return False
-
-
-if not _check_password():
+if not check_admin_password():
     st.stop()
 
 

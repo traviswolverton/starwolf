@@ -12,3 +12,4 @@ uvicorn[standard]
 timezonefinder
 rasterio>=1.3
 extra-streamlit-components>=0.1.71
+slowapi

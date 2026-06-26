@@ -7,7 +7,7 @@ services:
       - ./.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro
       - ./data:/app/data:ro
     environment:
-      DATABASE_URL: postgresql://stargazing:stargazing@db:5432/stargazing
+      DATABASE_URL: postgresql://${POSTGRES_USER:-stargazing}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-stargazing}
       REDIS_URL: redis://redis:6379
     depends_on:
       db:
@@ -24,7 +24,7 @@ services:
     volumes:
       - ./data:/app/data:ro
     environment:
-      DATABASE_URL: postgresql://stargazing:stargazing@db:5432/stargazing
+      DATABASE_URL: postgresql://${POSTGRES_USER:-stargazing}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-stargazing}
       REDIS_URL: redis://redis:6379
     depends_on:
       db:
@@ -35,16 +35,14 @@ services:
 
   db:
     image: postgres:16-alpine
-    ports:
-      - "5432:5432"
     environment:
-      POSTGRES_USER: stargazing
-      POSTGRES_PASSWORD: stargazing
-      POSTGRES_DB: stargazing
+      POSTGRES_USER: ${POSTGRES_USER:-stargazing}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-stargazing}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stargazing"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stargazing}"]
       interval: 5s
       timeout: 5s
       retries: 5

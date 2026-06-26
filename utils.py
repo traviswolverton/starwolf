@@ -85,6 +85,33 @@ def init_session_settings() -> None:
         st.session_state.planner_radius_km = int(settings.get("default_radius_km", "500"))
 
 
+def check_admin_password() -> bool:
+    """Return True if the user is authenticated as admin. Shows login UI if not."""
+    import os
+    password = st.secrets.get("admin_password") if hasattr(st.secrets, "get") else None
+    if not password:
+        password = os.environ.get("ADMIN_PASSWORD")
+    if not password:
+        st.error("Admin password not configured. Add `admin_password` to `.streamlit/secrets.toml`.")
+        return False
+
+    if st.session_state.get("admin_authenticated"):
+        col, _ = st.columns([1, 3])
+        if col.button("Log out"):
+            st.session_state.admin_authenticated = False
+            st.rerun()
+        return True
+
+    pwd = st.text_input("Password", type="password")
+    if st.button("Log in"):
+        if pwd == password:
+            st.session_state.admin_authenticated = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+    return False
+
+
 def _log_visitor() -> None:
     if st.session_state.get("_visitor_logged"):
         return
@@ -97,7 +124,8 @@ def _log_visitor() -> None:
         )
         if not ip or ip in ("127.0.0.1", "::1", ""):
             return
-        ip_hash = hashlib.sha256(ip.encode()).hexdigest()
+        salt = st.secrets.get("ip_hash_salt", "") if hasattr(st.secrets, "get") else ""
+        ip_hash = hashlib.sha256((salt + ip).encode()).hexdigest()
         # Skip if we already logged this IP in the last 24 hours
         with get_engine().connect() as conn:
             seen = conn.execute(

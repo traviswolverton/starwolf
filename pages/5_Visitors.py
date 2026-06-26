@@ -6,13 +6,17 @@ import streamlit as st
 from sqlalchemy import text
 
 from db import get_engine, init_db
-from utils import dist_display, init_session_settings, render_sidebar
+from utils import check_admin_password, dist_display, init_session_settings, render_sidebar
 
 init_db()
 init_session_settings()
 
 st.set_page_config(page_icon="🔭", page_title="Visitors — Stargazing Planner")
 st.title("🌍 Visitors")
+
+if not check_admin_password():
+    st.stop()
+
 st.caption("Anonymous visit data — IPs are hashed and never stored. Geo data courtesy of ip-api.com.")
 
 # ── Load data ──────────────────────────────────────────────────────────────────

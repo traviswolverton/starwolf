@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from sqlalchemy import text
 
@@ -9,6 +12,8 @@ from bortle_lookup import lookup_bortle
 from db import get_engine, get_settings, init_db
 from forecast import fetch_site_forecast
 from scorer import score_forecast
+
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -26,6 +31,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.get("/healthz", include_in_schema=False)
@@ -34,7 +41,9 @@ def health():
 
 
 @app.get("/v1/bortle")
+@limiter.limit("60/minute")
 def get_bortle(
+    request: Request,
     lat: float = Query(..., ge=-90,  le=90,  description="Latitude"),
     lon: float = Query(..., ge=-180, le=180, description="Longitude"),
 ) -> dict[str, Any]:
@@ -51,7 +60,8 @@ def get_bortle(
 
 
 @app.get("/v1/sites")
-def get_sites() -> dict[str, Any]:
+@limiter.limit("10/minute")
+def get_sites(request: Request) -> dict[str, Any]:
     """
     Bulk export of all sites in the catalog.
 
@@ -68,7 +78,9 @@ def get_sites() -> dict[str, Any]:
 
 
 @app.get("/v1/forecast")
+@limiter.limit("30/minute")
 def get_forecast(
+    request: Request,
     lat: float = Query(..., ge=-90,   le=90,  description="Latitude"),
     lon: float = Query(..., ge=-180,  le=180, description="Longitude"),
     days: int  = Query(7,   ge=1,    le=16,  description="Forecast horizon in days (1–16)"),
