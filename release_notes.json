@@ -3,6 +3,7 @@
     {
       "date": "2026-06-26",
       "fixes": [
+        "Feedback form now rate-limited to 3 submissions per IP per 24 hours, preventing GitHub issue spam.",
         "Geolocation lookups now use HTTPS (ipwho.is) instead of plain HTTP (ip-api.com), preventing eavesdropping on visitor IP lookups.",
         "Visitor analytics page now requires admin login — visitor city, region, and map data are no longer publicly visible.",
         "IP hashes used for visit deduplication are now salted, preventing rainbow-table reversal of visitor IPs.",

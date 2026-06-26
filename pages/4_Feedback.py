@@ -1,6 +1,9 @@
+import hashlib
+
 import requests
 import streamlit as st
 
+from cache import cache_get, cache_set
 from db import init_db
 from utils import init_session_settings, render_sidebar
 
@@ -14,9 +17,43 @@ st.caption("Feature ideas, bug reports, or anything else — it goes straight in
 GITHUB_API  = "https://api.github.com"
 GITHUB_REPO = "traviswolverton/starwolf"
 
+_FEEDBACK_LIMIT = 3
+_FEEDBACK_TTL   = 24 * 3600  # 24-hour window
+
+
 def _get_token() -> str | None:
     return st.secrets.get("github_token") if hasattr(st.secrets, "get") else None
 
+
+def _ip_hash() -> str | None:
+    """Return salted IP hash for rate-limiting, or None if IP is unavailable."""
+    try:
+        headers = st.context.headers
+        ip = (
+            headers.get("X-Forwarded-For", "").split(",")[0].strip()
+            or headers.get("X-Real-Ip", "")
+        )
+        if not ip or ip in ("127.0.0.1", "::1", ""):
+            return None
+        salt = st.secrets.get("ip_hash_salt", "") if hasattr(st.secrets, "get") else ""
+        return hashlib.sha256((salt + ip).encode()).hexdigest()
+    except Exception:
+        return None
+
+
+def _submission_count(h: str) -> int:
+    return cache_get(f"feedback:{h}") or 0
+
+
+def _record_submission(h: str) -> None:
+    cache_set(f"feedback:{h}", _submission_count(h) + 1, _FEEDBACK_TTL)
+
+
+_h = _ip_hash()
+if _h is not None and _submission_count(_h) >= _FEEDBACK_LIMIT:
+    st.warning(f"You've submitted {_FEEDBACK_LIMIT} items in the past 24 hours. Please check back tomorrow.")
+    render_sidebar()
+    st.stop()
 
 feedback_type = st.radio(
     "Type",
@@ -88,6 +125,8 @@ if st.button("Submit", type="primary", disabled=not (title.strip() and descripti
             )
             if resp.status_code == 201:
                 issue = resp.json()
+                if _h:
+                    _record_submission(_h)
                 st.success(
                     f"Thanks! Your {feedback_type.lower()} was submitted as "
                     f"[issue #{issue['number']}]({issue['html_url']})."
