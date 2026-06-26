@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Admin — StarWolf{% endblock %}
+
+{% block content %}
+<h1>🔧 Admin</h1>
+
+<div x-data="{ tab: 'telescope' }" class="tab-container">
+  <div class="tab-bar">
+    <button class="tab-btn" :class="{ active: tab === 'telescope' }" @click="tab = 'telescope'">Telescope Weights</button>
+    <button class="tab-btn" :class="{ active: tab === 'naked_eye' }"  @click="tab = 'naked_eye'">Naked Eye Weights</button>
+    <button class="tab-btn" :class="{ active: tab === 'settings' }"   @click="tab = 'settings'">App Settings</button>
+    <button class="tab-btn" :class="{ active: tab === 'bortle' }"     @click="tab = 'bortle'">Bortle Fill</button>
+  </div>
+
+  <!-- Telescope Weights -->
+  <div x-show="tab === 'telescope'" x-cloak>
+    <p class="field-hint">Weights must sum to 1.00. Each factor contributes that fraction to the 0–100 telescope score.</p>
+    <form hx-post="{% url 'admin_save_weights' %}" hx-target="#tel-result" hx-swap="innerHTML"
+          x-data="weightForm()" @submit.prevent="if(valid()) $el.requestSubmit()">
+      <input type="hidden" name="table" value="scoring_weights">
+      <div class="table-wrap">
+        <table class="sites-table">
+          <thead><tr><th>Factor</th><th>Weight</th><th>Description</th></tr></thead>
+          <tbody>
+            {% for row in tel_weights %}
+            <tr>
+              <td><input type="text"   name="factor"      value="{{ row.factor }}"      class="text-input cell-input" required></td>
+              <td><input type="number" name="weight"      value="{{ row.weight }}"      class="text-input cell-input" step="0.01" min="0" max="1" @input="update" required></td>
+              <td><input type="text"   name="description" value="{{ row.description }}" class="text-input cell-input"></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="weight-sum-row">
+        <span class="weight-sum-label">Sum: <strong x-text="sum.toFixed(2)"></strong></span>
+        <span x-show="!valid()" class="alert error" style="padding:0.25rem 0.75rem; display:inline-block;">Must equal 1.00</span>
+        <button type="submit" class="btn-primary" :disabled="!valid()">Save</button>
+      </div>
+    </form>
+    <div id="tel-result" style="margin-top:0.75rem;"></div>
+  </div>
+
+  <!-- Naked Eye Weights -->
+  <div x-show="tab === 'naked_eye'" x-cloak>
+    <p class="field-hint">Weights must sum to 1.00. Moon and cloud cover dominate for naked eye; a Bortle modifier is applied separately.</p>
+    <form hx-post="{% url 'admin_save_weights' %}" hx-target="#eye-result" hx-swap="innerHTML"
+          x-data="weightForm()" @submit.prevent="if(valid()) $el.requestSubmit()">
+      <input type="hidden" name="table" value="naked_eye_weights">
+      <div class="table-wrap">
+        <table class="sites-table">
+          <thead><tr><th>Factor</th><th>Weight</th><th>Description</th></tr></thead>
+          <tbody>
+            {% for row in eye_weights %}
+            <tr>
+              <td><input type="text"   name="factor"      value="{{ row.factor }}"      class="text-input cell-input" required></td>
+              <td><input type="number" name="weight"      value="{{ row.weight }}"      class="text-input cell-input" step="0.01" min="0" max="1" @input="update" required></td>
+              <td><input type="text"   name="description" value="{{ row.description }}" class="text-input cell-input"></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="weight-sum-row">
+        <span class="weight-sum-label">Sum: <strong x-text="sum.toFixed(2)"></strong></span>
+        <span x-show="!valid()" class="alert error" style="padding:0.25rem 0.75rem; display:inline-block;">Must equal 1.00</span>
+        <button type="submit" class="btn-primary" :disabled="!valid()">Save</button>
+      </div>
+    </form>
+    <div id="eye-result" style="margin-top:0.75rem;"></div>
+  </div>
+
+  <!-- App Settings -->
+  <div x-show="tab === 'settings'" x-cloak>
+    <p class="field-hint"><code>forecast_days</code> and <code>timezone</code> are system-wide defaults. Per-user overrides take precedence on the Preferences page.</p>
+    <form hx-post="{% url 'admin_save_settings' %}" hx-target="#settings-result" hx-swap="innerHTML">
+      {% csrf_token %}
+      <div class="table-wrap">
+        <table class="sites-table">
+          <thead><tr><th>Key</th><th>Value</th><th>Description</th></tr></thead>
+          <tbody>
+            {% for row in app_settings %}
+            <tr>
+              <td><code class="setting-key">{{ row.key }}</code><input type="hidden" name="key" value="{{ row.key }}"><input type="hidden" name="description" value="{{ row.description|default:'' }}"></td>
+              <td><input type="text" name="value" value="{{ row.value }}" class="text-input cell-input"></td>
+              <td class="col-notes">{{ row.description|default:"" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="weight-sum-row">
+        <button type="submit" class="btn-primary">Save Settings</button>
+      </div>
+    </form>
+    <div id="settings-result" style="margin-top:0.75rem;"></div>
+  </div>
+
+  <!-- Bortle Fill -->
+  <div x-show="tab === 'bortle'" x-cloak>
+    <p class="field-hint">Fill in Bortle class for sites missing it, using the World Atlas GeoTIFF.</p>
+    <div class="bortle-fill-stat">
+      <span class="stat-num">{{ bortle_null_count }}</span>
+      <span class="stat-label">sites missing Bortle class</span>
+    </div>
+    {% if bortle_null_count > 0 %}
+    <form hx-post="{% url 'admin_bortle_fill' %}" hx-target="#bortle-result" hx-swap="innerHTML"
+          hx-indicator="#bortle-spinner">
+      {% csrf_token %}
+      <button type="submit" class="btn-primary" hx-disabled-elt="this">Fill {{ bortle_null_count }} site{{ bortle_null_count|pluralize }}</button>
+      <span id="bortle-spinner" class="htmx-indicator" style="margin-left:0.75rem;">Looking up…</span>
+    </form>
+    {% else %}
+    <p class="field-hint" style="color:#4caf96;">✓ All sites have a Bortle class.</p>
+    {% endif %}
+    <div id="bortle-result" style="margin-top:0.75rem;"></div>
+  </div>
+</div>
+
+<script>
+function weightForm() {
+  return {
+    sum: 0,
+    init() { this.update(); },
+    update() {
+      var inputs = this.$el.querySelectorAll('input[name="weight"]');
+      this.sum = Array.from(inputs).reduce((a, i) => a + (parseFloat(i.value) || 0), 0);
+    },
+    valid() { return Math.abs(this.sum - 1.0) < 0.001; },
+  };
+}
+</script>
+{% endblock %}

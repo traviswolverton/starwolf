@@ -39,6 +39,7 @@
             📍 {% if prefs.has_location %}{{ prefs.location_display|truncatechars:28 }}{% else %}Set Location{% endif %}
           </a>
           <a href="{% url 'preferences' %}" @click="userOpen = false; open = false">⚙️ Preferences</a>
+          {% if user.is_admin %}<a href="{% url 'admin_panel' %}" @click="userOpen = false; open = false">🔧 Admin</a>{% endif %}
         </div>
       </div>
       {% endif %}

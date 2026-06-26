@@ -178,6 +178,38 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   .user-dropdown a:hover { background: none; color: #4caf96; }
 }
 
+/* ── Login page ──────────────────────────────────────────────────────────── */
+.login-wrap { max-width: 360px; }
+.login-form { display: flex; flex-direction: column; }
+
+/* ── Admin page ──────────────────────────────────────────────────────────── */
+.cell-input {
+  width: 100%;
+  min-width: 80px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+}
+.setting-key {
+  font-size: 0.82rem;
+  color: #4caf96;
+  white-space: nowrap;
+}
+.weight-sum-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.85rem;
+}
+.weight-sum-label { font-size: 0.9rem; color: #888; }
+.bortle-fill-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.stat-num { font-size: 2.5rem; font-weight: 700; color: #4caf96; line-height: 1; }
+.stat-label { font-size: 0.95rem; color: #888; }
+
 /* ── Heatmap page ────────────────────────────────────────────────────────── */
 .heatmap-header {
   display: flex;

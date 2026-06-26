@@ -630,6 +630,116 @@ def feedback(request):
     )
 
 
+def admin_panel(request):
+    from accounts.decorators import require_admin
+    if not request.user.is_authenticated or not request.user.is_admin():
+        return redirect("home")
+
+    with connection.cursor() as cur:
+        cur.execute("SELECT id, factor, weight, description FROM scoring_weights ORDER BY weight DESC")
+        tel_weights = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
+        cur.execute("SELECT id, factor, weight, description FROM naked_eye_weights ORDER BY weight DESC")
+        eye_weights = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
+        cur.execute("SELECT key, value, description FROM app_settings ORDER BY key")
+        app_settings = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
+        cur.execute("SELECT COUNT(*) FROM sites WHERE bortle_class IS NULL")
+        bortle_null_count = cur.fetchone()[0]
+
+    return render(request, "pages/admin.html", {
+        "tel_weights": tel_weights,
+        "eye_weights": eye_weights,
+        "app_settings": app_settings,
+        "bortle_null_count": bortle_null_count,
+    })
+
+
+@require_http_methods(["POST"])
+def admin_save_weights(request):
+    if not request.user.is_authenticated or not request.user.is_admin():
+        return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
+
+    table = request.POST.get("table", "scoring_weights")
+    if table not in ("scoring_weights", "naked_eye_weights"):
+        return HttpResponse('<div class="alert error">Invalid table.</div>', status=400)
+
+    factors      = request.POST.getlist("factor")
+    weights_raw  = request.POST.getlist("weight")
+    descriptions = request.POST.getlist("description")
+
+    try:
+        weights = [float(w) for w in weights_raw]
+    except ValueError:
+        return HttpResponse('<div class="alert error">Weights must be numbers.</div>')
+
+    total = sum(weights)
+    if abs(total - 1.0) > 0.001:
+        return HttpResponse(f'<div class="alert error">Weights sum to {total:.3f} — must equal 1.00.</div>')
+
+    rows = [{"factor": f, "weight": w, "desc": d}
+            for f, w, d in zip(factors, weights, descriptions) if f.strip()]
+
+    with connection.cursor() as cur:
+        cur.execute(f"DELETE FROM {table}")
+        for row in rows:
+            cur.execute(
+                f"INSERT INTO {table} (factor, weight, description) VALUES (%s, %s, %s)",
+                [row["factor"], row["weight"], row["desc"]]
+            )
+
+    return HttpResponse('<div class="alert success">Weights saved.</div>')
+
+
+@require_http_methods(["POST"])
+def admin_save_settings(request):
+    if not request.user.is_authenticated or not request.user.is_admin():
+        return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
+
+    keys   = request.POST.getlist("key")
+    values = request.POST.getlist("value")
+    descs  = request.POST.getlist("description")
+
+    with connection.cursor() as cur:
+        for key, value, desc in zip(keys, values, descs):
+            if key.strip():
+                cur.execute("""
+                    INSERT INTO app_settings (key, value, description)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+                """, [key.strip(), value, desc])
+
+    return HttpResponse('<div class="alert success">Settings saved.</div>')
+
+
+@require_http_methods(["POST"])
+def admin_bortle_fill(request):
+    if not request.user.is_authenticated or not request.user.is_admin():
+        return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
+
+    with connection.cursor() as cur:
+        cur.execute("SELECT id, name, lat, lon FROM sites WHERE bortle_class IS NULL ORDER BY name")
+        cols = [d[0] for d in cur.description]
+        null_sites = [dict(zip(cols, r)) for r in cur.fetchall()]
+
+    if not null_sites:
+        return HttpResponse('<div class="alert success">No sites missing Bortle — nothing to do.</div>')
+
+    ok, failed = 0, []
+    for site in null_sites:
+        try:
+            result = lookup_bortle(site["lat"], site["lon"])
+            with connection.cursor() as cur:
+                cur.execute("UPDATE sites SET bortle_class = %s WHERE id = %s",
+                            [result["bortle"], site["id"]])
+            ok += 1
+        except Exception as e:
+            failed.append(f"{site['name']}: {e}")
+
+    msg = f'<div class="alert success">Updated {ok} site(s).</div>'
+    if failed:
+        msg += '<div class="alert warning">Some failed:<br>' + "<br>".join(failed) + "</div>"
+    return HttpResponse(msg)
+
+
 def api_guide(request):
     guide_path = Path(settings.BASE_DIR).parent / "API_GUIDE.md"
     raw = guide_path.read_text()

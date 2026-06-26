@@ -274,7 +274,7 @@ The FastAPI public API (`/api/*`) is untouched throughout.
 | 5     | Preferences   | `2_Preferences.py`   | Medium     | Sliders → per-user DB row |
 | 6     | Location      | `0_Location.py`      | Medium     | Geocode → store on user model |
 | 7     | Admin         | `3_Admin.py`         | Medium     | HTMX tables, require_role("admin") |
-| 8     | Visitors      | `5_Visitors.py`      | High       | Plotly embed, require_role("admin") |
+| 8     | Visitors      | `5_Visitors.py`      | Descoped   | **Removed from scope** — visitor analytics not being migrated to Django |
 | 9     | Sites         | `1_Sites.py`         | High       | Filterable table, per-user site lists |
 | 10    | Heatmap       | `9_Heatmap.py`       | High       | pydeck embed, daily cache |
 | 11    | Planner       | `Planner.py`         | Highest    | Core scoring view, AI summary |
