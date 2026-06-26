@@ -10,10 +10,10 @@
 </head>
 <body>
   <nav>
-    <a href="/">StarWolf 🔭</a>
+    <a href="/">🔭 StarWolf</a>
+    <a href="{% url 'about' %}">About</a>
     {% if user.is_authenticated %}
-      <span>{{ user.email }}</span>
-      <a href="{% url 'logout' %}">Log out</a>
+      <span class="user">👤 {{ user.email }}</span>
     {% endif %}
   </nav>
 

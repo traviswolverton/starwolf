@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}About — StarWolf{% endblock %}
+
+{% block content %}
+<h1>About StarWolf</h1>
+
+<p>
+  StarWolf is a personal stargazing trip planner built by Seth and Travis Wolverton.
+  It pulls live weather and atmospheric data, combines it with moon phase and light
+  pollution information, and scores each site/night combination so you can find the
+  best window for your next observing session.
+</p>
+<p>
+  <strong>StarWolf is a non-commercial, personal project.</strong> It is not affiliated with any
+  of the data providers listed below. Forecasts are for planning purposes only —
+  conditions can change. This is not a professional meteorological service.
+</p>
+
+<hr>
+<h2>Data Sources</h2>
+
+<details open>
+  <summary>☁️ Weather Forecasts — Open-Meteo</summary>
+  <div class="details-body">
+    <p><strong>Provider:</strong> <a href="https://open-meteo.com" target="_blank">Open-Meteo</a></p>
+    <p>Open-Meteo is a free, open-source weather API that aggregates forecasts from national
+    weather services worldwide. StarWolf uses it for cloud cover, precipitation probability,
+    humidity, visibility, and atmospheric stability (lifted index).</p>
+    <ul>
+      <li><strong>License:</strong> <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a> — attribution required</li>
+      <li><strong>Update frequency:</strong> Hourly</li>
+      <li><strong>Coverage:</strong> Global</li>
+      <li><strong>Terms:</strong> <a href="https://open-meteo.com/en/terms" target="_blank">open-meteo.com/en/terms</a></li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>🔭 Astronomical Seeing &amp; Transparency — 7timer!</summary>
+  <div class="details-body">
+    <p><strong>Provider:</strong> <a href="http://7timer.info" target="_blank">7timer!</a> by Ye Quanzhi, Tongji University</p>
+    <p>7timer! is a free astronomical weather service purpose-built for observers. StarWolf
+    uses its ASTRO product for seeing (atmospheric steadiness) and sky transparency.
+    Both are rated on a <strong>1–8 scale where 1 is best</strong>. Coverage is limited to approximately
+    3 days ahead — nights beyond that show <code>—</code> for these fields.</p>
+    <ul>
+      <li><strong>License:</strong> Free academic service; attribution requested</li>
+      <li><strong>Update frequency:</strong> Every 6 hours</li>
+      <li><strong>Coverage:</strong> Global, ~3-day horizon</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>🌑 Dark Sky Site Catalog — IDA / DarkSky International</summary>
+  <div class="details-body">
+    <p><strong>Provider:</strong> <a href="https://darksky.org" target="_blank">International Dark-Sky Association / DarkSky.org</a></p>
+    <p>The site catalog is seeded from the IDA's publicly published list of designated
+    International Dark Sky Places. Coordinates were sourced via the OpenStreetMap
+    Overpass API, where IDA-designated locations are tagged by the OSM community.</p>
+    <ul>
+      <li><strong>IDA designation data:</strong> Publicly published, non-commercial use</li>
+      <li><strong>Coordinate data:</strong> <a href="https://www.openstreetmap.org" target="_blank">OpenStreetMap</a> contributors, <a href="https://opendatacommons.org/licenses/odbl/" target="_blank">ODbL</a></li>
+      <li>© OpenStreetMap contributors</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>📍 Geocoding — Nominatim / OpenStreetMap</summary>
+  <div class="details-body">
+    <p><strong>Provider:</strong> <a href="https://nominatim.org" target="_blank">Nominatim</a> (OpenStreetMap)</p>
+    <p>Nominatim is used to convert addresses and place names to coordinates when you set
+    your location or add a site by address. It is operated by the OpenStreetMap Foundation
+    and is free for low-volume, non-commercial use.</p>
+    <ul>
+      <li><strong>License:</strong> <a href="https://opendatacommons.org/licenses/odbl/" target="_blank">ODbL</a> — © OpenStreetMap contributors</li>
+      <li><strong>Usage policy:</strong> <a href="https://nominatim.org/release-docs/latest/api/Overview/" target="_blank">nominatim.org</a></li>
+      <li><strong>Rate:</strong> Single lookups only; StarWolf does not perform bulk geocoding</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>💡 Light Pollution Data — World Atlas of Artificial Night Sky Brightness</summary>
+  <div class="details-body">
+    <p><strong>Provider:</strong> Falchi et al. (2016), GFZ German Research Centre for Geosciences</p>
+    <p>StarWolf uses this dataset to look up Bortle class estimates when adding new dark-sky
+    sites. The dataset maps artificial sky brightness worldwide at ~1 km resolution.</p>
+    <ul>
+      <li><strong>Full citation:</strong> Fabio Falchi, Pierantonio Cinzano, Dan Duriscoe, Christopher C.M. Kyba,
+        Christopher D. Elvidge, Kimberly Baugh, Boris A. Portnov, Nataliya A. Rybnikova,
+        Riccardo Motta (2016): <em>The new world atlas of artificial night sky brightness.</em>
+        V. 1.1. GFZ Data Services.
+        <a href="https://doi.org/10.5880/GFZ.1.4.2016.001" target="_blank">doi.org/10.5880/GFZ.1.4.2016.001</a></li>
+      <li><strong>License:</strong> <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a> — attribution required</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>🌙 Moon &amp; Astronomical Calculations — astral</summary>
+  <div class="details-body">
+    <p><strong>Library:</strong> <a href="https://astral.readthedocs.io" target="_blank">astral</a> by Simon Kennedy</p>
+    <p>Astral provides moon phase, illumination, and rise/set calculations used in StarWolf's
+    moon scoring factor.</p>
+    <ul>
+      <li><strong>License:</strong> <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 2.0</a></li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>🤖 AI Forecast Summaries — Ollama</summary>
+  <div class="details-body">
+    <p><strong>Runtime:</strong> <a href="https://ollama.com" target="_blank">Ollama</a> (MIT License)</p>
+    <p>When enabled, StarWolf generates plain-language forecast summaries using a large
+    language model running <strong>locally on the host machine</strong> via Ollama. No data is sent
+    to any external AI service.</p>
+    <ul>
+      <li><strong>Default model:</strong> Llama 3.1 8B by Meta
+        (<a href="https://www.llama.com/llama3/license/" target="_blank">Meta Llama 3 Community License</a>)</li>
+      <li><strong>Data privacy:</strong> All AI inference is local; your forecast data never leaves your machine</li>
+      <li><strong>This feature is optional</strong> and can be disabled in Admin → App Settings</li>
+    </ul>
+  </div>
+</details>
+
+<hr>
+<h2>Architecture</h2>
+<p>StarWolf is a self-hosted Python web app built for a single-server deployment.
+Here's what's running under the hood:</p>
+
+<div class="arch-grid">
+  <div>
+    <h3>Frontend</h3>
+    <p><strong><a href="https://www.djangoproject.com" target="_blank">Django 5</a> + <a href="https://htmx.org" target="_blank">HTMX</a></strong><br>
+    Server-rendered HTML with HTMX for partial page updates. Migrating from Streamlit
+    via a strangler-fig pattern — pages move to Django one at a time while Streamlit
+    continues serving unmigrated pages.</p>
+
+    <p><strong><a href="https://fastapi.tiangolo.com" target="_blank">FastAPI</a></strong><br>
+    Lightweight REST API on port 8000 (<code>api.py</code>) that exposes the forecast
+    engine for external consumers. Auto-docs at <code>/docs</code>.</p>
+    <p><a href="/api">📡 API Guide →</a></p>
+
+    <h3>Data Layer</h3>
+    <p><strong><a href="https://www.postgresql.org" target="_blank">PostgreSQL 16</a></strong><br>
+    Stores the site catalog, app settings, and visitor log. Accessed via
+    <a href="https://www.sqlalchemy.org" target="_blank">SQLAlchemy</a> Core from shared modules;
+    Django manages its own auth tables via the ORM.</p>
+
+    <p><strong><a href="https://redis.io" target="_blank">Redis 7</a></strong><br>
+    Forecast cache with TTL-based expiry (1 hour for Open-Meteo,
+    3 hours for 7timer). Cache misses fall through to live API calls;
+    Redis is optional — the app degrades gracefully if unavailable.</p>
+  </div>
+
+  <div>
+    <h3>Scoring Engine</h3>
+    <p><strong><code>scorer.py</code></strong><br>
+    Computes a 0–100 composite score per site/night by averaging nighttime
+    hours across five weighted factors: cloud cover, high cloud, moon phase,
+    atmospheric stability (lifted index), and humidity. A separate naked eye
+    score applies different weights and a Bortle class modifier. Weights are
+    live-editable in the Admin panel.</p>
+
+    <p><strong><code>forecast.py</code></strong><br>
+    Fetches and merges Open-Meteo (hourly) and 7timer! (6-hourly ASTRO)
+    forecasts per site. All network calls are Redis-cached.</p>
+
+    <p><strong><code>bortle_lookup.py</code></strong><br>
+    Reads a single pixel from the 2.9 GB Falchi et al. 2016 GeoTIFF using
+    <a href="https://rasterio.readthedocs.io" target="_blank">rasterio</a> — lazy read, no full
+    file load, returns in milliseconds.</p>
+
+    <h3>Infrastructure</h3>
+    <p><strong><a href="https://docs.docker.com/compose" target="_blank">Docker Compose</a></strong><br>
+    Five services: <code>app</code> (Streamlit, transitional), <code>django</code>, <code>api</code> (FastAPI),
+    <code>db</code> (Postgres), <code>redis</code>. The World Atlas GeoTIFF is mounted as a
+    read-only volume so it stays off the image layer.</p>
+
+    <p><strong><a href="https://ollama.com" target="_blank">Ollama</a></strong> (host, optional)<br>
+    Local LLM inference for AI forecast summaries. Runs outside Docker,
+    reachable at <code>localhost:11434</code>. No data leaves the machine.</p>
+  </div>
+</div>
+
+<hr>
+<div class="callout warning">
+  ⚠️ StarWolf is provided as-is for personal, non-commercial use. Forecasts are generated
+  from third-party data sources and are intended for planning purposes only. Actual
+  conditions may differ significantly. StarWolf is not responsible for decisions made
+  based on its forecasts. Always check current conditions before traveling to a remote site.
+</div>
+
+<hr>
+<p class="footer-caption">
+  StarWolf · Built with <a href="https://www.djangoproject.com" target="_blank">Django</a>
+  and <a href="https://anthropic.com" target="_blank">Claude</a> ·
+  <a href="https://github.com/traviswolverton/starwolf" target="_blank">Source</a>
+</p>
+{% endblock %}

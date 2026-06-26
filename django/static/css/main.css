@@ -1,6 +1,125 @@
-/* StarWolf Django — base styles. Expanded during Phase 2 page migration. */
+/* StarWolf Django — global styles */
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, sans-serif; background: #0e1117; color: #fafafa; }
-nav { display: flex; gap: 1rem; align-items: center; padding: 0.75rem 1.5rem; background: #1a1d27; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #0e1117;
+  color: #e0e0e0;
+  line-height: 1.6;
+}
+
+a { color: #4caf96; }
+a:hover { color: #6dd4b8; }
+
+code {
+  background: #1e2130;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.875em;
+}
+
+hr { border: none; border-top: 1px solid #2a2d3e; margin: 2rem 0; }
+
+h1, h2, h3 { color: #fafafa; margin-top: 1.5rem; }
+h1 { font-size: 1.8rem; }
+h2 { font-size: 1.35rem; }
+h3 { font-size: 1.1rem; color: #b0b8c8; }
+
+/* ── Nav ─────────────────────────────────────────────────────────────────── */
+nav {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: #1a1d27;
+  border-bottom: 1px solid #2a2d3e;
+}
 nav a { color: #4caf96; text-decoration: none; font-weight: 600; }
-main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+nav a:hover { color: #6dd4b8; }
+nav .user { margin-left: auto; color: #888; font-size: 0.85rem; }
+
+/* ── Main content ────────────────────────────────────────────────────────── */
+main {
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Details / expander ──────────────────────────────────────────────────── */
+details {
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+details summary {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: #fafafa;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+details summary::-webkit-details-marker { display: none; }
+details summary::before {
+  content: "▶";
+  font-size: 0.65rem;
+  color: #4caf96;
+  transition: transform 0.15s;
+}
+details[open] summary::before { transform: rotate(90deg); }
+.details-body {
+  padding: 0.25rem 1rem 1rem;
+  border-top: 1px solid #2a2d3e;
+}
+.details-body ul { margin: 0.5rem 0 0; padding-left: 1.25rem; }
+.details-body li { margin-bottom: 0.25rem; }
+
+/* ── Architecture two-column grid ────────────────────────────────────────── */
+.arch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+@media (max-width: 700px) {
+  .arch-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Callout / info box ──────────────────────────────────────────────────── */
+.callout {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  border-left: 4px solid #4caf96;
+  background: #1a1d27;
+  margin: 1rem 0;
+}
+.callout.warning {
+  border-left-color: #f0a500;
+  color: #d4b896;
+}
+
+/* ── Footer caption ──────────────────────────────────────────────────────── */
+.footer-caption {
+  font-size: 0.8rem;
+  color: #555;
+  text-align: center;
+}
+.footer-caption a { color: #555; }
+.footer-caption a:hover { color: #888; }
+
+/* ── Flash messages ──────────────────────────────────────────────────────── */
+ul.messages {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+}
+ul.messages li {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background: #1a1d27;
+  border-left: 4px solid #4caf96;
+  margin-bottom: 0.5rem;
+}
