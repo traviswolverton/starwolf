@@ -63,7 +63,8 @@
 {% if nights|length > 10 %}
 <div class="load-more">
   <span class="field-hint" x-text="`Showing ${Math.min(shown, {{ nights|length }})} of {{ nights|length }} nights`">Showing 10 of {{ nights|length }} nights</span>
-  <button class="btn-secondary" @click="shown += 10" x-show="shown < {{ nights|length }}">Show more</button>
+  <button class="btn-secondary" @click="shown += 10" x-show="shown < {{ nights|length }}">Show next 10</button>
+  <button class="btn-secondary" @click="shown = {{ nights|length }}" x-show="shown < {{ nights|length }}">Show all</button>
 </div>
 {% endif %}
 </div>
