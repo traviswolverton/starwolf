@@ -17,6 +17,7 @@ def home(request):
 urlpatterns = [
     path("", home, name="home"),
     path("about", page_views.about, name="about"),
+    path("sites", page_views.sites, name="sites"),
     path("location", page_views.location, name="location"),
     path("preferences", page_views.preferences, name="preferences"),
     path("preferences/reset", page_views.preferences_reset, name="preferences_reset"),

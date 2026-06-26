@@ -1,4 +1,5 @@
 import hashlib
+import math
 import re
 from pathlib import Path
 
@@ -232,6 +233,117 @@ def preferences_reset(request):
             prefs.timezone_auto = True
     prefs.save()
     return redirect("preferences")
+
+
+_KM_TO_MI = 0.621371
+
+_SITE_TYPE_LABELS = {
+    "ida_certified":  "IDA Certified",
+    "state_park":     "State Park",
+    "national_park":  "National Park",
+    "national_forest":"National Forest",
+    "observatory":    "Observatory",
+    "private":        "Private",
+    "community":      "Community",
+}
+
+def _haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return R * 2 * math.asin(math.sqrt(a))
+
+
+@require_http_methods(["GET"])
+def sites(request):
+    prefs = request.prefs
+    has_loc = bool(prefs and prefs.has_location)
+    is_imperial = prefs and prefs.units == "imperial"
+    dist_unit = "mi" if is_imperial else "km"
+
+    # ── Filters from query string ─────────────────────────────────────────────
+    type_filter  = request.GET.get("type", "")
+    try:
+        bortle_max = min(9, max(1, int(request.GET.get("bortle_max", 9))))
+    except ValueError:
+        bortle_max = 9
+    try:
+        max_dist = int(request.GET.get("max_dist", 0)) or None
+    except ValueError:
+        max_dist = None
+    sort = request.GET.get("sort", "dist" if has_loc else "name")
+    try:
+        page = max(1, int(request.GET.get("page", 1)))
+    except ValueError:
+        page = 1
+
+    # ── DB query ──────────────────────────────────────────────────────────────
+    sql = "SELECT id, name, lat, lon, bortle_class, elevation_m, notes, site_type FROM sites WHERE active=1"
+    params = []
+    if type_filter:
+        sql += " AND site_type = %s"
+        params.append(type_filter)
+    if bortle_max < 9:
+        sql += " AND bortle_class <= %s"
+        params.append(bortle_max)
+    sql += " ORDER BY name"
+
+    with connection.cursor() as cur:
+        cur.execute(sql, params)
+        cols = [d[0] for d in cur.description]
+        rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+
+    # ── Distance + display enrichment ─────────────────────────────────────────
+    for row in rows:
+        row["type_label"] = _SITE_TYPE_LABELS.get(row["site_type"] or "", row["site_type"] or "—")
+        row["bortle_color"] = _BORTLE_COLOR.get(row["bortle_class"] or 5, "#555")
+        row["map_url"] = (
+            f"https://www.openstreetmap.org/?mlat={row['lat']}&mlon={row['lon']}"
+            f"#map=12/{row['lat']}/{row['lon']}"
+        )
+        if has_loc:
+            km = _haversine(prefs.location_lat, prefs.location_lon, row["lat"], row["lon"])
+            row["dist_km"] = km
+            row["dist_display"] = f"{km * _KM_TO_MI:.0f} {dist_unit}" if is_imperial else f"{km:.0f} {dist_unit}"
+
+    # ── Filter by distance ────────────────────────────────────────────────────
+    if has_loc and max_dist:
+        max_km = max_dist / _KM_TO_MI if is_imperial else max_dist
+        rows = [r for r in rows if r["dist_km"] <= max_km]
+
+    # ── Sort ──────────────────────────────────────────────────────────────────
+    if sort == "dist" and has_loc:
+        rows.sort(key=lambda r: r["dist_km"])
+    elif sort == "bortle":
+        rows.sort(key=lambda r: r["bortle_class"] or 9)
+
+    # ── Paginate ──────────────────────────────────────────────────────────────
+    per_page = 50
+    total = len(rows)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, total_pages)
+    page_rows = rows[(page - 1) * per_page : page * per_page]
+
+    ctx = {
+        "rows": page_rows,
+        "total": total,
+        "page": page,
+        "total_pages": total_pages,
+        "type_filter": type_filter,
+        "bortle_max": bortle_max,
+        "max_dist": max_dist or "",
+        "sort": sort,
+        "has_loc": has_loc,
+        "dist_unit": dist_unit,
+        "site_types": _SITE_TYPE_LABELS,
+        "page_range": range(max(1, page - 2), min(total_pages + 1, page + 3)),
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, "pages/_sites_rows.html", ctx)
+    return render(request, "pages/sites.html", ctx)
 
 
 @require_http_methods(["GET", "POST"])

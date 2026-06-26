@@ -23,6 +23,7 @@
 
     <nav class="nav-links" :class="{ 'is-open': open }">
       <a href="{% url 'about' %}" @click="open = false">About</a>
+      <a href="{% url 'sites' %}" @click="open = false">Sites</a>
       <a href="{% url 'bortle_scorer' %}" @click="open = false">Bortle</a>
       <a href="{% url 'api_guide' %}" @click="open = false">API</a>
       <a href="{% url 'feedback' %}" @click="open = false">Feedback</a>

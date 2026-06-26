@@ -178,6 +178,95 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   .user-dropdown a:hover { background: none; color: #4caf96; }
 }
 
+/* ── Sites page ──────────────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.filter-select {
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 6px;
+  color: #c0c8d8;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.65rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.filter-select:focus { outline: none; border-color: #4caf96; }
+
+.table-wrap { overflow-x: auto; }
+
+.sites-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.sites-table th {
+  background: #1a1d27;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 2px solid #2a2d3e;
+  white-space: nowrap;
+}
+.sites-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #1a1d27;
+  vertical-align: middle;
+}
+.sites-table tr:hover td { background: #1a1d2788; }
+
+.col-dist   { white-space: nowrap; color: #4caf96; font-variant-numeric: tabular-nums; }
+.col-name   { font-weight: 500; }
+.col-type   { color: #888; white-space: nowrap; }
+.col-notes  { color: #666; font-size: 0.82rem; }
+.col-map    { text-align: center; font-size: 1rem; }
+.col-map a  { text-decoration: none; }
+
+.bortle-badge {
+  display: inline-block;
+  width: 1.6rem;
+  height: 1.6rem;
+  line-height: 1.6rem;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #fff;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+.pag-info { color: #666; }
+.pag-btns { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.pag-btn {
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 4px;
+  color: #c0c8d8;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.1s, border-color 0.1s;
+}
+.pag-btn:hover { background: #2a2d3e; }
+.pag-btn.active { background: #4caf96; border-color: #4caf96; color: #0e1117; font-weight: 700; }
+
 /* ── Main content ────────────────────────────────────────────────────────── */
 main {
   padding: 1.5rem;

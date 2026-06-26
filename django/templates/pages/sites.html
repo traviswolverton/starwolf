@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Dark-Sky Sites — StarWolf{% endblock %}
+
+{% block content %}
+<div class="sites-header">
+  <h1>Dark-Sky Sites</h1>
+  <p class="subtitle">{{ total }} site{{ total|pluralize }} • {% if has_loc %}sorted by distance{% else %}sorted by name{% endif %}</p>
+</div>
+
+{% if not has_loc %}
+<div class="alert warning" style="margin-bottom:1.5rem;">
+  📍 <a href="{% url 'location' %}">Set your location</a> to see distance and sort by proximity.
+</div>
+{% endif %}
+
+<!-- Filter bar -->
+<form
+  id="filter-form"
+  hx-get="{% url 'sites' %}"
+  hx-target="#sites-results"
+  hx-swap="innerHTML"
+  hx-push-url="true"
+  hx-trigger="change, submit"
+  class="filter-bar"
+>
+  <select name="type" class="filter-select">
+    <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
+    {% for code, label in site_types.items %}
+    <option value="{{ code }}" {% if type_filter == code %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  <select name="bortle_max" class="filter-select">
+    {% for b in "123456789" %}
+    <option value="{{ b }}" {% if bortle_max == b|add:0 %}selected{% endif %}>Bortle ≤ {{ b }}</option>
+    {% endfor %}
+  </select>
+
+  {% if has_loc %}
+  <select name="max_dist" class="filter-select">
+    <option value="" {% if not max_dist %}selected{% endif %}>Any distance</option>
+    <option value="50"   {% if max_dist == 50   %}selected{% endif %}>Within 50 {{ dist_unit }}</option>
+    <option value="100"  {% if max_dist == 100  %}selected{% endif %}>Within 100 {{ dist_unit }}</option>
+    <option value="200"  {% if max_dist == 200  %}selected{% endif %}>Within 200 {{ dist_unit }}</option>
+    <option value="500"  {% if max_dist == 500  %}selected{% endif %}>Within 500 {{ dist_unit }}</option>
+  </select>
+
+  <select name="sort" class="filter-select">
+    <option value="dist"   {% if sort == "dist"   %}selected{% endif %}>Sort: Distance</option>
+    <option value="name"   {% if sort == "name"   %}selected{% endif %}>Sort: Name</option>
+    <option value="bortle" {% if sort == "bortle" %}selected{% endif %}>Sort: Bortle</option>
+  </select>
+  {% else %}
+  <select name="sort" class="filter-select">
+    <option value="name"   {% if sort == "name"   %}selected{% endif %}>Sort: Name</option>
+    <option value="bortle" {% if sort == "bortle" %}selected{% endif %}>Sort: Bortle</option>
+  </select>
+  {% endif %}
+</form>
+
+<!-- Results -->
+<div id="sites-results">
+  {% include "pages/_sites_rows.html" %}
+</div>
+{% endblock %}
