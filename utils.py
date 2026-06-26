@@ -1,4 +1,5 @@
 import hashlib
+import os
 
 import requests as _req
 import streamlit as st
@@ -221,6 +222,11 @@ def render_sidebar() -> None:
 })();
 </script>
 """, height=0)
+
+    _auth_header = os.environ.get("AUTH_EMAIL_HEADER", "Cf-Access-Authenticated-User-Email")
+    _email = st.context.headers.get(_auth_header)
+    if _email:
+        st.sidebar.caption(f"👤 {_email}")
 
     loc = st.session_state.get("user_location")
     st.sidebar.divider()
