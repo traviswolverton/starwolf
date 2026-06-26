@@ -1,11 +1,21 @@
 import hashlib
 import logging
+from urllib.parse import urlparse
 
 import requests
 
 import ai_config
 from cache import cache_get, cache_set
 from db import get_settings
+
+_LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+def _assert_loopback(url: str) -> None:
+    """Raise ValueError if the URL does not point to a loopback address."""
+    host = urlparse(url).hostname or ""
+    if host not in _LOOPBACK_HOSTS:
+        raise ValueError(f"Ollama URL must point to localhost, got: {host!r}")
 
 _TTL_SUMMARY = 3600  # match Open-Meteo TTL — summary is only as fresh as the forecast
 _CONNECT_TIMEOUT = 3  # seconds — fast-fail if Ollama isn't reachable
@@ -65,10 +75,10 @@ def is_ollama_available() -> bool:
     """Return True if Ollama is reachable. Uses a 3-second connect timeout for fast-fail."""
     settings = get_settings()
     url = settings.get("ollama_url", ai_config.OLLAMA_URL)
-    from urllib.parse import urlparse
-    parsed = urlparse(url)
-    ping_url = f"{parsed.scheme}://{parsed.netloc}/api/tags"
     try:
+        _assert_loopback(url)
+        parsed = urlparse(url)
+        ping_url = f"{parsed.scheme}://{parsed.netloc}/api/tags"
         requests.get(ping_url, timeout=(_CONNECT_TIMEOUT, 5))
         return True
     except Exception:
@@ -81,6 +91,12 @@ def generate_forecast_summary(context_table: str) -> str | None:
     url     = settings.get("ollama_url",     ai_config.OLLAMA_URL)
     model   = settings.get("ollama_model",   ai_config.OLLAMA_MODEL)
     timeout = int(settings.get("ollama_timeout", ai_config.OLLAMA_TIMEOUT))
+
+    try:
+        _assert_loopback(url)
+    except ValueError as e:
+        _log.warning("Blocked Ollama request to non-loopback URL: %s", e)
+        return None
 
     payload = {
         "model": model,
