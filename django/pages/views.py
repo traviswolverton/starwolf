@@ -830,7 +830,7 @@ def planner_run(request):
 
     sites = _load_planner_sites(prefs, radius_km if (prefs and prefs.has_location) else None)
     if not sites:
-        return HttpResponse('<div class="alert error">No active sites found. Adjust your radius or activate sites from the Sites page.</div>')
+        return HttpResponse('<div class="alert error">No sites found in range. Try increasing your search radius.</div>')
 
     # Enforce site cap — sort closest-first so the user gets their nearest sites
     max_sites = _get_planner_max_sites()
