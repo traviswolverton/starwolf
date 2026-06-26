@@ -135,18 +135,18 @@ def _log_visitor() -> None:
         if seen:
             return
         geo = _req.get(
-            f"http://ip-api.com/json/{ip}?fields=status,city,regionName,country,countryCode,lat,lon",
+            f"https://ipwho.is/{ip}",
             timeout=3,
         ).json()
-        if geo.get("status") != "success":
+        if not geo.get("success"):
             return
         with get_engine().begin() as conn:
             conn.execute(
                 text("INSERT INTO visitors (ip_hash, city, region, country, country_code, lat, lon) "
                      "VALUES (:h, :city, :region, :country, :cc, :lat, :lon)"),
-                {"h": ip_hash, "city": geo["city"], "region": geo["regionName"],
-                 "country": geo["country"], "cc": geo["countryCode"],
-                 "lat": geo["lat"], "lon": geo["lon"]},
+                {"h": ip_hash, "city": geo["city"], "region": geo["region"],
+                 "country": geo["country"], "cc": geo["country_code"],
+                 "lat": geo["latitude"], "lon": geo["longitude"]},
             )
     except Exception:
         pass  # never break the app for analytics
