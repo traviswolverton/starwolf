@@ -3,6 +3,9 @@
     {
       "date": "2026-06-26",
       "fixes": [
+        "Heatmap no longer shows \"nan\" for sites that failed to score — SQL NULLs now display as \"n/a\" correctly.",
+        "Heatmap concurrent workers reduced from 20 to 5 to avoid Open-Meteo rate limiting, which was causing ~56% of sites to score as NULL.",
+        "Heatmap now shows a \"Retry N missing\" button when some sites failed to score, instead of permanently disabling the compute button.",
         "Ollama URL is now validated to be loopback-only before any request is made, closing an SSRF path that could probe internal services.",
         "Feedback form now rate-limited to 3 submissions per IP per 24 hours, preventing GitHub issue spam.",
         "Geolocation lookups now use HTTPS (ipwho.is) instead of plain HTTP (ip-api.com), preventing eavesdropping on visitor IP lookups.",

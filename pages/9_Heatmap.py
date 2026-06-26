@@ -19,7 +19,7 @@ st.title("🗺️ Tonight's Forecast Map")
 st.caption("Composite telescope score for tonight across every site in the catalog.")
 
 _CDT = ZoneInfo("America/Chicago")
-_WORKERS = 20
+_WORKERS = 5
 
 
 def _today_cdt() -> str:
@@ -53,6 +53,7 @@ def _load_today_scores(today: str) -> pd.DataFrame | None:
     if not rows:
         return None
     df = pd.DataFrame(rows, columns=["name", "lat", "lon", "score", "computed_at"])
+    df["score"] = df["score"].where(pd.notna(df["score"]), None)  # SQL NULL → None
     df["color"] = df["score"].apply(_score_to_color)
     df["score_label"] = df["score"].apply(lambda s: f"{s:.0f}" if s is not None else "n/a")
     return df
@@ -70,11 +71,20 @@ def _score_one_site(site: dict, tz: str) -> float | None:
         return None
 
 
-def _compute_and_store(today: str, tz: str) -> int:
+def _compute_and_store(today: str, tz: str, only_missing: bool = False) -> int:
     with get_engine().connect() as conn:
-        rows = conn.execute(
-            text("SELECT id, name, lat, lon, bortle_class FROM sites WHERE active = 1")
-        ).fetchall()
+        if only_missing:
+            rows = conn.execute(text("""
+                SELECT s.id, s.name, s.lat, s.lon, s.bortle_class
+                FROM sites s
+                LEFT JOIN site_daily_scores sd
+                    ON sd.site_id = s.id AND sd.score_date = :d
+                WHERE s.active = 1 AND sd.score IS NULL
+            """), {"d": today}).fetchall()
+        else:
+            rows = conn.execute(
+                text("SELECT id, name, lat, lon, bortle_class FROM sites WHERE active = 1")
+            ).fetchall()
     sites = [dict(r._mapping) for r in rows]
 
     progress_bar = st.progress(0.0, text="Starting…")
@@ -132,6 +142,9 @@ has_data = df is not None and not df.empty
 settings  = get_settings()
 tz        = settings.get("timezone", "America/Chicago")
 
+null_count = int((df["score"].isna()).sum()) if has_data else 0
+all_scored = has_data and null_count == 0
+
 # Header row: last refreshed + button
 col_info, col_btn = st.columns([3, 1])
 
@@ -142,21 +155,29 @@ with col_info:
             ts = computed_at.astimezone(_CDT).strftime("%-I:%M %p CDT")
         else:
             ts = str(computed_at)
-        st.caption(f"Last refreshed today at {ts} · {len(df):,} sites · Bortle ≤ 5 catalog")
+        scored_count = len(df) - null_count
+        st.caption(f"Last refreshed today at {ts} · {scored_count:,}/{len(df):,} sites scored · Bortle ≤ 5 catalog")
     else:
         st.caption("No forecast computed yet for today.")
 
 with col_btn:
-    if st.button(
-        "🔄 Compute tonight's forecast",
-        disabled=has_data,
-        help="Already computed today — returns tomorrow." if has_data else "Fetch tonight's forecast for all sites (~30–60 s).",
-        use_container_width=True,
-    ):
-        with st.spinner(""):
-            n = _compute_and_store(today, tz)
-        st.success(f"Done — {n:,} sites scored.")
-        st.rerun()
+    if all_scored:
+        st.button("✅ All sites scored", disabled=True, use_container_width=True,
+                  help="All sites computed for today — check back tomorrow.")
+    elif has_data and null_count > 0:
+        if st.button(f"🔄 Retry {null_count:,} missing", use_container_width=True,
+                     help=f"{null_count:,} sites have no score yet — likely Open-Meteo timeouts. Click to retry."):
+            with st.spinner(""):
+                n = _compute_and_store(today, tz, only_missing=True)
+            st.success(f"Done — {n:,} sites scored.")
+            st.rerun()
+    else:
+        if st.button("🔄 Compute tonight's forecast", use_container_width=True,
+                     help="Fetch tonight's forecast for all sites (~2–3 min)."):
+            with st.spinner(""):
+                n = _compute_and_store(today, tz)
+            st.success(f"Done — {n:,} sites scored.")
+            st.rerun()
 
 if not has_data:
     st.info("Click **Compute tonight's forecast** above to generate the map. Takes about 30–60 seconds.")
