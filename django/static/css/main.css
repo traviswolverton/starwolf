@@ -1,0 +1,6 @@
+/* StarWolf Django — base styles. Expanded during Phase 2 page migration. */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #0e1117; color: #fafafa; }
+nav { display: flex; gap: 1rem; align-items: center; padding: 0.75rem 1.5rem; background: #1a1d27; }
+nav a { color: #4caf96; text-decoration: none; font-weight: 600; }
+main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }

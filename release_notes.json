@@ -2,6 +2,12 @@
   "releases": [
     {
       "date": "2026-06-26",
+      "notes": [
+        "Django scaffold added alongside Streamlit — runs on port 8080, shares the same Postgres and Redis, manages its own starwolf_user table for future RBAC.",
+        "Custom User model added with guest/user/admin roles; user accounts are auto-created on first authenticated request via the proxy auth header.",
+        "ProxyAuthMiddleware reads AUTH_EMAIL_HEADER (Cloudflare Access or oauth2-proxy) to log users in without a login form; AUTH_BYPASS=true available for local dev.",
+        "Health check endpoint at /django-health returns 200 for NPM upstream monitoring."
+      ],
       "fixes": [
         "Heatmap no longer shows \"nan\" for sites that failed to score — SQL NULLs now display as \"n/a\" correctly.",
         "Heatmap concurrent workers reduced from 20 to 5 to avoid Open-Meteo rate limiting, which was causing ~56% of sites to score as NULL.",

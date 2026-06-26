@@ -48,6 +48,32 @@ services:
       retries: 5
     restart: unless-stopped
 
+  django:
+    build:
+      context: .
+      dockerfile: django/Dockerfile.django
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             exec gunicorn config.wsgi --bind 0.0.0.0:8080 --workers 2 --timeout 60"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data:ro
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-stargazing}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-stargazing}
+      REDIS_URL: redis://redis:6379
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      AUTH_EMAIL_HEADER: ${AUTH_EMAIL_HEADER:-}
+      AUTH_BYPASS: ${AUTH_BYPASS:-false}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     volumes:
