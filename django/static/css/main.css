@@ -316,7 +316,8 @@ ul.messages li {
 }
 .text-input:focus { outline: none; border-color: #4caf96; }
 .text-input::placeholder { color: #555; }
-textarea.text-input { resize: vertical; line-height: 1.5; }
+textarea.text-input { resize: vertical; line-height: 1.5; min-height: 12rem; }
+textarea.auto-resize { resize: none; overflow: hidden; }
 
 .radio-group { display: flex; gap: 1.5rem; }
 .radio-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer; }

@@ -65,9 +65,11 @@
     <textarea
       id="description"
       name="description"
-      class="text-input"
+      class="text-input auto-resize"
       x-model="description"
-      rows="8"
+      x-init="$el.style.height = $el.scrollHeight + 'px'"
+      @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
+      rows="12"
       required
     ></textarea>
   </div>
