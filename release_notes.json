@@ -3,6 +3,7 @@
     {
       "date": "2026-06-25",
       "features": [
+        "Expanded site catalog to 2,385 locations — added 2,235 US state parks, national forests, and national parks across all 44 previously uncovered states, each Bortle-scored via the World Atlas GeoTIFF (Bortle ≤ 5 only).",
         "New Bortle Scorer page — enter any address or lat/lon to get the Bortle class, SQM sky quality value, plain-language description, and a map of the location.",
         "Added 28 southeastern US stargazing sites across MS, AL, GA, FL, and LA — state parks, national forests, and national parks with Bortle classes auto-scored from the World Atlas GeoTIFF.",
         "Renamed site type 'Texas State Park' to the generic 'State Park' to support multi-state catalogs.",
