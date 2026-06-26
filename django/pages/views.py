@@ -915,8 +915,9 @@ def _render_results(request, nights):
 
     enriched = [_enrich_night(n, prefs, site_coords) for n in scored]
 
-    # Heatmap
-    heatmap = _build_heatmap(nights, threshold, score_key)
+    # Heatmap — use only future nights so past dates don't appear
+    future_nights = [n for n in nights if datetime.fromisoformat(n["date"]).date() >= today]
+    heatmap = _build_heatmap(future_nights, threshold, score_key)
 
     # AI summary
     ai_summary = None
