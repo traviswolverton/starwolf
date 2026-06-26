@@ -1,20 +1,26 @@
 import hashlib
+import json
 import math
 import re
+import threading
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import markdown as md
 import requests as http
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 from timezonefinder import TimezoneFinder
 
 from accounts.models import UserPreferences
 from bortle_lookup import lookup_bortle
+from forecast import _fetch_open_meteo
+from scorer import score_forecast
 
 _tf = TimezoneFinder()
 
@@ -344,6 +350,182 @@ def sites(request):
     if request.headers.get("HX-Request"):
         return render(request, "pages/_sites_rows.html", ctx)
     return render(request, "pages/sites.html", ctx)
+
+
+_CDT = ZoneInfo("America/Chicago")
+_COMPUTE_WORKERS = 5
+_COMPUTE_STATE_KEY = "heatmap:compute_state"
+
+
+def _score_to_color(score):
+    if score is None:
+        return "#969696"
+    s = max(0.0, min(100.0, float(score)))
+    if s >= 50:
+        t = (s - 50) / 50
+        r = int(220 - 170 * t)
+        g = 200
+        b = int(55 * t)
+    else:
+        t = s / 50
+        r = 220
+        g = int(50 + 150 * t)
+        b = int(50 - 50 * t)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _score_one_site(site, tz):
+    try:
+        om = _fetch_open_meteo(site["lat"], site["lon"], forecast_days=2, timezone=tz)
+        nights = score_forecast(
+            {"site": site, "open_meteo": om, "seven_timer": None, "errors": []},
+            tz_str=tz,
+        )
+        return nights[0]["composite"] if nights else None
+    except Exception:
+        return None
+
+
+def _run_compute(today, tz, only_missing=False):
+    """Background thread: score all sites and upsert into site_daily_scores."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    with connection.cursor() as cur:
+        if only_missing:
+            cur.execute("""
+                SELECT s.id, s.name, s.lat, s.lon, s.bortle_class
+                FROM sites s
+                LEFT JOIN site_daily_scores sd
+                    ON sd.site_id = s.id AND sd.score_date = %s
+                WHERE s.active = 1 AND sd.score IS NULL
+            """, [today])
+        else:
+            cur.execute(
+                "SELECT id, name, lat, lon, bortle_class FROM sites WHERE active = 1"
+            )
+        cols = [d[0] for d in cur.description]
+        sites = [dict(zip(cols, row)) for row in cur.fetchall()]
+
+    total = len(sites)
+    done = 0
+    batch = []
+
+    cache.set(_COMPUTE_STATE_KEY, {"running": True, "done": 0, "total": total}, 600)
+
+    with ThreadPoolExecutor(max_workers=_COMPUTE_WORKERS) as executor:
+        futures = {executor.submit(_score_one_site, s, tz): s for s in sites}
+        for future in as_completed(futures):
+            site = futures[future]
+            score = future.result()
+            done += 1
+            batch.append({
+                "site_id": site["id"], "name": site["name"],
+                "lat": site["lat"], "lon": site["lon"],
+                "score": score, "date": today,
+            })
+            if len(batch) >= 50 or done == total:
+                with connection.cursor() as cur:
+                    for row in batch:
+                        cur.execute("""
+                            INSERT INTO site_daily_scores
+                                (site_id, score_date, name, lat, lon, score)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (site_id, score_date) DO UPDATE SET
+                                score = EXCLUDED.score, computed_at = NOW()
+                        """, [row["site_id"], row["date"], row["name"],
+                              row["lat"], row["lon"], row["score"]])
+                batch = []
+            if done % 50 == 0 or done == total:
+                cache.set(_COMPUTE_STATE_KEY, {"running": True, "done": done, "total": total}, 600)
+
+    cache.set(_COMPUTE_STATE_KEY, {"running": False, "done": done, "total": total}, 60)
+
+
+def _today_local():
+    return datetime.now(_CDT).date().isoformat()
+
+
+def _load_heatmap_data(today):
+    with connection.cursor() as cur:
+        cur.execute("""
+            SELECT name, lat, lon, score, computed_at
+            FROM site_daily_scores
+            WHERE score_date = %s
+            ORDER BY score DESC NULLS LAST
+        """, [today])
+        rows = cur.fetchall()
+    if not rows:
+        return None, None
+    sites = []
+    scored = 0
+    computed_at = None
+    for name, lat, lon, score, ts in rows:
+        sites.append({
+            "name": name, "lat": lat, "lon": lon,
+            "score": round(score) if score is not None else None,
+            "color": _score_to_color(score),
+        })
+        if score is not None:
+            scored += 1
+        if computed_at is None and ts is not None:
+            computed_at = ts
+    return sites, {"total": len(sites), "scored": scored, "computed_at": computed_at}
+
+
+@require_http_methods(["GET"])
+def heatmap(request):
+    today = _today_local()
+    sites, meta = _load_heatmap_data(today)
+    compute_state = cache.get(_COMPUTE_STATE_KEY)
+    is_admin = request.user.is_authenticated and request.user.is_admin()
+
+    ts_str = None
+    if meta and meta["computed_at"]:
+        ts = meta["computed_at"]
+        if hasattr(ts, "astimezone"):
+            ts_str = ts.astimezone(_CDT).strftime("%-I:%M %p CDT")
+
+    return render(request, "pages/heatmap.html", {
+        "sites_json": json.dumps(sites or []),
+        "meta": meta,
+        "ts_str": ts_str,
+        "today": today,
+        "has_data": bool(sites),
+        "is_admin": is_admin,
+        "compute_state": compute_state,
+    })
+
+
+@require_http_methods(["POST"])
+def heatmap_compute(request):
+    if not (request.user.is_authenticated and request.user.is_admin()):
+        return JsonResponse({"error": "Admin only"}, status=403)
+
+    state = cache.get(_COMPUTE_STATE_KEY)
+    if state and state.get("running"):
+        return JsonResponse({"status": "already_running", **state})
+
+    only_missing = request.POST.get("only_missing") == "1"
+    today = _today_local()
+    # Use UTC timezone from DB settings as fallback
+    with connection.cursor() as cur:
+        cur.execute("SELECT value FROM app_settings WHERE key = 'timezone'")
+        row = cur.fetchone()
+    tz = row[0] if row else "America/Chicago"
+
+    t = threading.Thread(
+        target=_run_compute, args=(today, tz, only_missing), daemon=True
+    )
+    t.start()
+    return JsonResponse({"status": "started"})
+
+
+@require_http_methods(["GET"])
+def heatmap_status(request):
+    if not (request.user.is_authenticated and request.user.is_admin()):
+        return JsonResponse({"error": "Admin only"}, status=403)
+    state = cache.get(_COMPUTE_STATE_KEY) or {"running": False}
+    return JsonResponse(state)
 
 
 @require_http_methods(["GET", "POST"])

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Tonight's Forecast Map — StarWolf{% endblock %}
+
+{% block content %}
+<div class="heatmap-header">
+  <div>
+    <h1>🗺️ Tonight's Forecast Map</h1>
+    <p class="subtitle">
+      {% if meta %}
+        {{ meta.scored }}/{{ meta.total }} sites scored
+        {% if ts_str %}· last updated {{ ts_str }}{% endif %}
+      {% else %}
+        No forecast data for today yet.
+      {% endif %}
+    </p>
+  </div>
+
+  {% if is_admin %}
+  <div class="heatmap-controls" id="heatmap-controls">
+    {% if not has_data %}
+    <button class="btn-primary" onclick="startCompute(false)">🔄 Compute tonight's forecast</button>
+    {% elif meta.scored < meta.total %}
+    <button class="btn-secondary" onclick="startCompute(true)">🔄 Retry {{ meta.total|add:meta.scored|add:"-"|add:meta.scored }} missing</button>
+    <button class="btn-secondary" onclick="startCompute(false)" style="margin-left:0.5rem;">↺ Recompute all</button>
+    {% else %}
+    <button class="btn-secondary" disabled title="All sites scored for today">✅ All sites scored</button>
+    {% endif %}
+    <div id="compute-status" class="compute-status" style="display:none;"></div>
+  </div>
+  {% endif %}
+</div>
+
+{% if not has_data %}
+<div class="alert warning">
+  {% if is_admin %}
+  Click <strong>Compute tonight's forecast</strong> above to generate the map. Takes 2–3 minutes.
+  {% else %}
+  Forecast map hasn't been computed yet for today. Check back later.
+  {% endif %}
+</div>
+{% else %}
+
+<div id="heatmap" class="heatmap-map"></div>
+
+<div class="heatmap-legend">
+  <span class="legend-dot" style="background:#32c837;"></span> ≥ 70 — Worth the drive
+  <span class="legend-dot" style="background:#87c800;"></span> 40–69 — Marginal
+  <span class="legend-dot" style="background:#dc3232;"></span> &lt; 40 — Likely a bust
+  <span class="legend-dot" style="background:#969696;"></span> No data
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  var sites = {{ sites_json|safe }};
+
+  var map = L.map('heatmap', { preferCanvas: true }).setView([39.5, -98.5], 4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    maxZoom: 18,
+  }).addTo(map);
+
+  sites.forEach(function (s) {
+    L.circleMarker([s.lat, s.lon], {
+      radius: 6,
+      fillColor: s.color,
+      color: 'rgba(0,0,0,0.3)',
+      weight: 1,
+      fillOpacity: 0.85,
+    })
+    .bindPopup(
+      '<strong>' + s.name + '</strong><br>Score: <strong>' +
+      (s.score !== null ? s.score : 'n/a') + '</strong>'
+    )
+    .addTo(map);
+  });
+})();
+</script>
+{% endif %}
+
+{% if is_admin %}
+<script>
+var _pollTimer = null;
+
+function startCompute(onlyMissing) {
+  var btn = document.querySelectorAll('#heatmap-controls button');
+  btn.forEach(function(b) { b.disabled = true; });
+  var status = document.getElementById('compute-status');
+  status.style.display = 'block';
+  status.textContent = 'Starting…';
+
+  fetch('{% url "heatmap_compute" %}', {
+    method: 'POST',
+    headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'only_missing=' + (onlyMissing ? '1' : '0'),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.status === 'started' || data.status === 'already_running') {
+      _pollTimer = setInterval(pollStatus, 2000);
+    } else {
+      status.textContent = 'Error: ' + JSON.stringify(data);
+    }
+  });
+}
+
+function pollStatus() {
+  fetch('{% url "heatmap_status" %}')
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var status = document.getElementById('compute-status');
+    if (data.running) {
+      var pct = data.total > 0 ? Math.round(data.done / data.total * 100) : 0;
+      status.textContent = 'Scoring sites… ' + data.done + '/' + data.total + ' (' + pct + '%)';
+    } else {
+      clearInterval(_pollTimer);
+      status.textContent = 'Done! Reloading map…';
+      setTimeout(function() { window.location.reload(); }, 800);
+    }
+  });
+}
+</script>
+{% endif %}
+{% endblock %}
