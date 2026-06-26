@@ -1,11 +1,48 @@
 {% extends "base.html" %}
-{% block title %}StarWolf — Django{% endblock %}
+{% block title %}StarWolf — Stargazing Trip Planner{% endblock %}
+
 {% block content %}
-<h1>🔭 StarWolf</h1>
-<p>Django is running. Pages will appear here as they migrate from Streamlit.</p>
-{% if user.is_authenticated %}
-  <p>Logged in as <strong>{{ user.email }}</strong> (role: {{ user.role }})</p>
-{% else %}
-  <p>Not logged in — access this through Cloudflare to authenticate.</p>
-{% endif %}
+<div class="welcome-hero">
+  <div class="welcome-tagline">Find your perfect stargazing night.</div>
+  <p class="welcome-sub">Score dark-sky sites near you across the next 10 days — cloud cover, moon, seeing, and more — so you know exactly when and where to go.</p>
+</div>
+
+<div class="welcome-steps">
+
+  <div class="welcome-step {% if prefs and prefs.has_location %}done{% endif %}">
+    <div class="step-icon">📍</div>
+    <div class="step-body">
+      <div class="step-title">Set your location</div>
+      <div class="step-desc">
+        {% if prefs and prefs.has_location %}
+        {{ prefs.location_display }} — <a href="{% url 'location' %}">change</a>
+        {% else %}
+        Tell us where you're based so we can find nearby sites and show distances.
+        {% endif %}
+      </div>
+    </div>
+    {% if not prefs or not prefs.has_location %}
+    <a href="{% url 'location' %}" class="step-cta">Set location →</a>
+    {% endif %}
+  </div>
+
+  <div class="welcome-step">
+    <div class="step-icon">🔭</div>
+    <div class="step-body">
+      <div class="step-title">Run the Planner</div>
+      <div class="step-desc">Score every dark-sky site within your radius for the next 10 nights. Ranked by telescope and naked-eye composite score.</div>
+    </div>
+    <a href="{% url 'planner' %}" class="step-cta">Open Planner →</a>
+  </div>
+
+  <div class="welcome-step">
+    <div class="step-icon">🗺️</div>
+    <div class="step-body">
+      <div class="step-title">Check tonight's map</div>
+      <div class="step-desc">See all 2,285+ sites scored for tonight on a single color-coded map — green is great, red is a bust.</div>
+    </div>
+    <a href="{% url 'heatmap' %}" class="step-cta">View map →</a>
+  </div>
+
+</div>
 {% endblock %}

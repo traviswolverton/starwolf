@@ -26,6 +26,41 @@ h1 { font-size: 1.8rem; }
 h2 { font-size: 1.35rem; }
 h3 { font-size: 1.1rem; color: #b0b8c8; }
 
+/* ── Welcome / Home ─────────────────────────────────────────────────────── */
+.welcome-hero { text-align: center; padding: 2rem 0 1.5rem; }
+.welcome-tagline { font-size: 1.6rem; font-weight: 700; color: #fafafa; margin-bottom: 0.5rem; }
+.welcome-sub { color: #888; max-width: 480px; margin: 0 auto; font-size: 0.95rem; }
+
+.welcome-steps { display: flex; flex-direction: column; gap: 0.75rem; max-width: 600px; margin: 0 auto; }
+
+.welcome-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-left: 3px solid #2a2d3e;
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+}
+.welcome-step.done { border-left-color: #4caf96; }
+.step-icon { font-size: 1.5rem; flex-shrink: 0; width: 2rem; text-align: center; }
+.step-body { flex: 1; min-width: 0; }
+.step-title { font-weight: 600; color: #fafafa; margin-bottom: 0.2rem; }
+.step-desc { font-size: 0.85rem; color: #888; }
+.step-desc a { color: #4caf96; }
+.step-cta {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  color: #4caf96;
+  text-decoration: none;
+  white-space: nowrap;
+  border: 1px solid #4caf9660;
+  border-radius: 5px;
+  padding: 0.3rem 0.65rem;
+}
+.step-cta:hover { background: #4caf9615; color: #6dd4b8; }
+
 /* ── Nav ─────────────────────────────────────────────────────────────────── */
 header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 
