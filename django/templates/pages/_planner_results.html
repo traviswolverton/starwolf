@@ -28,8 +28,9 @@
   </div>
 </div>
 
+<div x-data="{ shown: 10 }">
 {% for night in nights %}
-<details class="night-card">
+<details class="night-card" x-show="{{ forloop.counter }} <= shown" {% if forloop.counter > 10 %}x-cloak{% endif %}>
   <summary class="night-summary">
     <span class="night-score-badge" style="background:{{ night.tel_color }};">{{ night.tel_score }}</span>
     {% if night.eye_score is not None %}
@@ -58,6 +59,14 @@
 {% empty %}
 <p class="field-hint">No nights above threshold {{ threshold }}. Try lowering the minimum score in Preferences.</p>
 {% endfor %}
+
+{% if nights|length > 10 %}
+<div class="load-more">
+  <span class="field-hint" x-text="`Showing ${Math.min(shown, {{ nights|length }})} of {{ nights|length }} nights`">Showing 10 of {{ nights|length }} nights</span>
+  <button class="btn-secondary" @click="shown += 10" x-show="shown < {{ nights|length }}">Show more</button>
+</div>
+{% endif %}
+</div>
 
 {% if heatmap.rows %}
 <details class="heatmap-section">

@@ -303,6 +303,7 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .metric-value { font-size: 1.2rem; font-weight: 700; }
 .night-map-link { font-size: 0.82rem; color: #4caf96; text-decoration: none; }
 .night-map-link:hover { text-decoration: underline; }
+.load-more { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; }
 
 /* Heatmap */
 .heatmap-section, .disq-section, .ai-summary {
