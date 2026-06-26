@@ -30,12 +30,6 @@
     <a href="{% url 'sites' %}" class="setup-link">Browse →</a>
   </div>
 
-  <div class="setup-card ok">
-    <div class="setup-card-title">⚙️ Preferences</div>
-    <div class="setup-card-value">Threshold {{ prefs.min_score_threshold|default:40 }}</div>
-    <div class="setup-card-value muted" style="font-size:0.8rem;">{{ prefs.timezone|default:"America/Chicago" }}</div>
-    <a href="{% url 'preferences' %}" class="setup-link">Adjust →</a>
-  </div>
 
 </div>
 
