@@ -7,15 +7,27 @@
   {% load static %}
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
   <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+  <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js" defer></script>
 </head>
 <body>
-  <nav>
-    <a href="/">🔭 StarWolf</a>
-    <a href="{% url 'about' %}">About</a>
-    {% if user.is_authenticated %}
-      <span class="user">👤 {{ user.email }}</span>
-    {% endif %}
-  </nav>
+  <header x-data="{ open: false }">
+    <div class="nav-bar">
+      <a href="/" class="nav-brand">🔭 StarWolf</a>
+
+      <button class="nav-toggle" @click="open = !open" :aria-expanded="open.toString()" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+
+    <nav class="nav-links" :class="{ 'is-open': open }">
+      <a href="{% url 'about' %}" @click="open = false">About</a>
+      {% if user.is_authenticated %}
+        <span class="nav-user">👤 {{ user.email }}</span>
+      {% endif %}
+    </nav>
+  </header>
 
   {% if messages %}
     <ul class="messages">
