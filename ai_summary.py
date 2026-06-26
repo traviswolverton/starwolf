@@ -1,5 +1,7 @@
 import hashlib
+import ipaddress
 import logging
+import socket
 from urllib.parse import urlparse
 
 import requests
@@ -8,14 +10,31 @@ import ai_config
 from cache import cache_get, cache_set
 from db import get_settings
 
-_LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1"}
+_PRIVATE_NETWORKS = [
+    ipaddress.ip_network("127.0.0.0/8"),    # loopback
+    ipaddress.ip_network("::1/128"),         # IPv6 loopback
+    ipaddress.ip_network("10.0.0.0/8"),      # RFC 1918
+    ipaddress.ip_network("172.16.0.0/12"),   # RFC 1918
+    ipaddress.ip_network("192.168.0.0/16"),  # RFC 1918
+    ipaddress.ip_network("fc00::/7"),        # IPv6 ULA
+]
 
 
-def _assert_loopback(url: str) -> None:
-    """Raise ValueError if the URL does not point to a loopback address."""
+def _assert_private_url(url: str) -> None:
+    """Raise ValueError if the URL resolves to a public internet address.
+
+    Allows loopback and RFC 1918 private ranges so Ollama can run on the
+    same host or anywhere on the local network. Blocks public IPs to
+    prevent the admin-editable URL from being used to reach external servers.
+    """
     host = urlparse(url).hostname or ""
-    if host not in _LOOPBACK_HOSTS:
-        raise ValueError(f"Ollama URL must point to localhost, got: {host!r}")
+    try:
+        resolved = socket.getaddrinfo(host, None)[0][4][0]
+        ip = ipaddress.ip_address(resolved)
+    except Exception:
+        raise ValueError(f"Cannot resolve Ollama URL host: {host!r}")
+    if not any(ip in net for net in _PRIVATE_NETWORKS):
+        raise ValueError(f"Ollama URL must resolve to a private/loopback address, got: {ip}")
 
 _TTL_SUMMARY = 3600  # match Open-Meteo TTL — summary is only as fresh as the forecast
 _CONNECT_TIMEOUT = 3  # seconds — fast-fail if Ollama isn't reachable
@@ -76,7 +95,7 @@ def is_ollama_available() -> bool:
     settings = get_settings()
     url = settings.get("ollama_url", ai_config.OLLAMA_URL)
     try:
-        _assert_loopback(url)
+        _assert_private_url(url)
         parsed = urlparse(url)
         ping_url = f"{parsed.scheme}://{parsed.netloc}/api/tags"
         requests.get(ping_url, timeout=(_CONNECT_TIMEOUT, 5))
@@ -93,9 +112,9 @@ def generate_forecast_summary(context_table: str) -> str | None:
     timeout = int(settings.get("ollama_timeout", ai_config.OLLAMA_TIMEOUT))
 
     try:
-        _assert_loopback(url)
+        _assert_private_url(url)
     except ValueError as e:
-        _log.warning("Blocked Ollama request to non-loopback URL: %s", e)
+        _log.warning("Blocked Ollama request to non-private URL: %s", e)
         return None
 
     payload = {
