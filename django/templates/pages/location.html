@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Location — StarWolf{% endblock %}
+
+{% block content %}
+<h1>📍 Your Location</h1>
+<p class="subtitle">Used for distance calculations and the proximity filter. Saved to your account.</p>
+
+{% if prefs.has_location %}
+<div class="location-current">
+  <strong>📍 {{ prefs.location_display }}</strong><br>
+  <span class="coords-caption">{{ prefs.location_lat|floatformat:4 }}, {{ prefs.location_lon|floatformat:4 }} · {{ prefs.timezone }}</span>
+</div>
+<form method="post" hx-post="{% url 'location' %}" hx-target="#loc-result" hx-swap="innerHTML" style="display:inline;">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="clear">
+  <button type="submit" class="btn-secondary">Clear location</button>
+</form>
+<div id="loc-result" style="margin: 0.75rem 0;"></div>
+<hr>
+{% else %}
+<div id="loc-result" style="margin: 0.75rem 0;"></div>
+{% endif %}
+
+<h2>Use device location</h2>
+<p class="field-hint">Let your browser share your current position — most accurate option.</p>
+
+<button
+  class="btn-primary"
+  id="geo-btn"
+  onclick="getDeviceLocation()"
+>📡 Use my current location</button>
+<div id="geo-status" style="margin-top:0.5rem; font-size:0.85rem; color:#888;"></div>
+
+<form
+  id="geo-form"
+  method="post"
+  hx-post="{% url 'location' %}"
+  hx-target="#loc-result"
+  hx-swap="innerHTML"
+  style="display:none;"
+>
+  {% csrf_token %}
+  <input type="hidden" name="lat" id="geo-lat">
+  <input type="hidden" name="lon" id="geo-lon">
+</form>
+
+<hr>
+
+<h2>Or enter manually</h2>
+<form
+  method="post"
+  hx-post="{% url 'location' %}"
+  hx-target="#loc-result"
+  hx-swap="innerHTML"
+  hx-indicator="#addr-spinner"
+  class="bortle-form"
+>
+  {% csrf_token %}
+  <div class="input-row">
+    <input
+      type="text"
+      name="address"
+      class="text-input"
+      placeholder="e.g. Houston, TX  or  77001  or  Calgary, AB"
+      required
+    >
+    <button type="submit" class="btn-primary">Set Location</button>
+  </div>
+  <div id="addr-spinner" class="htmx-indicator">Looking up…</div>
+</form>
+
+<script>
+function getDeviceLocation() {
+  if (!navigator.geolocation) {
+    document.getElementById('geo-status').textContent = 'Geolocation is not supported by your browser.';
+    return;
+  }
+  document.getElementById('geo-btn').disabled = true;
+  document.getElementById('geo-status').textContent = 'Requesting location…';
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      document.getElementById('geo-lat').value = pos.coords.latitude;
+      document.getElementById('geo-lon').value = pos.coords.longitude;
+      document.getElementById('geo-status').textContent = 'Got position — saving…';
+      htmx.trigger('#geo-form', 'submit');
+      document.getElementById('geo-btn').disabled = false;
+      document.getElementById('geo-status').textContent = '';
+    },
+    function(err) {
+      document.getElementById('geo-btn').disabled = false;
+      document.getElementById('geo-status').textContent = 'Could not get location: ' + err.message
+        + (location.protocol !== 'https:' ? ' (requires HTTPS)' : '');
+    },
+    { timeout: 10000 }
+  );
+}
+</script>
+{% endblock %}

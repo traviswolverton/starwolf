@@ -6,11 +6,24 @@ import markdown as md
 import requests as http
 from django.conf import settings
 from django.core.cache import cache
+from django.db import connection
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
+from timezonefinder import TimezoneFinder
 
+from accounts.models import UserPreferences
 from bortle_lookup import lookup_bortle
+
+_tf = TimezoneFinder()
+
+_COMMON_TIMEZONES = [
+    "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+    "America/Anchorage", "Pacific/Honolulu", "America/Phoenix", "America/Toronto",
+    "America/Vancouver", "America/Edmonton", "America/Halifax",
+    "Europe/London", "Europe/Paris", "Europe/Berlin",
+    "Australia/Sydney", "Pacific/Auckland", "UTC",
+]
 
 _FEEDBACK_LIMIT = 3
 _FEEDBACK_TTL = 24 * 3600
@@ -60,6 +73,165 @@ def _ip_hash(request):
 
 def about(request):
     return render(request, "pages/about.html")
+
+
+@require_http_methods(["GET", "POST"])
+def location(request):
+    if not request.user.is_authenticated:
+        return redirect("home")
+
+    prefs = request.prefs
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "clear":
+            prefs.location_lat = None
+            prefs.location_lon = None
+            prefs.location_display = ""
+            prefs.location_text = ""
+            prefs.timezone_auto = False
+            prefs.save()
+            return HttpResponse('<div class="alert success">Location cleared.</div>')
+
+        # Set by address or by coordinates (from browser geolocation)
+        lat = request.POST.get("lat")
+        lon = request.POST.get("lon")
+        address = request.POST.get("address", "").strip()
+
+        if lat and lon:
+            # Browser geolocation or direct coords — reverse geocode for display
+            try:
+                lat, lon = float(lat), float(lon)
+            except ValueError:
+                return HttpResponse('<div class="alert error">Invalid coordinates.</div>')
+            try:
+                resp = http.get(
+                    "https://nominatim.openstreetmap.org/reverse",
+                    params={"lat": lat, "lon": lon, "format": "json"},
+                    headers={"User-Agent": "StarWolf-App/1.0"},
+                    timeout=8,
+                )
+                data = resp.json()
+                addr = data.get("address", {})
+                parts = [
+                    addr.get("city") or addr.get("town") or addr.get("village"),
+                    addr.get("state"),
+                    addr.get("country_code", "").upper(),
+                ]
+                display = ", ".join(p for p in parts if p) or f"{lat:.4f}, {lon:.4f}"
+            except Exception:
+                display = f"{lat:.4f}, {lon:.4f}"
+            text = display
+        elif address:
+            # Geocode the address
+            try:
+                r = http.get(
+                    "https://nominatim.openstreetmap.org/search",
+                    params={"q": address, "format": "json", "limit": 1},
+                    headers={"User-Agent": "StarWolf-App/1.0"},
+                    timeout=8,
+                )
+                results = r.json()
+                if not results:
+                    return HttpResponse('<div class="alert error">Address not found. Try a more specific location.</div>')
+                lat = float(results[0]["lat"])
+                lon = float(results[0]["lon"])
+                display = results[0].get("display_name", address)
+                # Shorten: first two comma-separated parts
+                parts = [p.strip() for p in display.split(",")]
+                display = ", ".join(parts[:3])
+                text = address
+            except Exception as e:
+                return HttpResponse(f'<div class="alert error">Lookup failed: {e}</div>')
+        else:
+            return HttpResponse('<div class="alert error">No location provided.</div>')
+
+        tz = _tf.timezone_at(lat=lat, lng=lon) or "America/Chicago"
+        prefs.location_lat = lat
+        prefs.location_lon = lon
+        prefs.location_display = display
+        prefs.location_text = text
+        prefs.timezone = tz
+        prefs.timezone_auto = True
+        prefs.save()
+
+        return HttpResponse(
+            f'<div class="alert success">📍 Location set to <strong>{display}</strong> '
+            f'(timezone: {tz}).</div>'
+            f'<script>window.dispatchEvent(new CustomEvent("location-updated"));</script>'
+        )
+
+    return render(request, "pages/location.html")
+
+
+@require_http_methods(["GET", "POST"])
+def preferences(request):
+    if not request.user.is_authenticated:
+        return redirect("home")
+
+    prefs = request.prefs
+
+    if request.method == "POST":
+        try:
+            prefs.units = request.POST.get("units", "metric")
+            tz = request.POST.get("timezone", "America/Chicago")
+            if tz != prefs.timezone:
+                prefs.timezone_auto = False
+            prefs.timezone = tz
+            prefs.min_score_threshold = int(request.POST.get("min_score_threshold", 40))
+            prefs.disq_max_cloud_cover = int(request.POST.get("disq_max_cloud_cover", 85))
+            prefs.disq_max_precip_prob = int(request.POST.get("disq_max_precip_prob", 40))
+            prefs.disq_min_visibility_km = int(request.POST.get("disq_min_visibility_km", 10))
+            prefs.save()
+            return HttpResponse('<div class="alert success">Preferences saved.</div>')
+        except Exception as e:
+            return HttpResponse(f'<div class="alert error">Save failed: {e}</div>')
+
+    # Load scoring weights for display
+    with connection.cursor() as cur:
+        cur.execute("SELECT factor, weight, description FROM scoring_weights ORDER BY weight DESC")
+        tel_weights = cur.fetchall()
+        cur.execute("SELECT factor, weight FROM naked_eye_weights ORDER BY weight DESC")
+        eye_weights = cur.fetchall()
+
+    _factor_labels = {
+        "cloud_cover": "Cloud Cover", "high_cloud": "High Cloud",
+        "moon": "Moon", "lifted_index": "Stability (LI)", "humidity": "Humidity",
+    }
+    tel_rows = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": r[2]} for r in tel_weights]
+    eye_desc  = {r[0]: r[2] for r in tel_weights}
+    eye_rows  = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": eye_desc.get(r[0], "")} for r in eye_weights]
+
+    tz_options = list(_COMMON_TIMEZONES)
+    if prefs.timezone not in tz_options:
+        tz_options.insert(0, prefs.timezone)
+
+    return render(request, "pages/preferences.html", {
+        "tz_options": tz_options,
+        "tel_rows": tel_rows,
+        "eye_rows": eye_rows,
+    })
+
+
+@require_http_methods(["POST"])
+def preferences_reset(request):
+    if not request.user.is_authenticated:
+        return HttpResponse(status=403)
+    prefs = request.prefs
+    prefs.units = "metric"
+    prefs.min_score_threshold = 40
+    prefs.disq_max_cloud_cover = 85
+    prefs.disq_max_precip_prob = 40
+    prefs.disq_min_visibility_km = 10
+    # Re-detect timezone from location if available
+    if prefs.has_location:
+        tz = _tf.timezone_at(lat=prefs.location_lat, lng=prefs.location_lon)
+        if tz:
+            prefs.timezone = tz
+            prefs.timezone_auto = True
+    prefs.save()
+    return redirect("preferences")
 
 
 @require_http_methods(["GET", "POST"])

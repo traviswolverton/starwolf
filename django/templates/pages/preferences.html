@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Preferences — StarWolf{% endblock %}
+
+{% block content %}
+<h1>Preferences</h1>
+<p class="subtitle">These settings are saved to your account and persist across sessions.</p>
+
+<form
+  method="post"
+  hx-post="{% url 'preferences' %}"
+  hx-target="#pref-result"
+  hx-swap="innerHTML"
+  class="pref-form"
+>
+  {% csrf_token %}
+
+  <section class="pref-section">
+    <h2>Units</h2>
+    <div class="radio-group">
+      <label class="radio-label">
+        <input type="radio" name="units" value="metric" {% if prefs.units == "metric" %}checked{% endif %}>
+        Metric (km, m)
+      </label>
+      <label class="radio-label">
+        <input type="radio" name="units" value="imperial" {% if prefs.units == "imperial" %}checked{% endif %}>
+        Imperial (mi, ft)
+      </label>
+    </div>
+  </section>
+
+  <section class="pref-section">
+    <h2>Timezone</h2>
+    {% if prefs.timezone_auto %}
+    <p class="field-hint">Auto-detected from your location: <strong>{{ prefs.timezone }}</strong>. Override below if needed.</p>
+    {% endif %}
+    <select name="timezone" class="text-input" style="max-width:320px;">
+      {% for tz in tz_options %}
+      <option value="{{ tz }}" {% if tz == prefs.timezone %}selected{% endif %}>{{ tz }}</option>
+      {% endfor %}
+    </select>
+  </section>
+
+  <section class="pref-section">
+    <h2>Minimum Score Threshold</h2>
+    <p class="field-hint">Hide nights scoring below this value on the Planner.</p>
+    <div class="slider-row" x-data="{ val: {{ prefs.min_score_threshold }} }">
+      <input type="range" name="min_score_threshold" min="0" max="100"
+             x-model="val" class="slider">
+      <span class="slider-val" x-text="val"></span>
+    </div>
+  </section>
+
+  <section class="pref-section">
+    <h2>Hard Disqualifiers</h2>
+    <p class="field-hint">Nights exceeding any of these are excluded regardless of score. Drag to max to disable.</p>
+
+    <label class="field-label">Max cloud cover (%)</label>
+    <div class="slider-row" x-data="{ val: {{ prefs.disq_max_cloud_cover }} }">
+      <input type="range" name="disq_max_cloud_cover" min="50" max="100"
+             x-model="val" class="slider">
+      <span class="slider-val" x-text="val + '%'"></span>
+    </div>
+
+    <label class="field-label" style="margin-top:1rem;">Max precipitation probability (%)</label>
+    <div class="slider-row" x-data="{ val: {{ prefs.disq_max_precip_prob }} }">
+      <input type="range" name="disq_max_precip_prob" min="0" max="100"
+             x-model="val" class="slider">
+      <span class="slider-val" x-text="val + '%'"></span>
+    </div>
+
+    <label class="field-label" style="margin-top:1rem;">Min visibility (km, 0 = disabled)</label>
+    <div class="slider-row" x-data="{ val: {{ prefs.disq_min_visibility_km }} }">
+      <input type="range" name="disq_min_visibility_km" min="0" max="50"
+             x-model="val" class="slider">
+      <span class="slider-val" x-text="val === 0 ? 'off' : val + ' km'"></span>
+    </div>
+  </section>
+
+  <div style="display:flex; gap:0.75rem; align-items:center; margin-top:1rem;">
+    <button type="submit" class="btn-primary">Save preferences</button>
+    <form method="post" action="{% url 'preferences_reset' %}" style="margin:0;">
+      {% csrf_token %}
+      <button type="submit" class="btn-secondary">Reset to defaults</button>
+    </form>
+  </div>
+</form>
+
+<div id="pref-result" style="margin-top:1rem;"></div>
+
+<hr>
+
+<h2>Scoring Weights</h2>
+<p class="field-hint">Stored in the database and editable in the Admin panel. Shown here for reference.</p>
+
+<div class="arch-grid">
+  <div>
+    <h3>🔭 Telescope</h3>
+    <table class="weights-table">
+      <thead><tr><th>Factor</th><th>Weight</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for row in tel_rows %}
+        <tr><td>{{ row.factor }}</td><td>{{ row.weight }}</td><td class="notes-col">{{ row.notes }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div>
+    <h3>👁 Naked Eye</h3>
+    <table class="weights-table">
+      <thead><tr><th>Factor</th><th>Weight</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for row in eye_rows %}
+        <tr><td>{{ row.factor }}</td><td>{{ row.weight }}</td><td class="notes-col">{{ row.notes }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="field-hint" style="margin-top:0.5rem;">Plus Bortle modifier (0.55–1.0×) applied to total.</p>
+  </div>
+</div>
+{% endblock %}
