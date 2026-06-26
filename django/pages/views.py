@@ -10,8 +10,44 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
+from bortle_lookup import lookup_bortle
+
 _FEEDBACK_LIMIT = 3
 _FEEDBACK_TTL = 24 * 3600
+
+_BORTLE_DESC = {
+    1: ("Excellent dark sky",             "Zodiacal light, gegenschein, and zodiacal band all visible. M33 is a direct-vision object. Scorpius and Sagittarius cast shadows."),
+    2: ("Truly dark site",                "Airglow weakly visible. M33 easily seen. Limiting magnitude ~7.1–7.5."),
+    3: ("Rural sky",                      "Some light pollution on the horizon. Milky Way shows tremendous structure. Limiting magnitude ~6.6–7.0."),
+    4: ("Rural / suburban transition",    "Light domes visible in several directions. Milky Way still impressive but lacks fine detail. Limiting magnitude ~6.1–6.5."),
+    5: ("Suburban sky",                   "Only hints of the Milky Way visible toward zenith. Light pollution obvious in most directions. Limiting magnitude ~5.6–6.0."),
+    6: ("Bright suburban sky",            "Milky Way only visible near zenith. M33 invisible. Limiting magnitude ~5.1–5.5."),
+    7: ("Suburban / urban transition",    "Milky Way barely visible. Clouds are brighter than the sky. Limiting magnitude ~4.6–5.0."),
+    8: ("City sky",                       "Sky is orange/grey. Stars barely visible. Limiting magnitude ~4.1–4.5."),
+    9: ("Inner-city sky",                 "Entire sky is bright. Only the brightest stars visible. Limiting magnitude <4.0."),
+}
+
+_BORTLE_COLOR = {
+    1: "#1a1a3e", 2: "#1a2a4e", 3: "#1e3a5f",
+    4: "#2e5a3f", 5: "#6e7a1f", 6: "#8e6a0f",
+    7: "#9e4a0f", 8: "#ae2a0f", 9: "#be0a0f",
+}
+
+
+def _geocode(address):
+    try:
+        r = http.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": address, "format": "json", "limit": 1},
+            headers={"User-Agent": "StarWolf-App/1.0"},
+            timeout=10,
+        )
+        results = r.json()
+        if not results:
+            return None, None
+        return float(results[0]["lat"]), float(results[0]["lon"])
+    except Exception:
+        return None, None
 
 
 def _ip_hash(request):
@@ -24,6 +60,46 @@ def _ip_hash(request):
 
 def about(request):
     return render(request, "pages/about.html")
+
+
+@require_http_methods(["GET", "POST"])
+def bortle_scorer(request):
+    if request.method == "GET":
+        return render(request, "pages/bortle_scorer.html")
+
+    # ── Resolve lat/lon ───────────────────────────────────────────────────────
+    address = request.POST.get("address", "").strip()
+    if address:
+        lat, lon = _geocode(address)
+        if lat is None:
+            return HttpResponse('<div class="alert error">Address not found. Try a more specific location or use coordinates.</div>')
+    else:
+        try:
+            lat = float(request.POST.get("lat", ""))
+            lon = float(request.POST.get("lon", ""))
+        except ValueError:
+            return HttpResponse('<div class="alert error">Invalid coordinates.</div>')
+
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return HttpResponse('<div class="alert error">Coordinates out of range.</div>')
+
+    # ── Bortle lookup ─────────────────────────────────────────────────────────
+    try:
+        data = lookup_bortle(lat, lon)
+    except FileNotFoundError:
+        return HttpResponse('<div class="alert error">World Atlas GeoTIFF is not available on this server.</div>')
+    except ValueError as e:
+        return HttpResponse(f'<div class="alert error">No data for this location: {e}</div>')
+
+    bortle = data["bortle"]
+    sqm    = data["sqm"]
+    label, desc = _BORTLE_DESC[bortle]
+    color  = _BORTLE_COLOR[bortle]
+
+    return render(request, "pages/_bortle_result.html", {
+        "bortle": bortle, "sqm": sqm, "label": label,
+        "desc": desc, "color": color, "lat": lat, "lon": lon,
+    })
 
 
 @require_http_methods(["GET", "POST"])

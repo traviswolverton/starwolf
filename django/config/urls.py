@@ -17,6 +17,7 @@ def home(request):
 urlpatterns = [
     path("", home, name="home"),
     path("about", page_views.about, name="about"),
+    path("bortle", page_views.bortle_scorer, name="bortle_scorer"),
     path("api-guide", page_views.api_guide, name="api_guide"),
     path("feedback", page_views.feedback, name="feedback"),
     path("django-health", health),

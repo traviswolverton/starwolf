@@ -1,0 +1,33 @@
+<div class="bortle-result">
+  <div class="bortle-grid">
+
+    <div class="bortle-card" style="background: {{ color }};">
+      <div class="bortle-number">{{ bortle }}</div>
+      <div class="bortle-sub">Bortle Class</div>
+      <hr class="bortle-hr">
+      <div class="bortle-sqm">{{ sqm }}</div>
+      <div class="bortle-sub">mag/arcsec² (SQM)</div>
+    </div>
+
+    <div class="bortle-detail">
+      <h2>{{ label }}</h2>
+      <p>{{ desc }}</p>
+      <p class="coords-caption">{{ lat|floatformat:5 }}, {{ lon|floatformat:5 }}</p>
+    </div>
+
+  </div>
+
+  <h3>Location</h3>
+  <div id="bortle-map" class="bortle-map"></div>
+</div>
+
+<script>
+(function () {
+  var map = L.map('bortle-map').setView([{{ lat }}, {{ lon }}], 9);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 18,
+  }).addTo(map);
+  L.marker([{{ lat }}, {{ lon }}]).addTo(map);
+})();
+</script>

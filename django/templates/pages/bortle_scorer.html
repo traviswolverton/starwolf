@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Bortle Scorer — StarWolf{% endblock %}
+
+{% block content %}
+<h1>🌑 Bortle Scorer</h1>
+<p class="subtitle">Look up the light pollution level for any location.</p>
+
+<div x-data="{ mode: 'address' }" class="bortle-form-wrap">
+
+  <div class="radio-group" style="margin-bottom: 1.25rem;">
+    <label class="radio-label">
+      <input type="radio" x-model="mode" value="address"> 📍 Address
+    </label>
+    <label class="radio-label">
+      <input type="radio" x-model="mode" value="coords"> 🌐 Coordinates
+    </label>
+  </div>
+
+  <!-- Address form -->
+  <form
+    x-show="mode === 'address'"
+    method="post"
+    hx-post="{% url 'bortle_scorer' %}"
+    hx-target="#result"
+    hx-swap="innerHTML"
+    hx-indicator="#spinner"
+    class="bortle-form"
+  >
+    {% csrf_token %}
+    <input type="hidden" name="mode" value="address">
+    <div class="input-row">
+      <input
+        type="text"
+        name="address"
+        class="text-input"
+        placeholder="e.g. Big Bend National Park, TX"
+        required
+      >
+      <button type="submit" class="btn-primary">Look up</button>
+    </div>
+  </form>
+
+  <!-- Coordinates form -->
+  <form
+    x-show="mode === 'coords'"
+    method="post"
+    hx-post="{% url 'bortle_scorer' %}"
+    hx-target="#result"
+    hx-swap="innerHTML"
+    hx-indicator="#spinner"
+    class="bortle-form"
+  >
+    {% csrf_token %}
+    <input type="hidden" name="mode" value="coords">
+    <div class="coord-row">
+      <div class="field">
+        <label class="field-label">Latitude</label>
+        <input type="number" name="lat" class="text-input" value="30.67" step="any" min="-90" max="90" required>
+      </div>
+      <div class="field">
+        <label class="field-label">Longitude</label>
+        <input type="number" name="lon" class="text-input" value="-104.02" step="any" min="-180" max="180" required>
+      </div>
+      <div class="field field-btn">
+        <label class="field-label">&nbsp;</label>
+        <button type="submit" class="btn-primary">Score</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="spinner" class="htmx-indicator">Looking up…</div>
+
+</div>
+
+<div id="result" style="margin-top: 1.5rem;"></div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}

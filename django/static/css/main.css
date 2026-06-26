@@ -348,3 +348,61 @@ textarea.auto-resize { resize: none; overflow: hidden; }
 .alert.error   { background: #2e1a1a; border-color: #e05555; color: #d8a0a0; }
 .alert.warning { background: #2e2a1a; border-color: #f0a500; color: #d8c8a0; }
 .alert a { color: inherit; font-weight: 600; }
+
+/* ── Bortle Scorer ───────────────────────────────────────────────────────── */
+.bortle-form-wrap { max-width: 680px; }
+
+.input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.input-row .text-input { flex: 1; }
+
+.coord-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+.field-btn { display: flex; flex-direction: column; }
+@media (max-width: 560px) {
+  .coord-row { grid-template-columns: 1fr 1fr; }
+  .field-btn { grid-column: 1 / -1; }
+}
+
+.htmx-indicator { display: none; color: #888; font-size: 0.85rem; margin-top: 0.5rem; }
+.htmx-request .htmx-indicator { display: block; }
+
+.bortle-result { max-width: 780px; }
+
+.bortle-grid {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 520px) {
+  .bortle-grid { grid-template-columns: 1fr; }
+}
+
+.bortle-card {
+  border-radius: 12px;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: white;
+}
+.bortle-number { font-size: 3rem; font-weight: 700; line-height: 1; }
+.bortle-sub    { font-size: 0.78rem; opacity: 0.85; margin-top: 4px; }
+.bortle-hr     { border: none; border-top: 1px solid rgba(255,255,255,0.3); margin: 12px 0; }
+.bortle-sqm    { font-size: 1.4rem; font-weight: 600; }
+
+.bortle-detail h2 { margin-top: 0; color: #fafafa; }
+.coords-caption   { font-size: 0.82rem; color: #666; margin-top: 0.75rem; }
+
+.bortle-map {
+  height: 320px;
+  border-radius: 8px;
+  border: 1px solid #2a2d3e;
+  overflow: hidden;
+}
