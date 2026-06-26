@@ -1,0 +1,13 @@
+<div hx-get="{% url 'planner_poll' %}" hx-trigger="every 3s" hx-target="this" hx-swap="outerHTML" class="planner-progress">
+  <div class="progress-spinner"></div>
+  <div class="progress-text">
+    {% if compute_state.total %}
+    Scoring sites… {{ compute_state.done }}/{{ compute_state.total }}
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" style="width:{% widthratio compute_state.done compute_state.total 100 %}%"></div>
+    </div>
+    {% else %}
+    Starting forecast…
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Stargazing Planner — StarWolf{% endblock %}
+
+{% block content %}
+<h1>🔭 Stargazing Trip Planner</h1>
+
+<div class="planner-setup">
+
+  <div class="setup-card {% if prefs.has_location %}ok{% else %}warn{% endif %}">
+    <div class="setup-card-title">📍 Location</div>
+    {% if prefs.has_location %}
+    <div class="setup-card-value">{{ prefs.location_display }}</div>
+    {% else %}
+    <div class="setup-card-value muted">Not set</div>
+    <a href="{% url 'location' %}" class="setup-link">Set location →</a>
+    {% endif %}
+  </div>
+
+  <div class="setup-card ok">
+    <div class="setup-card-title">🌑 Sites</div>
+    {% if capped %}
+    <div class="setup-card-value">{{ effective_count }} <span style="color:#e6a817;">of {{ site_count }}</span></div>
+    <div class="setup-card-value muted" style="font-size:0.8rem;">capped at {{ max_sites }} (closest first)</div>
+    {% else %}
+    <div class="setup-card-value">{{ effective_count }} in range</div>
+    {% if prefs.has_location %}
+    <div class="setup-card-value muted" style="font-size:0.8rem;">within {{ radius_val }} {{ dist_unit }}</div>
+    {% endif %}
+    {% endif %}
+    <a href="{% url 'sites' %}" class="setup-link">Browse →</a>
+  </div>
+
+  <div class="setup-card ok">
+    <div class="setup-card-title">⚙️ Preferences</div>
+    <div class="setup-card-value">Threshold {{ prefs.min_score_threshold|default:40 }}</div>
+    <div class="setup-card-value muted" style="font-size:0.8rem;">{{ prefs.timezone|default:"America/Chicago" }}</div>
+    <a href="{% url 'preferences' %}" class="setup-link">Adjust →</a>
+  </div>
+
+</div>
+
+<form hx-post="{% url 'planner_run' %}" hx-target="#planner-output" hx-swap="innerHTML" class="planner-run-form">
+  {% csrf_token %}
+  {% if prefs.has_location %}
+  <div class="radius-row" x-data="{ val: {{ radius_val }} }">
+    <label class="field-label">Radius</label>
+    <input type="range" name="radius" min="50" max="{% if prefs.units == 'imperial' %}1500{% else %}2500{% endif %}"
+           step="25" x-model="val" class="slider">
+    <span class="slider-val" x-text="val + ' {{ dist_unit }}'">{{ radius_val }} {{ dist_unit }}</span>
+  </div>
+  {% else %}
+  <input type="hidden" name="radius" value="{{ radius_val }}">
+  {% endif %}
+
+  <button type="submit" class="btn-primary planner-run-btn"
+          {% if not effective_count %}disabled title="No sites in range"{% endif %}>
+    {% if has_results %}🔄 Re-run Forecast{% else %}▶ Run Forecast{% endif %}
+  </button>
+
+  {% if effective_count %}
+  <span class="planner-site-count">
+    {{ effective_count }} site{{ effective_count|pluralize }}{% if capped %} (of {{ site_count }}){% endif %} · {{ prefs.timezone|default:"America/Chicago" }}
+  </span>
+  {% else %}
+  <span class="planner-site-count warn">No sites in range — increase radius</span>
+  {% endif %}
+</form>
+
+<div id="planner-output">
+  {% if is_running %}
+    {% include "pages/_planner_progress.html" with compute_state=compute_state %}
+  {% elif has_results %}
+    {# Show previous results via inline poll #}
+    <div hx-get="{% url 'planner_poll' %}" hx-trigger="load" hx-target="this" hx-swap="outerHTML">
+      <p class="field-hint">Loading last results…</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

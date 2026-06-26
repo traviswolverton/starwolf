@@ -255,7 +255,7 @@ AUTH_BYPASS=false     # set true in local dev
 
 ---
 
-## Phase 2 — Page Migration (3–4 weeks)
+## Phase 2 — Page Migration ✅ COMPLETE
 
 **Goal:** Migrate pages one at a time in complexity order. Each migration is
 a discrete PR: Django view + template + HTMX wiring, NPM route flipped,
@@ -265,43 +265,70 @@ The FastAPI public API (`/api/*`) is untouched throughout.
 
 ### Migration order
 
-| Order | Page          | Streamlit file       | Complexity | Notes |
-|-------|---------------|----------------------|------------|-------|
-| 1     | About         | `6_About.py`         | Low        | Static content only |
-| 2     | API Guide     | `7_API.py`           | Low        | Renders `API_GUIDE.md` |
-| 3     | Feedback      | `4_Feedback.py`      | Low        | Form + Redis rate limit |
-| 4     | Bortle Scorer | `8_Bortle_Scorer.py` | Medium     | Form + map + bortle_lookup.py |
-| 5     | Preferences   | `2_Preferences.py`   | Medium     | Sliders → per-user DB row |
-| 6     | Location      | `0_Location.py`      | Medium     | Geocode → store on user model |
-| 7     | Admin         | `3_Admin.py`         | Medium     | HTMX tables, require_role("admin") |
-| 8     | Visitors      | `5_Visitors.py`      | Descoped   | **Removed from scope** — visitor analytics not being migrated to Django |
-| 9     | Sites         | `1_Sites.py`         | High       | Filterable table, per-user site lists |
-| 10    | Heatmap       | `9_Heatmap.py`       | High       | pydeck embed, daily cache |
-| 11    | Planner       | `Planner.py`         | Highest    | Core scoring view, AI summary |
+| Order | Page          | Streamlit file       | Complexity | Status |
+|-------|---------------|----------------------|------------|--------|
+| 1     | About         | `6_About.py`         | Low        | ✅ Done |
+| 2     | API Guide     | `7_API.py`           | Low        | ✅ Done |
+| 3     | Feedback      | `4_Feedback.py`      | Low        | ✅ Done |
+| 4     | Bortle Scorer | `8_Bortle_Scorer.py` | Medium     | ✅ Done |
+| 5     | Preferences   | `2_Preferences.py`   | Medium     | ✅ Done — now DB-backed per user |
+| 6     | Location      | `0_Location.py`      | Medium     | ✅ Done |
+| 7     | Admin         | `3_Admin.py`         | Medium     | ✅ Done — RBAC with require_role("admin") |
+| 8     | Visitors      | `5_Visitors.py`      | Descoped   | 🚫 Removed from scope — visitor analytics not being migrated |
+| 9     | Sites         | `1_Sites.py`         | High       | ✅ Done — filterable, distance-sorted, paginated |
+| 10    | Heatmap       | `9_Heatmap.py`       | High       | ✅ Done — Leaflet map, admin-triggered background compute |
+| 11    | Planner       | `Planner.py`         | Highest    | ✅ Done — background thread, per-user Redis cache, heatmap, AI summary |
 
-### Per-page checklist
+### What was actually used (vs. plan)
 
-- [ ] Django view (`views.py`)
-- [ ] URL route (`urls.py`)
-- [ ] Template (`templates/<page>.html`) extending `base.html`
-- [ ] HTMX for interactive elements
-- [ ] Tests (`tests/test_<page>.py`)
-- [ ] NPM path rule added for this page → Django
-- [ ] Smoke-test against production data
+| Feature               | Planned                    | Actual                                       |
+|-----------------------|----------------------------|----------------------------------------------|
+| Reactive UI           | htmx + django-htmx         | htmx 2.x + Alpine.js 3.x (no django-htmx)  |
+| Data tables           | django-tables2             | Raw SQL + hand-rolled templates              |
+| Forms                 | django-crispy-forms        | Plain Django forms + custom CSS              |
+| Maps                  | pydeck embed               | Leaflet.js with CartoDB Dark tiles           |
+| Rate limiting         | django-ratelimit           | Manual Redis counter (already in place)      |
+| AI summary            | existing ai_summary.py     | ✅ Used unchanged                            |
+| Bortle / scoring      | existing shared modules    | ✅ Used unchanged via PYTHONPATH=/app        |
 
-### Key packages
+---
 
-| Feature               | Package / approach                                    |
-|-----------------------|-------------------------------------------------------|
-| Reactive UI           | `htmx` + `django-htmx`                               |
-| Data tables           | `django-tables2`                                      |
-| Forms                 | Django forms + `django-crispy-forms`                 |
-| Plotly charts         | `{{ plotly_json\|safe }}` in template                |
-| pydeck maps           | script tag embed                                      |
-| Rate limiting         | `django-ratelimit` (replaces Redis manual logic)     |
-| AI summary            | existing `ai_summary.py` — imports unchanged         |
-| Bortle lookup         | existing `bortle_lookup.py` — imports unchanged      |
-| Scoring / forecast    | existing `scorer.py`, `forecast.py` — unchanged      |
+---
+
+## Management Commands
+
+Run all commands from `/opt/stargazing-app` with `docker compose exec django python manage.py <command>`.
+
+| Command | Purpose | Example |
+|---------|---------|---------|
+| `create_local_admin <email> <password>` | Create or update a local admin user with a password (bypasses Cloudflare — for local dev and emergency access) | `python manage.py create_local_admin travis Aggies83` |
+| `offboard_user <email>` | Deactivate a user removed from Cloudflare Access. Sets `is_active=False`; preserves all preferences for re-activation. Blocked at both Cloudflare (can't get header) and middleware (`is_active` check). | `python manage.py offboard_user someone@example.com` |
+| `offboard_user <email> --reactivate` | Re-activate a previously deactivated user. Their location, preferences, and settings are restored immediately. | `python manage.py offboard_user someone@example.com --reactivate` |
+
+### User lifecycle
+
+```
+Cloudflare Access panel: add user
+    → first request → ProxyAuthMiddleware auto-creates User + UserPreferences
+
+Cloudflare Access panel: remove user
+    → run: python manage.py offboard_user their@email.com
+    → is_active=False; blocked at Cloudflare edge AND middleware
+
+Re-add to Cloudflare panel
+    → run: python manage.py offboard_user their@email.com --reactivate
+    → all preferences restored
+```
+
+### app_settings keys (Admin → Settings)
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `forecast_days` | 10 | Forecast horizon in days (1–16) |
+| `timezone` | `America/Chicago` | Default timezone |
+| `planner_max_sites` | 250 | Maximum sites scored per Planner run — closest sites scored first when cap is hit |
+| `ollama_url` | `http://localhost:11434` | Ollama endpoint for AI summaries |
+| `ollama_model` | `llama3` | Model used for AI narrative summaries |
 
 ---
 

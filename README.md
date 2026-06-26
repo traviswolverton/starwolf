@@ -1,9 +1,11 @@
 # Stargazing Trip Planner
 
-A multi-user Streamlit web app for planning optimal stargazing nights at dark-sky sites. Pulls live weather and atmospheric data, combines it with moon phase calculations and astronomer-specific seeing forecasts, and scores each site/night combination so you can pick the best window for your trip.
+A web app for planning optimal stargazing nights at dark-sky sites across the US. Pulls live weather and atmospheric data, combines it with moon phase calculations and astronomer-specific seeing forecasts, and scores each site/night combination so you can pick the best window for your trip.
 
 Live instance: [starwolf.wolvertons.net](https://starwolf.wolvertons.net)
 Source: [github.com/traviswolverton/starwolf](https://github.com/traviswolverton/starwolf)
+
+> **Architecture note:** The app has been migrated from Streamlit to Django + HTMX (Phase 2 complete). Django runs on port 8080 alongside the legacy Streamlit app on port 8501. The Streamlit frontend will be retired in Phase 3 once routing is fully cut over. See [`prompts/django-migration-plan.md`](prompts/django-migration-plan.md) for status.
 
 ---
 
@@ -17,74 +19,73 @@ Source: [github.com/traviswolverton/starwolf](https://github.com/traviswolverton
 - Up to 16-day hourly forecast from Open-Meteo (no API key required)
 - Color-coded expandable result cards with per-metric breakdowns
 - Calendar heatmap for comparing all sites across all nights at a glance
-- Session-based per-user settings (timezone, thresholds, unit system) — no login required
+- Per-user settings (timezone, thresholds, unit system) stored in the database — persist across devices and sessions
 - User location: geocode a home base to see distances to sites in results
-- Site database: add, edit, deactivate sites; import from IDA dark-sky catalog or by address
-- Proximity filter: activate all sites within a configurable radius of any location
+- Proximity filter: score only sites within a configurable radius
 - Imperial/metric toggle: distances and visibility threshold throughout the UI
-- Password-protected Admin page for scoring weights and app-wide settings
+- Role-based access control (guest / user / admin) via Cloudflare Access header auth
+- Admin page for scoring weights and app-wide settings (requires admin role)
 - Dual composite scores — telescope and naked eye — with Bortle class modifier
+- Tonight's Forecast Map — color-coded heatmap of all 2,285+ sites scored for tonight
 - REST API on port 8000 for programmatic access to the same forecast and scoring pipeline
-- Visitor map and stats (IP geolocation)
 
 ---
 
 ## App Structure
 
-The app is a Streamlit multi-page app. Entry point: `Planner.py`. A FastAPI service (`api.py`) runs alongside it as a separate Docker container on port 8000.
-
 ```
 stargazing-app/
-├── Planner.py                      # Main forecast page (entry point)
-├── api.py                          # FastAPI REST API (port 8000)
-├── pages/
-│   ├── 0_Location.py               # Set/clear user home location
-│   ├── 1_Sites.py                  # Site catalog management
-│   ├── 2_Preferences.py            # Per-session user settings + live scoring weights
-│   ├── 3_Admin.py                  # Password-gated admin panel
-│   ├── 4_Feedback.py               # In-app feedback → GitHub issues
-│   ├── 5_Visitors.py               # Visitor map and stats (IP geolocation)
-│   └── 6_About.py                  # Data sources, architecture, and credits
+├── django/                         # Django + HTMX frontend (port 8080) — primary
+│   ├── config/                     # Django settings, URLs
+│   ├── accounts/                   # User model, RBAC, auth middleware, management commands
+│   │   └── management/commands/
+│   │       ├── create_local_admin.py   # Create local admin (bypasses Cloudflare)
+│   │       └── offboard_user.py        # Deactivate/reactivate users
+│   ├── pages/                      # All page views
+│   ├── templates/                  # Jinja2-style Django templates
+│   └── static/css/main.css         # Single dark-theme stylesheet
+├── Planner.py                      # Streamlit entry point (port 8501) — legacy, being retired
+├── pages/                          # Streamlit pages — legacy
+├── api.py                          # FastAPI REST API (port 8000) — kept as-is
 ├── forecast.py                     # Open-Meteo + 7timer API client (Redis-cached)
 ├── scorer.py                       # Composite night quality scorer
+├── ai_summary.py                   # Ollama AI narrative summary generator
 ├── cache.py                        # Redis wrapper with silent fallback
 ├── db.py                           # PostgreSQL schema, seed data, SQLAlchemy engine
-├── utils.py                        # Shared session state + sidebar helpers
-├── osm_import.py                   # Geocoding + IDA dark-sky site importer
-├── migrate_sqlite_to_postgres.py   # One-time SQLite → Postgres migration script
-├── Dockerfile                      # python:3.12-slim app image
-├── docker-compose.yml              # app + api + postgres:16 + redis:7
-├── API_GUIDE.md                    # Full REST API documentation
-└── run.sh                          # Local dev launcher (requires DATABASE_URL set)
+├── bortle_lookup.py                # World Atlas GeoTIFF Bortle class lookup
+├── Dockerfile                      # Streamlit/shared app image
+├── Dockerfile.django               # Django app image
+├── docker-compose.yml              # django + app + api + postgres:16 + redis:7
+└── API_GUIDE.md                    # Full REST API documentation
 ```
 
-### Pages
+### Django Pages
 
-| Page | Purpose |
-|------|---------|
-| **Planner** | Run forecast, view ranked result cards and heatmap |
-| **Location** | Geocode a home location; drives distance display and proximity filter |
-| **Sites** | Manage the site catalog — activate/deactivate, add by address, import from IDA |
-| **Preferences** | Session timezone, min score threshold, hard disqualifiers, unit system, live scoring weights |
-| **Admin** | Password-gated; scoring weights and app-wide settings (forecast horizon, etc.) |
-| **Feedback** | Submit bug reports and feature requests directly to the GitHub issue tracker |
-| **Visitors** | Map and table of recent visitors (IP geolocation via ip-api.com) |
-| **About** | Data source attribution, scoring explanation, architecture overview, and credits |
+| Page | URL | Purpose |
+|------|-----|---------|
+| **Planner** | `/planner` | Run forecast for nearby sites, ranked night cards, heatmap |
+| **Sites** | `/sites` | Browse the 2,285+ site catalog with filters and distance sort |
+| **Forecast Map** | `/heatmap` | Tonight's score for all sites as a Leaflet color-coded map |
+| **Bortle** | `/bortle` | Look up Bortle class for any address or coordinates |
+| **Location** | `/location` | Geocode a home base; drives distance display and proximity filter |
+| **Preferences** | `/preferences` | Per-user timezone, thresholds, units — stored in DB, not session |
+| **Admin** | `/admin-panel` | Scoring weights, app settings, Bortle fill (requires admin role) |
+| **API** | `/api-guide` | Rendered API_GUIDE.md with live endpoint tabs |
+| **Feedback** | `/feedback` | Submit bug reports / feature requests → GitHub issues |
 
-### Session State
+### User Preferences
 
-All user-facing settings are stored per-session in `st.session_state` — multiple users can use the app simultaneously without affecting each other. Nothing is written to the database except by the Admin page.
+All settings are stored per-user in the `starwolf_user_preferences` table and loaded on every request — they persist across devices, browsers, and container restarts.
 
-| Key | Default | Description |
-|-----|---------|-------------|
+| Field | Default | Description |
+|-------|---------|-------------|
+| `units` | `metric` | `metric` or `imperial` — controls all distance and visibility display |
 | `timezone` | `America/Chicago` | IANA timezone for night boundary calculations |
 | `min_score_threshold` | 40 | Hide nights scoring below this |
 | `disq_max_cloud_cover` | 85% | Hard disqualifier: cloud cover ceiling |
 | `disq_max_precip_prob` | 40% | Hard disqualifier: precipitation probability ceiling |
-| `disq_min_visibility_km` | 10 km | Hard disqualifier: visibility floor (stored in km) |
-| `units` | `metric` | `"metric"` or `"imperial"` — controls distance/visibility display |
-| `user_location` | `None` | Dict: `{text, lat, lon, display}` from geocoder |
-| `site_active` | DB defaults | Dict of `{site_id: bool}` — overrides DB `active` column per session |
+| `disq_min_visibility_km` | 10 km | Hard disqualifier: visibility floor |
+| `location_lat/lon` | None | Geocoded home base for distance display and proximity filter |
 
 ---
 
@@ -179,11 +180,14 @@ Key/value pairs for admin-configurable application settings.
 | Key | Default | Description |
 |-----|---------|-------------|
 | `forecast_days` | 10 | Forecast horizon in days (1–16) |
-| `timezone` | `America/Chicago` | Default timezone for new sessions |
-| `min_score_threshold` | 40 | Default score threshold for new sessions |
+| `timezone` | `America/Chicago` | Default timezone |
+| `min_score_threshold` | 40 | Default score threshold |
 | `disq_max_cloud_cover` | 85 | Default cloud cover disqualifier |
 | `disq_max_precip_prob` | 40 | Default precipitation probability disqualifier |
 | `disq_min_visibility_km` | 10 | Default visibility disqualifier (km) |
+| `planner_max_sites` | 250 | Maximum sites scored per Planner run; closest sites scored first when cap is hit |
+| `ollama_url` | `http://localhost:11434` | Ollama endpoint for AI narrative summaries |
+| `ollama_model` | `llama3` | Ollama model for AI summaries |
 
 ---
 
@@ -328,23 +332,41 @@ github_token   = "your-github-token"   # fine-grained PAT, Issues: Read & Write
 docker compose up -d
 ```
 
-This starts four containers:
-- **app** — Streamlit on port 8501
+This starts five containers:
+- **django** — Django + HTMX on port 8080 (primary frontend)
+- **app** — Streamlit on port 8501 (legacy, being retired)
 - **api** — FastAPI / uvicorn on port 8000
 - **db** — PostgreSQL 16 (data in `postgres_data` Docker volume)
 - **redis** — Redis 7 (data in `redis_data` Docker volume)
 
-The app waits for Postgres to pass its healthcheck before starting. Tables are created and seeded automatically on first boot.
-
-### 3. Verify
+### 3. Create a local admin user
 
 ```bash
-docker compose ps          # all four should be healthy/Up
-curl localhost:8501/_stcore/health   # should return: ok
+cd /opt/stargazing-app
+docker compose exec django python manage.py create_local_admin admin@example.com yourpassword
+```
+
+This creates an admin user that can log in at `/accounts/login/` without going through Cloudflare Access — useful for local dev and emergency access.
+
+### 4. Verify
+
+```bash
+docker compose ps
+curl localhost:8080/django-health    # should return: {"status":"ok"}
 curl localhost:8000/healthz          # should return: {"status":"ok"}
 ```
 
-Opens at `http://localhost:8501`.
+Opens at `http://localhost:8080`.
+
+### User management
+
+```bash
+# Deactivate a user removed from Cloudflare Access (preserves their preferences)
+docker compose exec django python manage.py offboard_user someone@example.com
+
+# Re-activate them if re-added to Cloudflare
+docker compose exec django python manage.py offboard_user someone@example.com --reactivate
+```
 
 ### Updating
 

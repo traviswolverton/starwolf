@@ -18,9 +18,10 @@ from django.views.decorators.http import require_http_methods
 from timezonefinder import TimezoneFinder
 
 from accounts.models import UserPreferences
+from ai_summary import get_cached_summary, is_ollama_available
 from bortle_lookup import lookup_bortle
-from forecast import _fetch_open_meteo
-from scorer import score_forecast
+from forecast import _fetch_open_meteo, fetch_site_forecast
+from scorer import score_forecast, score_all
 
 _tf = TimezoneFinder()
 
@@ -628,6 +629,314 @@ def feedback(request):
         f'<a href="{issue["html_url"]}" target="_blank">issue #{issue["number"]}</a>.'
         f'</div>'
     )
+
+
+# ── Planner helpers ───────────────────────────────────────────────────────────
+
+def _norm(value, lo, hi, higher_is_better=True):
+    if value is None:
+        return None
+    try:
+        if math.isnan(float(value)):
+            return None
+    except (TypeError, ValueError):
+        return None
+    n = (max(lo, min(hi, float(value))) - lo) / (hi - lo)
+    return n if higher_is_better else 1 - n
+
+
+def _metric_color(norm):
+    if norm is None:
+        return "#444"
+    hue = int(norm * 120)
+    return f"hsl({hue}, 70%, 38%)"
+
+
+def _fmt_val(value, fmt=".0f", suffix="", fallback="—"):
+    if value is None:
+        return fallback
+    try:
+        if math.isnan(float(value)):
+            return fallback
+    except (TypeError, ValueError):
+        return fallback
+    return f"{value:{fmt}}{suffix}"
+
+
+def _heatmap_bg(score, threshold):
+    if score is None:
+        return "#1a1d27"
+    if score < threshold:
+        return "#1e1616"
+    t = (score - threshold) / max(1, 100 - threshold)
+    hue = int(t * 120)
+    return f"hsl({hue}, 55%, 28%)"
+
+
+def _enrich_night(night, prefs, site_coords):
+    stats = night.get("stats", {})
+    factors = night.get("factors", {})
+    lat, lon = site_coords.get(night["site"], (None, None))
+    dist_str = ""
+    if prefs and prefs.has_location and lat is not None:
+        km = _haversine(prefs.location_lat, prefs.location_lon, lat, lon)
+        dist_str = f"{km * _KM_TO_MI:.0f} mi" if prefs.units == "imperial" else f"{km:.0f} km"
+    bortle = stats.get("bortle_class")
+    metrics = [
+        {"label": "Cloud Cover", "value": _fmt_val(stats.get("avg_cloud_cover"), suffix="%"),  "color": _metric_color(_norm(stats.get("avg_cloud_cover"),      0, 100, False))},
+        {"label": "High Cloud",  "value": _fmt_val(stats.get("avg_high_cloud"),  suffix="%"),  "color": _metric_color(_norm(stats.get("avg_high_cloud"),        0, 100, False))},
+        {"label": "Moon Score",  "value": _fmt_val(factors.get("moon")),                       "color": _metric_color(_norm(factors.get("moon"),                0, 100, True))},
+        {"label": "Night Hours", "value": _fmt_val(stats.get("night_hours"), ".0f", "h"),      "color": _metric_color(_norm(stats.get("night_hours"),           4,  12, True))},
+        {"label": "Humidity",    "value": _fmt_val(stats.get("avg_humidity"), suffix="%"),     "color": _metric_color(_norm(stats.get("avg_humidity"),          0, 100, False))},
+        {"label": "Stability",   "value": _fmt_val(factors.get("lifted_index")),               "color": _metric_color(_norm(factors.get("lifted_index"),        0, 100, True))},
+        {"label": "Seeing †",    "value": _fmt_val(stats.get("seeing_7timer"), ".1f"),         "color": _metric_color(_norm(stats.get("seeing_7timer"),         1,   8, False))},
+        {"label": "Transp. †",   "value": _fmt_val(stats.get("transparency_7timer"), ".1f"),  "color": _metric_color(_norm(stats.get("transparency_7timer"),   1,   8, False))},
+        {"label": "Bortle",      "value": f"Class {bortle}" if bortle else "—",               "color": _metric_color(_norm(bortle,                             1,   9, False))},
+    ]
+    date_obj = datetime.fromisoformat(night["date"])
+    composite = night.get("composite") or 0
+    naked_eye = night.get("naked_eye")
+    tel_norm = _norm(composite, 0, 100, True) or 0
+    eye_norm = _norm(naked_eye, 0, 100, True) if naked_eye is not None else None
+    map_url = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=12/{lat}/{lon}" if lat else ""
+    return {
+        **night,
+        "date_str":    date_obj.strftime("%a %-d %b"),
+        "dist_str":    dist_str,
+        "metrics":     metrics,
+        "tel_score":   round(composite),
+        "eye_score":   round(naked_eye) if naked_eye is not None else None,
+        "tel_color":   f"hsl({int(tel_norm * 120)}, 70%, 42%)",
+        "eye_color":   f"hsl({int(eye_norm * 120)}, 70%, 42%)" if eye_norm is not None else "#555",
+        "map_url":     map_url,
+    }
+
+
+def _build_heatmap(nights, threshold, score_key="composite"):
+    scored = [n for n in nights if not n.get("disqualified")]
+    sites = sorted(set(n["site"] for n in scored))
+    dates = sorted(set(n["date"] for n in scored))
+    lookup = {(n["site"], n["date"]): n.get(score_key) for n in scored}
+    rows = []
+    for site in sites:
+        cells = []
+        for date in dates:
+            score = lookup.get((site, date))
+            cells.append({
+                "score": round(score) if score is not None else None,
+                "bg": _heatmap_bg(score, threshold),
+            })
+        rows.append({"site": site, "cells": cells})
+    date_labels = [datetime.fromisoformat(d).strftime("%-d %b") for d in dates]
+    return {"rows": rows, "dates": date_labels}
+
+
+def _load_planner_sites(prefs, max_dist_km=None):
+    with connection.cursor() as cur:
+        cur.execute("SELECT id, name, lat, lon, bortle_class, site_type FROM sites WHERE active=1")
+        cols = [d[0] for d in cur.description]
+        all_sites = [dict(zip(cols, r)) for r in cur.fetchall()]
+    if prefs and prefs.has_location and max_dist_km:
+        return [
+            s for s in all_sites
+            if _haversine(prefs.location_lat, prefs.location_lon, s["lat"], s["lon"]) <= max_dist_km
+        ]
+    return all_sites
+
+
+def _run_planner_thread(user_id, sites, forecast_days, tz, disq):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    state_key   = f"planner:status:{user_id}"
+    results_key = f"planner:nights:{user_id}"
+    total = len(sites)
+    cache.set(state_key, {"running": True, "done": 0, "total": total}, 600)
+    forecasts = []
+    done = 0
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        futures = {ex.submit(fetch_site_forecast, s, forecast_days, tz): s for s in sites}
+        for future in as_completed(futures):
+            try:
+                forecasts.append(future.result())
+            except Exception:
+                pass
+            done += 1
+            if done % 10 == 0 or done == total:
+                cache.set(state_key, {"running": True, "done": done, "total": total}, 600)
+    nights = score_all(forecasts, tz, disq)
+    cache.set(results_key, json.dumps(nights), 7200)
+    cache.set(state_key, {"running": False, "done": done, "total": total}, 120)
+
+
+def _get_planner_max_sites():
+    with connection.cursor() as cur:
+        cur.execute("SELECT value FROM app_settings WHERE key = 'planner_max_sites'")
+        row = cur.fetchone()
+    return int(row[0]) if row else 250
+
+
+@require_http_methods(["GET"])
+def planner(request):
+    prefs = request.prefs
+
+    try:
+        radius_val = int(request.GET.get("radius", 300))
+    except ValueError:
+        radius_val = 300
+
+    is_imperial = prefs and prefs.units == "imperial"
+    dist_unit_str = "mi" if is_imperial else "km"
+    radius_km = radius_val / _KM_TO_MI if is_imperial else radius_val
+
+    sites = _load_planner_sites(prefs, radius_km if (prefs and prefs.has_location) else None)
+    max_sites = _get_planner_max_sites()
+    site_count = len(sites)
+
+    state_key   = f"planner:status:{request.user.pk}"
+    results_key = f"planner:nights:{request.user.pk}"
+    compute_state = cache.get(state_key)
+    cached_nights_json = cache.get(results_key)
+
+    return render(request, "pages/planner.html", {
+        "prefs":           prefs,
+        "site_count":      site_count,
+        "effective_count": min(site_count, max_sites),
+        "max_sites":       max_sites,
+        "capped":          site_count > max_sites,
+        "radius_val":      radius_val,
+        "dist_unit":       dist_unit_str,
+        "is_running":      bool(compute_state and compute_state.get("running")),
+        "has_results":     bool(cached_nights_json),
+        "compute_state":   compute_state,
+    })
+
+
+@require_http_methods(["POST"])
+def planner_run(request):
+    prefs = request.prefs
+    if not request.user.is_authenticated:
+        return HttpResponse('<div class="alert error">Login required.</div>', status=401)
+
+    state_key = f"planner:status:{request.user.pk}"
+    state = cache.get(state_key)
+    if state and state.get("running"):
+        return render(request, "pages/_planner_progress.html", {"compute_state": state})
+
+    is_imperial = prefs and prefs.units == "imperial"
+    try:
+        radius_val = int(request.POST.get("radius", 300))
+    except ValueError:
+        radius_val = 300
+    radius_km = radius_val / _KM_TO_MI if is_imperial else radius_val
+
+    sites = _load_planner_sites(prefs, radius_km if (prefs and prefs.has_location) else None)
+    if not sites:
+        return HttpResponse('<div class="alert error">No active sites found. Adjust your radius or activate sites from the Sites page.</div>')
+
+    # Enforce site cap — sort closest-first so the user gets their nearest sites
+    max_sites = _get_planner_max_sites()
+    if len(sites) > max_sites:
+        if prefs and prefs.has_location:
+            sites.sort(key=lambda s: _haversine(prefs.location_lat, prefs.location_lon, s["lat"], s["lon"]))
+        sites = sites[:max_sites]
+
+    with connection.cursor() as cur:
+        cur.execute("SELECT value FROM app_settings WHERE key = 'forecast_days'")
+        row = cur.fetchone()
+    forecast_days = int(row[0]) if row else 10
+
+    tz = prefs.timezone if prefs else "America/Chicago"
+    disq = {
+        "max_cloud_cover":   prefs.disq_max_cloud_cover   if prefs else 85,
+        "max_precip_prob":   prefs.disq_max_precip_prob   if prefs else 40,
+        "min_visibility_km": prefs.disq_min_visibility_km if prefs else 10,
+    }
+
+    threading.Thread(
+        target=_run_planner_thread,
+        args=(request.user.pk, sites, forecast_days, tz, disq),
+        daemon=True,
+    ).start()
+
+    return render(request, "pages/_planner_progress.html", {
+        "compute_state": {"running": True, "done": 0, "total": len(sites)},
+    })
+
+
+@require_http_methods(["GET"])
+def planner_poll(request):
+    state_key   = f"planner:status:{request.user.pk}"
+    results_key = f"planner:nights:{request.user.pk}"
+    state = cache.get(state_key) or {}
+
+    if state.get("running"):
+        return render(request, "pages/_planner_progress.html", {"compute_state": state})
+
+    nights_json = cache.get(results_key)
+    if not nights_json:
+        return HttpResponse('<div class="alert warning">No results cached. Run the forecast first.</div>')
+
+    return _render_results(request, json.loads(nights_json))
+
+
+def _render_results(request, nights):
+    prefs = request.prefs
+    threshold = prefs.min_score_threshold if prefs else 40
+    sort = request.GET.get("sort", "score")
+    score_key = "naked_eye" if request.GET.get("view") == "eye" else "composite"
+    today = datetime.now(ZoneInfo(prefs.timezone if prefs else "America/Chicago")).date()
+
+    # Split scored vs disqualified
+    scored = [
+        n for n in nights
+        if not n.get("disqualified")
+        and datetime.fromisoformat(n["date"]).date() >= today
+        and (n.get("composite") or 0) >= threshold
+    ]
+    disq = [
+        n for n in nights
+        if n.get("disqualified")
+        and datetime.fromisoformat(n["date"]).date() >= today
+    ]
+
+    # Sort
+    if sort == "date":
+        scored.sort(key=lambda n: (n["date"], -(n.get("composite") or 0)))
+    elif sort == "location":
+        scored.sort(key=lambda n: (n["site"], n["date"]))
+    elif sort == "eye":
+        scored.sort(key=lambda n: -(n.get("naked_eye") or 0))
+    else:
+        scored.sort(key=lambda n: -(n.get("composite") or 0))
+
+    # Enrich
+    with connection.cursor() as cur:
+        cur.execute("SELECT name, lat, lon FROM sites WHERE active=1")
+        site_coords = {r[0]: (r[1], r[2]) for r in cur.fetchall()}
+
+    enriched = [_enrich_night(n, prefs, site_coords) for n in scored]
+
+    # Heatmap
+    heatmap = _build_heatmap(nights, threshold, score_key)
+
+    # AI summary
+    ai_summary = None
+    try:
+        if scored and is_ollama_available():
+            ai_summary = get_cached_summary(scored[:10])
+    except Exception:
+        pass
+
+    return render(request, "pages/_planner_results.html", {
+        "nights":      enriched,
+        "disq":        disq,
+        "heatmap":     heatmap,
+        "threshold":   threshold,
+        "sort":        sort,
+        "score_key":   score_key,
+        "ai_summary":  ai_summary,
+        "total_scored":  len(scored),
+        "total_disq":    len(disq),
+    })
 
 
 def admin_panel(request):

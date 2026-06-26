@@ -2,6 +2,20 @@
   "releases": [
     {
       "date": "2026-06-26",
+      "features": [
+        "New Planner page (Django) — enter a search radius, run a multi-site forecast in the background, and get a ranked list of the best nights at nearby dark-sky sites. Night cards expand to show 9 color-coded metrics (cloud cover, moon score, humidity, night hours, stability, seeing, transparency, Bortle class). A collapsible heatmap shows every site × night at a glance, color-coded from red (poor) to green (excellent). Disqualified nights (exceeding cloud, precipitation, or visibility hard limits from Preferences) are listed separately. AI narrative summary shown when Ollama is available.",
+        "Planner results sort by composite telescope score, naked-eye score, date, or location — HTMX re-fetch with no page reload.",
+        "Planner progress bar — long-running forecast runs in a background thread and polls for status every 3 seconds; cached results are reloaded on revisit without re-running.",
+        "Planner site cap — admin-configurable maximum number of sites per forecast run (default 250, set via Admin → Settings). When the radius contains more sites than the cap allows, the closest sites are scored first; the setup card shows \"250 of N (capped)\" so the user knows what's happening.",
+        "New offboard_user management command — deactivates a user by email when they are removed from Cloudflare Access, preserving their preferences in case they are re-added later. Re-activation supported with --reactivate flag."
+      ],
+      "fixes": [
+        "Planner no longer shows a stuck spinner after a container restart — stale \"running\" status keys in Redis are now cleared automatically on startup via AppConfig.ready().",
+        "ProxyAuthMiddleware now checks is_active before granting a session to a proxy-authed user — deactivated users are blocked at the application layer even if their email header is present (defense-in-depth on top of Cloudflare's block)."
+      ]
+    },
+    {
+      "date": "2026-06-26",
       "notes": [
         "Django scaffold added alongside Streamlit — runs on port 8080, shares the same Postgres and Redis, manages its own starwolf_user table for future RBAC.",
         "Custom User model added with guest/user/admin roles; user accounts are auto-created on first authenticated request via the proxy auth header.",

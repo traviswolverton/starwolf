@@ -39,7 +39,10 @@ class ProxyAuthMiddleware:
                     )
                     if created:
                         _log.info("New user created from proxy auth: %s", email)
-                    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+                    if user.is_active:
+                        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+                    else:
+                        _log.warning("Blocked inactive user from proxy auth: %s", email)
 
         if request.user.is_authenticated:
             request.prefs, _ = UserPreferences.objects.get_or_create(user=request.user)
