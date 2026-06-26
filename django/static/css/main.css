@@ -208,6 +208,12 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .filter-select:focus { outline: none; border-color: #4caf96; }
 .filter-select:hover { border-color: #4a4d5e; }
 
+.sites-count {
+  font-size: 0.85rem;
+  color: #5a6a80;
+  margin: 0 0 0.75rem;
+}
+
 .table-wrap {
   overflow-x: auto;
   border: 1px solid #2a2d3e;

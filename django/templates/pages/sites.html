@@ -2,10 +2,7 @@
 {% block title %}Dark-Sky Sites — StarWolf{% endblock %}
 
 {% block content %}
-<div class="sites-header">
-  <h1>Dark-Sky Sites</h1>
-  <p class="subtitle">{{ total }} site{{ total|pluralize }} • {% if has_loc %}sorted by distance{% else %}sorted by name{% endif %}</p>
-</div>
+<h1>Dark-Sky Sites</h1>
 
 {% if not has_loc %}
 <div class="alert warning" style="margin-bottom:1.5rem;">

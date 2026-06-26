@@ -1,7 +1,15 @@
-{% if not rows %}
-<p class="field-hint" style="margin-top:1rem;">No sites match your filters.</p>
-{% else %}
+<p class="sites-count">
+  {% if total == 0 %}
+    No sites match your filters.
+  {% elif total_pages > 1 %}
+    Showing {{ rows|length }} of {{ total }} site{{ total|pluralize }}
+  {% else %}
+    {{ total }} site{{ total|pluralize }}
+  {% endif %}
+  {% if has_loc %}&nbsp;· sorted by distance{% endif %}
+</p>
 
+{% if rows %}
 <div class="table-wrap">
   <table class="sites-table">
     <thead>
@@ -33,7 +41,7 @@
 
 {% if total_pages > 1 %}
 <div class="pagination">
-  <span class="pag-info">{{ total }} sites · page {{ page }} of {{ total_pages }}</span>
+  <span class="pag-info">page {{ page }} of {{ total_pages }}</span>
   <div class="pag-btns">
     {% if page > 1 %}
     <button class="pag-btn"
@@ -55,5 +63,4 @@
   </div>
 </div>
 {% endif %}
-
 {% endif %}
