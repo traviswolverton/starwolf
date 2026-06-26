@@ -4,97 +4,142 @@
 
 Migrate from Streamlit to Django + HTMX to support proper user auth, RBAC,
 per-user data, and a maintainable frontend architecture. The existing site
-stays live throughout using a strangler fig pattern — nginx routes migrated
-pages to Django and unmigrated pages to Streamlit until the transition is
-complete.
+stays live throughout using a strangler fig pattern — the reverse proxy routes
+migrated pages to Django and unmigrated pages to Streamlit until the
+transition is complete.
 
 ## Current Stack
 
-| Layer      | Technology                        |
-|------------|-----------------------------------|
-| Frontend   | Streamlit (port 8501)             |
-| Public API | FastAPI / uvicorn (port 8000)     |
-| Database   | Postgres 16                       |
-| Cache      | Redis 7                           |
-| Proxy      | nginx (implied, not in repo)      |
-| Auth       | Single shared password in secrets |
+| Layer        | Technology                                          |
+|--------------|-----------------------------------------------------|
+| Frontend     | Streamlit (port 8501)                               |
+| Public API   | FastAPI / uvicorn (port 8000)                       |
+| Database     | Postgres 16                                         |
+| Cache        | Redis 7                                             |
+| Proxy        | Nginx Proxy Manager (NPM), host Docker container   |
+| Tunnel       | cloudflared → Cloudflare (manages domain + SSL)    |
+| Auth         | Single shared password in secrets.toml              |
 
 ## Target Stack
 
-| Layer      | Technology                              |
-|------------|-----------------------------------------|
-| Frontend   | Django + HTMX + Alpine.js (port 8080)  |
-| Public API | FastAPI / uvicorn (port 8000) — kept   |
-| Database   | Postgres 16 — same instance            |
-| Cache      | Redis 7 — same instance                |
-| Proxy      | nginx — routes by URL path             |
-| Auth       | Google OAuth via django-allauth         |
+| Layer        | Technology                                          |
+|--------------|-----------------------------------------------------|
+| Frontend     | Django + HTMX + Alpine.js (port 8080)              |
+| Public API   | FastAPI / uvicorn (port 8000) — kept as-is         |
+| Database     | Postgres 16 — same instance                        |
+| Cache        | Redis 7 — same instance                            |
+| Proxy        | NPM — gains Django upstream, strangler fig routing |
+| Tunnel       | cloudflared → Cloudflare — unchanged               |
+| Auth         | Pluggable header-based auth (see Phase 0)          |
 
 ---
 
-## Phase 0 — Auth Now, No Code Changes (1–2 days)
+## Auth Provider Design — Portability First
 
-**Goal:** Real OAuth login without touching Streamlit or starting the migration.
+Django does not care which system authenticated the user. It reads the
+verified identity from a single HTTP header whose name is configurable:
 
-Stand up `oauth2-proxy` as a new Docker service in front of nginx. Users
-authenticate with Google; `oauth2-proxy` injects `X-Auth-Email` and
-`X-Auth-User` headers upstream. Streamlit ignores these headers for now —
-the value is that Phase 1 can read them immediately when Django arrives.
+```
+AUTH_EMAIL_HEADER=Cf-Access-Authenticated-User-Email  # Cloudflare Access (owner's setup)
+AUTH_EMAIL_HEADER=X-Auth-Request-Email                # oauth2-proxy
+AUTH_EMAIL_HEADER=Remote-Email                        # Authelia, Authentik, etc.
+AUTH_BYPASS=true                                      # local dev — skips header, uses test user
+```
 
-### Tasks
+The Django middleware reads `AUTH_EMAIL_HEADER`, looks up or creates the user
+record, and establishes a session. The rest of the app (views, RBAC, templates)
+never touches auth-provider-specific logic.
 
-- [ ] Register a Google OAuth app (Google Cloud Console → Credentials)
-- [ ] Add `oauth2-proxy` service to `docker-compose.yml`
-- [ ] Configure nginx to run auth check via `oauth2-proxy` before proxying
-      to Streamlit
-- [ ] Set `OAUTH2_PROXY_EMAIL_DOMAINS` to restrict to your domain (or `*`
-      for open)
-- [ ] Verify login flow end-to-end
+**This means:** anyone cloning the repo can run their own auth proxy, set
+`AUTH_EMAIL_HEADER` to match, and everything works. The Cloudflare setup is
+not a requirement — it's one valid provider among several.
 
-### Docker service sketch
+### Supported providers
+
+| Provider           | How to run                              | Header to set                          |
+|--------------------|-----------------------------------------|----------------------------------------|
+| Cloudflare Access  | Cloudflare Zero Trust dashboard (free) | `Cf-Access-Authenticated-User-Email`  |
+| oauth2-proxy       | Docker service in docker-compose        | `X-Auth-Request-Email`                |
+| Authelia           | Self-hosted Docker service              | `Remote-Email`                        |
+| Local dev          | `AUTH_BYPASS=true`                      | (header ignored)                       |
+
+---
+
+## Phase 0 — Auth Now, No App Code Changes
+
+**Goal:** Real OAuth login protecting the existing Streamlit app. Two paths
+depending on your infrastructure — pick one.
+
+### Path A: Cloudflare Access (owner's setup — recommended)
+
+No new Docker containers. Auth happens at Cloudflare's edge before traffic
+reaches the machine.
+
+1. [ ] Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com) →
+       Settings → Authentication → Add Google as identity provider
+2. [ ] Create an Access Application for the app domain
+3. [ ] Set policy: allow specific emails or your whole domain
+4. [ ] Verify: hitting the app now shows a Google login screen
+5. [ ] Add `AUTH_EMAIL_HEADER=Cf-Access-Authenticated-User-Email` to `.env`
+       (used by Django in Phase 1)
+
+**New `.env` vars:**
+```
+AUTH_EMAIL_HEADER=Cf-Access-Authenticated-User-Email
+```
+
+### Path B: oauth2-proxy (self-hosted, no Cloudflare required)
+
+For anyone cloning the repo without Cloudflare. Add to `docker-compose.yml`:
 
 ```yaml
 oauth2-proxy:
   image: quay.io/oauth2-proxy/oauth2-proxy:latest
   command:
     - --provider=google
-    - --upstream=http://app:8501
     - --http-address=0.0.0.0:4180
+    - --reverse-proxy=true
+    - --set-xauthrequest=true
     - --email-domain=*
     - --cookie-secret=${OAUTH2_COOKIE_SECRET}
     - --client-id=${GOOGLE_CLIENT_ID}
     - --client-secret=${GOOGLE_CLIENT_SECRET}
-  ports:
-    - "4180:4180"
+    - --cookie-secure=false   # set true once HTTPS is in place
   restart: unless-stopped
 ```
 
-### New .env vars needed
+Configure your reverse proxy (NPM or nginx) to:
+1. Check auth via oauth2-proxy before forwarding to the app
+2. Forward `X-Auth-Request-Email` downstream
 
+**New `.env` vars:**
 ```
-OAUTH2_COOKIE_SECRET=   # 32-byte random: openssl rand -base64 32
+OAUTH2_COOKIE_SECRET=   # openssl rand -base64 32
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+AUTH_EMAIL_HEADER=X-Auth-Request-Email
 ```
+
+Both Google OAuth app credentials (`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`)
+carry forward unchanged into Phase 1 regardless of which path is used.
 
 ---
 
 ## Phase 1 — Django Scaffold + Auth (1 week)
 
 **Goal:** Django running alongside Streamlit, no pages migrated yet. Auth,
-user model, and RBAC are fully working.
+user model, and RBAC fully working. Django reads the header from Phase 0
+to auto-authenticate users — no second login prompt during migration.
 
 ### 1a — Project setup
 
-- [ ] Add `django`, `django-allauth`, `whitenoise`, `django-redis`,
-      `psycopg2-binary` (already in requirements) to a new
-      `requirements-django.txt`
-- [ ] `django-admin startproject starwolf` → commit scaffold
-- [ ] Point `settings.py` at the existing Postgres instance (separate
-      `starwolf_django` schema or same DB, Django tables prefixed)
-- [ ] Configure Redis as the session and cache backend
-- [ ] `whitenoise` for static file serving (no separate nginx static config
-      needed in dev)
+- [ ] Create `requirements-django.txt`: `django`, `django-allauth`,
+      `whitenoise`, `django-redis`, `gunicorn`
+- [ ] `django-admin startproject starwolf_django` → commit scaffold
+- [ ] `settings.py`: point at existing Postgres (Django manages only its own
+      tables — see schema strategy below)
+- [ ] Configure Redis as session and cache backend
+- [ ] `whitenoise` for static file serving
 
 ### 1b — User model + RBAC
 
@@ -103,16 +148,14 @@ user model, and RBAC are fully working.
 class User(AbstractUser):
     ROLES = [("guest", "Guest"), ("user", "User"), ("admin", "Admin")]
     role = models.CharField(max_length=16, choices=ROLES, default="user")
-    # future: default_lat, default_lon, default_radius_km
+    # Phase 2+: default_lat, default_lon, default_radius_km, preferred_sites
 ```
 
 - [ ] Custom user model (`AUTH_USER_MODEL = "accounts.User"`)
-- [ ] `django-allauth` configured for Google provider
-- [ ] Auth middleware: every request has `request.user`
 - [ ] Role-check decorator:
 
 ```python
-def require_role(min_role):
+def require_role(min_role="user"):
     def decorator(view_func):
         @login_required
         def wrapper(request, *args, **kwargs):
@@ -121,46 +164,93 @@ def require_role(min_role):
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
+
+# Usage:
+@require_role("admin")
+def admin_view(request): ...
 ```
 
-### 1c — Add Django to docker-compose
+### 1c — Auth middleware (the portability layer)
+
+This middleware runs on every request. It reads `AUTH_EMAIL_HEADER` from
+settings (set via env), looks up or creates the user, and establishes a
+Django session. Once a session exists the header is no longer needed.
+
+```python
+# accounts/middleware.py
+class ProxyAuthMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.header = settings.AUTH_EMAIL_HEADER  # from env
+        self.bypass = settings.AUTH_BYPASS        # True in local dev
+
+    def __call__(self, request):
+        if self.bypass and not request.user.is_authenticated:
+            request.user = User.objects.get_or_create(
+                email="dev@localhost", defaults={"role": "admin"}
+            )[0]
+        elif self.header and not request.user.is_authenticated:
+            email = request.headers.get(self.header)
+            if email:
+                user, _ = User.objects.get_or_create(
+                    email=email,
+                    defaults={"username": email, "role": "user"},
+                )
+                login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        return self.get_response(request)
+```
+
+### 1d — Existing schema strategy
+
+Django manages only its own tables. Existing tables (`sites`,
+`scoring_weights`, `visitors`, etc.) are accessed via raw SQL or SQLAlchemy
+exactly as they are today — the existing `db.py`, `scorer.py`, `forecast.py`
+modules import cleanly into Django views with no changes.
+
+New Django-managed tables get the `starwolf_` prefix to avoid any collision:
+`starwolf_user`, `starwolf_session`, etc. Set in `settings.py`:
+
+```python
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# All Django app tables use this prefix via AppConfig.default_auto_field
+# Existing tables accessed via db.py / SQLAlchemy — Django does not migrate them
+```
+
+### 1e — Add Django to docker-compose
 
 ```yaml
 django:
   build:
     context: .
     dockerfile: Dockerfile.django
-  command: gunicorn starwolf.wsgi --bind 0.0.0.0:8080
+  command: gunicorn starwolf_django.wsgi --bind 0.0.0.0:8080
   ports:
     - "8080:8080"
   environment:
     DATABASE_URL: postgresql://${POSTGRES_USER:-stargazing}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-stargazing}
     REDIS_URL: redis://redis:6379
-    SECRET_KEY: ${DJANGO_SECRET_KEY}
-    GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-    GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+    AUTH_EMAIL_HEADER: ${AUTH_EMAIL_HEADER}
+    AUTH_BYPASS: ${AUTH_BYPASS:-false}
   depends_on:
     db:
       condition: service_healthy
   restart: unless-stopped
 ```
 
-### 1d — nginx routing (strangler fig starts here)
+### 1f — NPM routing (strangler fig starts here)
 
-nginx gets a simple rule: requests for migrated paths go to Django (8080),
-everything else goes to Streamlit (8501) — or to oauth2-proxy (4180) if
-Phase 0 is in place.
+Add a second proxy host in NPM for the same domain, path-based:
 
-```nginx
-# Initially — all traffic to Streamlit
-location / {
-    proxy_pass http://app:8501;
-}
+- `/` → Streamlit `:8501` (catch-all, unchanged)
+- As pages migrate, add path rules above the catch-all pointing to Django `:8080`
 
-# As pages migrate, add blocks above the catch-all:
-# location /about { proxy_pass http://django:8080; }
-# location /feedback { proxy_pass http://django:8080; }
-# ...
+NPM's "Advanced" tab accepts custom nginx location blocks for path routing.
+
+**New `.env` vars:**
+```
+DJANGO_SECRET_KEY=    # python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+AUTH_BYPASS=false     # set true in local dev
 ```
 
 ---
@@ -168,55 +258,50 @@ location / {
 ## Phase 2 — Page Migration (3–4 weeks)
 
 **Goal:** Migrate pages one at a time in complexity order. Each migration is
-a discrete PR: Django view + template + HTMX wiring, nginx route flipped,
+a discrete PR: Django view + template + HTMX wiring, NPM route flipped,
 Streamlit page left in place but no longer routed to.
 
-The FastAPI public API (`/api/*`) is untouched throughout — it stays as-is.
+The FastAPI public API (`/api/*`) is untouched throughout.
 
 ### Migration order
 
-| Order | Page              | Streamlit file      | Complexity | Notes |
-|-------|-------------------|---------------------|------------|-------|
-| 1     | About             | `6_About.py`        | Low        | Static content, no data |
-| 2     | API Guide         | `7_API.py`          | Low        | Renders `API_GUIDE.md` |
-| 3     | Feedback          | `4_Feedback.py`     | Low        | Form → GitHub API, rate limiting already in Redis |
-| 4     | Bortle Scorer     | `8_Bortle_Scorer.py`| Medium     | Form + map embed + FastAPI call |
-| 5     | Preferences       | `2_Preferences.py`  | Medium     | Sliders → per-user DB row once auth exists |
-| 6     | Location          | `0_Location.py`     | Medium     | Geocode form → store on user model |
-| 7     | Admin             | `3_Admin.py`        | Medium     | Django admin or custom views with HTMX tables |
-| 8     | Visitors          | `5_Visitors.py`     | High       | Plotly map embed, aggregate queries |
-| 9     | Sites             | `1_Sites.py`        | High       | Filterable table, inline add/toggle, per-user lists |
-| 10    | Heatmap           | `9_Heatmap.py`      | High       | pydeck embed, daily cache |
-| 11    | Planner           | `Planner.py`        | Highest    | Core scoring view, site activation, AI summary |
+| Order | Page          | Streamlit file       | Complexity | Notes |
+|-------|---------------|----------------------|------------|-------|
+| 1     | About         | `6_About.py`         | Low        | Static content only |
+| 2     | API Guide     | `7_API.py`           | Low        | Renders `API_GUIDE.md` |
+| 3     | Feedback      | `4_Feedback.py`      | Low        | Form + Redis rate limit |
+| 4     | Bortle Scorer | `8_Bortle_Scorer.py` | Medium     | Form + map + bortle_lookup.py |
+| 5     | Preferences   | `2_Preferences.py`   | Medium     | Sliders → per-user DB row |
+| 6     | Location      | `0_Location.py`      | Medium     | Geocode → store on user model |
+| 7     | Admin         | `3_Admin.py`         | Medium     | HTMX tables, require_role("admin") |
+| 8     | Visitors      | `5_Visitors.py`      | High       | Plotly embed, require_role("admin") |
+| 9     | Sites         | `1_Sites.py`         | High       | Filterable table, per-user site lists |
+| 10    | Heatmap       | `9_Heatmap.py`       | High       | pydeck embed, daily cache |
+| 11    | Planner       | `Planner.py`         | Highest    | Core scoring view, AI summary |
 
 ### Per-page checklist
 
-For each page:
 - [ ] Django view (`views.py`)
 - [ ] URL route (`urls.py`)
 - [ ] Template (`templates/<page>.html`) extending `base.html`
-- [ ] HTMX for any interactive elements (filtering, toggles, form submission)
+- [ ] HTMX for interactive elements
 - [ ] Tests (`tests/test_<page>.py`)
-- [ ] nginx route flipped to Django
+- [ ] NPM path rule added for this page → Django
 - [ ] Smoke-test against production data
 
-### Key Django packages per feature
+### Key packages
 
-| Feature                    | Package                      |
-|----------------------------|------------------------------|
-| OAuth login                | `django-allauth`             |
-| Plotly charts              | embed via `{{ plotly_json\|safe }}` in template |
-| pydeck maps                | embed via script tag         |
-| Reactive UI                | `htmx` + `django-htmx`      |
-| Data tables                | `django-tables2`             |
-| Forms                      | Django forms + crispy-forms  |
-| Rate limiting (feedback)   | existing Redis logic → port to `django-ratelimit` |
-| AI summary                 | call existing `ai_summary.py` directly |
-| Bortle lookup              | call existing `bortle_lookup.py` directly |
-| Scoring / forecast         | call existing `scorer.py`, `forecast.py` directly |
-
-> The scoring, forecast, bortle, and AI modules are plain Python — they
-> import cleanly into Django views with no changes needed.
+| Feature               | Package / approach                                    |
+|-----------------------|-------------------------------------------------------|
+| Reactive UI           | `htmx` + `django-htmx`                               |
+| Data tables           | `django-tables2`                                      |
+| Forms                 | Django forms + `django-crispy-forms`                 |
+| Plotly charts         | `{{ plotly_json\|safe }}` in template                |
+| pydeck maps           | script tag embed                                      |
+| Rate limiting         | `django-ratelimit` (replaces Redis manual logic)     |
+| AI summary            | existing `ai_summary.py` — imports unchanged         |
+| Bortle lookup         | existing `bortle_lookup.py` — imports unchanged      |
+| Scoring / forecast    | existing `scorer.py`, `forecast.py` — unchanged      |
 
 ---
 
@@ -225,100 +310,78 @@ For each page:
 Once all 11 pages are migrated and stable:
 
 - [ ] Remove `app` service from `docker-compose.yml`
-- [ ] Remove `streamlit`, `extra-streamlit-components`, `streamlit-geolocation`
-      from `requirements.txt`
-- [ ] Delete `pages/`, `Planner.py`, `visit_tracker.py` (visitor logic moves
-      to Django middleware)
-- [ ] Remove Streamlit-specific config from `.streamlit/`
-- [ ] Update nginx to drop the Streamlit fallback — all traffic to Django
-- [ ] Update `Dockerfile` (or replace with `Dockerfile.django`)
+- [ ] Remove Streamlit packages from `requirements.txt`
+- [ ] Delete `pages/`, `Planner.py`, `visit_tracker.py`
+- [ ] Delete `.streamlit/`
+- [ ] Remove Streamlit catch-all from NPM — all traffic to Django
+- [ ] If using Cloudflare Access: no changes needed, it stays
+- [ ] If using oauth2-proxy: can retire it now if django-allauth is
+      configured as a direct Google OAuth provider instead
 
 ---
 
-## Keeping Both Sites Running (Strangler Fig Detail)
-
-### How it works
+## Strangler Fig: How Both Sites Stay Live
 
 ```
-Browser → nginx → oauth2-proxy (Phase 0+)
-                       ↓
-              ┌────────┴────────┐
-         migrated?           not yet?
-              ↓                  ↓
-         Django :8080      Streamlit :8501
+Internet
+    ↓
+Cloudflare (DNS + SSL + optional Access auth)
+    ↓
+cloudflared tunnel
+    ↓
+Nginx Proxy Manager
+    ├── /about, /feedback, /api-guide → Django :8080   (migrated)
+    ├── /static/                       → Django :8080
+    ├── /api/                          → FastAPI :8000  (never changes)
+    └── /  (catch-all)                 → Streamlit :8501 (until Phase 3)
 ```
 
-Users see one site at one domain throughout. nginx is the only thing that
-knows two backends exist. A migrated page is indistinguishable from an
-unmigrated one from the user's perspective.
+Users see one domain throughout. NPM is the only component that knows
+two backends exist. Each page migration is a new path rule in NPM — one
+line, instantly reversible.
 
-### nginx routing strategy
+### Session continuity during migration
 
-Use a location block per migrated Django path, with a catch-all to Streamlit:
-
-```nginx
-server {
-    listen 80;
-
-    # Migrated pages (add each when ready)
-    location /about       { proxy_pass http://django:8080; }
-    location /feedback    { proxy_pass http://django:8080; }
-    location /api-guide   { proxy_pass http://django:8080; }
-
-    # Django static files
-    location /static/     { proxy_pass http://django:8080; }
-
-    # FastAPI public API — never changes
-    location /api/        { proxy_pass http://api:8000; }
-
-    # Everything else → Streamlit until migration is complete
-    location / {
-        proxy_pass http://app:8501;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";  # required for Streamlit WebSocket
-    }
-}
-```
-
-### Session continuity
-
-- **Phase 0–1:** oauth2-proxy handles session; both Streamlit and Django
-  receive the same `X-Auth-Email` header
-- **Phase 2:** Django session cookie (`sessionid`) coexists with the
-  oauth2-proxy cookie — same domain, different cookie names, no conflict
-- **Phase 3:** oauth2-proxy cookie retired; Django session is the only auth
+- Phase 0: auth proxy validates identity, injects email header
+- Phase 1–2: Django middleware reads header → creates session cookie
+  (`sessionid`). Coexists with any auth proxy cookie — different names,
+  same domain, no conflict.
+- Phase 3: auth proxy cookie retired (or kept if using Cloudflare Access
+  long-term). Django session is authoritative.
 
 ### Data continuity
 
-- Postgres is shared — Django reads the same `sites`, `scoring_weights`,
-  `app_settings`, `visitors` tables throughout
-- Django migrations add new tables (`auth_user`, `accounts_user`, etc.)
-  without touching existing ones
-- Per-user preference storage (new `user_preferences` table) added in
-  Phase 1 and populated as users log in
+- Postgres is shared throughout — Django and Streamlit read the same tables
+- Django migrations only add new tables; existing tables untouched
+- Per-user preferences (new table) populated as users first log in to Django
 
 ---
 
 ## Risks and Mitigations
 
 | Risk | Mitigation |
-|------|-----------|
-| pydeck embed is complex outside Streamlit | Prototype the heatmap page first as a spike before committing to the migration order |
-| Django migrations conflict with existing schema | Use `managed = False` on models that map to existing tables; only let Django manage its own new tables |
-| Session state lost between Streamlit and Django | Preferences move to DB in Phase 1; nothing meaningful lives only in `st.session_state` by the time pages migrate |
-| Rollback needed | Every nginx route flip is a one-line revert; Streamlit stays running until Phase 3 |
+|------|------------|
+| pydeck embed complex outside Streamlit | Spike the Heatmap page before finalising migration order |
+| Django migrations touch existing tables | `managed = False` on existing table models; Django only migrates its own |
+| Session lost between Streamlit/Django | Preferences in DB by Phase 2; nothing load-bearing stays in `st.session_state` |
+| Rollback needed mid-migration | Each NPM path rule is a one-click revert; Streamlit runs until Phase 3 |
+| Repo cloners without Cloudflare | oauth2-proxy path in Phase 0 + `AUTH_EMAIL_HEADER` env var covers all cases |
 
 ---
 
-## New .env vars summary
+## Full .env additions (all phases)
 
 ```
-# Phase 0
-OAUTH2_COOKIE_SECRET=
+# Phase 0 — Path A (Cloudflare Access)
+AUTH_EMAIL_HEADER=Cf-Access-Authenticated-User-Email
+
+# Phase 0 — Path B (oauth2-proxy, for non-Cloudflare deployments)
+OAUTH2_COOKIE_SECRET=   # openssl rand -base64 32
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+AUTH_EMAIL_HEADER=X-Auth-Request-Email
 
-# Phase 1
-DJANGO_SECRET_KEY=
+# Phase 1 (both paths)
+DJANGO_SECRET_KEY=      # python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+AUTH_BYPASS=false       # set true for local dev (no proxy needed)
 ```
