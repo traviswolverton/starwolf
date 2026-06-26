@@ -24,6 +24,7 @@
     <nav class="nav-links" :class="{ 'is-open': open }">
       <a href="{% url 'about' %}" @click="open = false">About</a>
       <a href="{% url 'api_guide' %}" @click="open = false">API</a>
+      <a href="{% url 'feedback' %}" @click="open = false">Feedback</a>
       {% if user.is_authenticated %}
         <span class="nav-user">👤 {{ user.email }}</span>
       {% endif %}

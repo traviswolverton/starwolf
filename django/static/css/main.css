@@ -289,3 +289,61 @@ ul.messages li {
 }
 .md-content h3 { color: #4caf96; font-size: 1rem; margin-top: 1.5rem; }
 .md-content h4 { color: #b0b8c8; font-size: 0.9rem; margin-top: 1.25rem; }
+
+/* ── Forms ───────────────────────────────────────────────────────────────── */
+.subtitle { color: #a0a8b8; margin-top: -0.5rem; margin-bottom: 1.5rem; }
+
+.feedback-form { max-width: 640px; }
+
+.field { margin-bottom: 1.25rem; }
+.field-label { display: block; font-size: 0.9rem; color: #c0c8d8; margin-bottom: 0.4rem; }
+.field-hint { font-size: 0.82rem; color: #888; margin-bottom: 0.4rem; line-height: 1.5; }
+.optional { color: #666; font-weight: normal; }
+.required-star { color: #f0a500; }
+.required-note { font-size: 0.8rem; color: #666; margin-top: -0.5rem; }
+
+.text-input {
+  width: 100%;
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 6px;
+  color: #e0e0e0;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.text-input:focus { outline: none; border-color: #4caf96; }
+.text-input::placeholder { color: #555; }
+textarea.text-input { resize: vertical; line-height: 1.5; }
+
+.radio-group { display: flex; gap: 1.5rem; }
+.radio-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer; }
+.radio-label input { accent-color: #4caf96; }
+
+.btn-primary {
+  padding: 0.55rem 1.5rem;
+  background: #4caf96;
+  border: none;
+  border-radius: 6px;
+  color: #0e1117;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-primary:hover:not(:disabled) { background: #6dd4b8; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Alerts ──────────────────────────────────────────────────────────────── */
+.alert {
+  padding: 0.85rem 1.1rem;
+  border-radius: 8px;
+  border-left: 4px solid;
+  font-size: 0.9rem;
+}
+.alert.success { background: #1a2e26; border-color: #4caf96; color: #a0d8c8; }
+.alert.error   { background: #2e1a1a; border-color: #e05555; color: #d8a0a0; }
+.alert.warning { background: #2e2a1a; border-color: #f0a500; color: #d8c8a0; }
+.alert a { color: inherit; font-weight: 600; }

@@ -68,6 +68,9 @@ services:
       AUTH_EMAIL_HEADER: ${AUTH_EMAIL_HEADER:-}
       AUTH_BYPASS: ${AUTH_BYPASS:-false}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_REPO: ${GITHUB_REPO:-traviswolverton/starwolf}
+      IP_HASH_SALT: ${IP_HASH_SALT:-}
     depends_on:
       db:
         condition: service_healthy

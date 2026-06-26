@@ -30,6 +30,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "accounts.middleware.ProxyAuthMiddleware",  # reads auth header after session is loaded
@@ -78,6 +79,11 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 week
+
+# ── Feedback / GitHub ─────────────────────────────────────────────────────────
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
+GITHUB_REPO = os.environ.get("GITHUB_REPO", "traviswolverton/starwolf")
+IP_HASH_SALT = os.environ.get("IP_HASH_SALT", "")
 
 # ── Auth header config ────────────────────────────────────────────────────────
 # Set by the upstream auth proxy (Cloudflare Access, oauth2-proxy, etc.)

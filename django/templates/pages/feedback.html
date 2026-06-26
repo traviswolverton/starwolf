@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Feedback — StarWolf{% endblock %}
+
+{% block content %}
+<h1>Submit Feedback</h1>
+<p class="subtitle">Feature ideas, bug reports, or anything else — it goes straight into our issue tracker.</p>
+
+<form
+  method="post"
+  hx-post="{% url 'feedback' %}"
+  hx-target="#result"
+  hx-swap="innerHTML"
+  hx-disabled-elt="button[type=submit]"
+  x-data="{ type: 'feature', title: '', description: '' }"
+  class="feedback-form"
+>
+  {% csrf_token %}
+
+  <div class="field">
+    <label class="field-label">Type</label>
+    <div class="radio-group">
+      <label class="radio-label">
+        <input type="radio" name="type" value="feature" x-model="type" checked>
+        Feature Request
+      </label>
+      <label class="radio-label">
+        <input type="radio" name="type" value="bug" x-model="type">
+        Bug Report
+      </label>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="submitter">Your name <span class="optional">(optional)</span></label>
+    <input
+      id="submitter"
+      type="text"
+      name="submitter"
+      class="text-input"
+      placeholder="e.g. Seth"
+    >
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="title">Short summary <span class="required-star">*</span></label>
+    <input
+      id="title"
+      type="text"
+      name="title"
+      class="text-input"
+      x-model="title"
+      :placeholder="type === 'feature' ? 'Feature Request: ...' : 'Bug: ...'"
+      required
+    >
+  </div>
+
+  <div class="field">
+    <label class="field-label" for="description">Description <span class="required-star">*</span></label>
+    <div x-show="type === 'feature'" class="field-hint">
+      What would you like the app to do? Why is it useful? Which page or section?
+    </div>
+    <div x-show="type === 'bug'" class="field-hint">
+      What happened? What did you expect? Steps to reproduce? Browser / device?
+    </div>
+    <textarea
+      id="description"
+      name="description"
+      class="text-input"
+      x-model="description"
+      rows="8"
+      required
+    ></textarea>
+  </div>
+
+  <p class="required-note">* required</p>
+
+  <button
+    type="submit"
+    class="btn-primary"
+    :disabled="!title.trim() || !description.trim()"
+  >Submit</button>
+</form>
+
+<div id="result" style="margin-top: 1rem;"></div>
+{% endblock %}

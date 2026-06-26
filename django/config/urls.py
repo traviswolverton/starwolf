@@ -18,6 +18,7 @@ urlpatterns = [
     path("", home, name="home"),
     path("about", page_views.about, name="about"),
     path("api-guide", page_views.api_guide, name="api_guide"),
+    path("feedback", page_views.feedback, name="feedback"),
     path("django-health", health),
     path("accounts/login/", account_views.login_view, name="login"),
     path("accounts/logout/", account_views.logout_view, name="logout"),
