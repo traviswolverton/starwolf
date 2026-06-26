@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}API Guide — StarWolf{% endblock %}
+
+{% block content %}
+<h1>Stargazing Forecast API</h1>
+<a class="btn-link" href="/api/docs" target="_blank">🔬 Try it out — Swagger UI →</a>
+
+<hr>
+
+<div x-data="{ tab: 'overview' }" class="tabs-root">
+
+  <div class="tab-bar" role="tablist">
+    <button
+      role="tab"
+      :aria-selected="tab === 'overview'"
+      :class="tab === 'overview' ? 'tab-btn active' : 'tab-btn'"
+      @click="tab = 'overview'"
+    >Overview</button>
+
+    {% for ep in endpoints %}
+    <button
+      role="tab"
+      :aria-selected="tab === '{{ forloop.counter }}'"
+      :class="tab === '{{ forloop.counter }}' ? 'tab-btn active' : 'tab-btn'"
+      @click="tab = '{{ forloop.counter }}'"
+    >{{ ep.tab }}</button>
+    {% endfor %}
+  </div>
+
+  <div class="tab-panel md-content" x-show="tab === 'overview'" x-cloak>
+    {{ overview_html|safe }}
+  </div>
+
+  {% for ep in endpoints %}
+  <div class="tab-panel md-content" x-show="tab === '{{ forloop.counter }}'" x-cloak>
+    {{ ep.html|safe }}
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

@@ -190,3 +190,102 @@ ul.messages li {
   border-left: 4px solid #4caf96;
   margin-bottom: 0.5rem;
 }
+
+/* ── Button link ─────────────────────────────────────────────────────────── */
+.btn-link {
+  display: inline-block;
+  padding: 0.45rem 1rem;
+  background: #1a1d27;
+  border: 1px solid #4caf96;
+  border-radius: 6px;
+  color: #4caf96;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+.btn-link:hover { background: #4caf9622; color: #6dd4b8; }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+[x-cloak] { display: none !important; }
+
+.tabs-root { margin-top: 1.25rem; }
+
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  border-bottom: 2px solid #2a2d3e;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.tab-btn {
+  padding: 0.4rem 0.85rem;
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 6px 6px 0 0;
+  color: #888;
+  font-size: 0.82rem;
+  font-family: monospace;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { color: #c0c8d8; border-color: #4a4d5e; }
+.tab-btn.active {
+  color: #4caf96;
+  border-color: #4caf96;
+  border-bottom-color: #0e1117;
+  background: #0e1117;
+  margin-bottom: -2px;
+}
+
+/* Wider "Overview" button in regular font */
+.tab-btn:first-child { font-family: system-ui, sans-serif; }
+
+.tab-panel { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Markdown content (md-content) ──────────────────────────────────────── */
+.md-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin: 1rem 0;
+}
+.md-content th {
+  background: #1a1d27;
+  color: #c0c8d8;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid #2a2d3e;
+}
+.md-content td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid #2a2d3e;
+  vertical-align: top;
+}
+.md-content tr:last-child td { border-bottom: none; }
+.md-content tr:hover td { background: #1a1d2788; }
+
+.md-content pre {
+  background: #131620;
+  border: 1px solid #2a2d3e;
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+.md-content pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+.md-content blockquote {
+  border-left: 3px solid #4caf96;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  color: #a0a8b8;
+}
+.md-content h3 { color: #4caf96; font-size: 1rem; margin-top: 1.5rem; }
+.md-content h4 { color: #b0b8c8; font-size: 0.9rem; margin-top: 1.25rem; }
