@@ -76,8 +76,6 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   font-size: 0.95rem;
 }
 .nav-links a:hover { color: #4caf96; }
-.nav-user { margin-left: auto; color: #666; font-size: 0.82rem; }
-
 /* Mobile: stack links vertically when .is-open */
 @media (max-width: 640px) {
   .nav-bar { padding: 0.65rem 1rem; }
@@ -98,12 +96,83 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
     padding: 0.65rem 0;
     border-bottom: 1px solid #2a2d3e;
   }
-  .nav-user {
+}
+
+/* ── User dropdown ───────────────────────────────────────────────────────── */
+.user-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.user-trigger {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #888;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.user-trigger:hover { color: #c0c8d8; border-color: #2a2d3e; background: #1a1d27; }
+
+.user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 8px;
+  min-width: 210px;
+  z-index: 200;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.user-dropdown a {
+  display: block;
+  padding: 0.7rem 1rem;
+  color: #c0c8d8;
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #2a2d3e;
+  transition: background 0.1s, color 0.1s;
+}
+.user-dropdown a:last-child { border-bottom: none; }
+.user-dropdown a:hover { background: #2a2d3e; color: #4caf96; }
+
+/* Mobile: user menu spans full width, dropdown flows inline */
+@media (max-width: 640px) {
+  .user-menu {
     margin-left: 0;
-    padding: 0.65rem 0;
-    border-bottom: 1px solid #2a2d3e;
     width: 100%;
   }
+  .user-trigger {
+    width: 100%;
+    text-align: left;
+    padding: 0.65rem 0;
+    border: none;
+    border-bottom: 1px solid #2a2d3e;
+    border-radius: 0;
+    font-size: 0.9rem;
+    color: #c0c8d8;
+  }
+  .user-trigger:hover { background: none; border-color: #2a2d3e; }
+  .user-dropdown {
+    position: static;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    min-width: unset;
+  }
+  .user-dropdown a {
+    padding-left: 1.5rem;
+    color: #888;
+    font-size: 0.875rem;
+  }
+  .user-dropdown a:hover { background: none; color: #4caf96; }
 }
 
 /* ── Main content ────────────────────────────────────────────────────────── */

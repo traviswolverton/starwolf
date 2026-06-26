@@ -26,12 +26,19 @@
       <a href="{% url 'bortle_scorer' %}" @click="open = false">Bortle</a>
       <a href="{% url 'api_guide' %}" @click="open = false">API</a>
       <a href="{% url 'feedback' %}" @click="open = false">Feedback</a>
+
       {% if user.is_authenticated %}
-      <a href="{% url 'location' %}" @click="open = false">📍 {% if prefs.has_location %}{{ prefs.location_display|truncatechars:20 }}{% else %}Set Location{% endif %}</a>
-      <a href="{% url 'preferences' %}" @click="open = false">Preferences</a>
-      {% endif %}
-      {% if user.is_authenticated %}
-        <span class="nav-user">👤 {{ user.email }}</span>
+      <div class="user-menu" x-data="{ userOpen: false }" @click.outside="userOpen = false">
+        <button class="user-trigger" @click="userOpen = !userOpen" :aria-expanded="userOpen.toString()">
+          👤 {{ user.email }} <span x-text="userOpen ? '▴' : '▾'"></span>
+        </button>
+        <div class="user-dropdown" x-show="userOpen" x-cloak>
+          <a href="{% url 'location' %}" @click="userOpen = false; open = false">
+            📍 {% if prefs.has_location %}{{ prefs.location_display|truncatechars:28 }}{% else %}Set Location{% endif %}
+          </a>
+          <a href="{% url 'preferences' %}" @click="userOpen = false; open = false">⚙️ Preferences</a>
+        </div>
+      </div>
       {% endif %}
     </nav>
   </header>
