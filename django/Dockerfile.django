@@ -8,11 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
+COPY django/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-COPY django/requirements-django.txt .
-RUN pip install --no-cache-dir -r requirements-django.txt
 
 # Copy Django project (engine package is inside django/)
 COPY django/ ./django/

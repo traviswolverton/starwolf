@@ -95,3 +95,16 @@ Prepend a new entry with plain-English bullets following the style guide in `pro
 A Stop hook will remind you if you end a turn with changed `.py`/`.html`/`.css`/`.js` files but no update to `release_notes.json`. Treat that reminder as a blocker — update release notes before moving on.
 
 **Date accuracy:** Do NOT use the `currentDate` context variable for release note dates — it is set at session start and can be stale. The server runs UTC but the user is in Houston (CDT, UTC−5). Always run `TZ=America/Chicago date +%Y-%m-%d` to get the correct local date before writing or updating a release entry.
+
+### Commit & Push Cadence
+
+Every completed task ends with a commit and push — no exceptions. The sequence is:
+
+1. Make the change
+2. Update `release_notes.json` if user-facing (see above)
+3. Commit with a short imperative message (≤72 chars)
+4. Ask the user to confirm, then push to `origin main`
+
+A task is not done until it is committed and pushed. Do not pile unrelated changes into one commit.
+
+**Before committing:** confirm release notes are updated if needed. The Stop hook will catch this, but don't rely on it — build the habit.

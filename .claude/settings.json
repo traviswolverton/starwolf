@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "changed=$(git diff --name-only HEAD 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null); user_facing=$(printf \"%s\\n\" \"$changed\" | grep -E \"\\.(py|html|css|js)$\" | grep -vE \"^(tests/|qa/)\"); if [ -n \"$user_facing\" ] && ! printf \"%s\\n\" \"$changed\" | grep -q \"release_notes\\.json\"; then date=$(TZ=America/Chicago date +%Y-%m-%d); jq -n --arg d \"$date\" --arg f \"$(printf \"%s\\n\" \"$user_facing\" | head -10 | sed \"s/^/  /\")\" '{\"systemMessage\": (\"\\u26a0\\ufe0f  Release notes reminder \\u2014 update release_notes.json before committing.\\nToday (Houston): \" + $d + \"\\nChanged:\\n\" + $f)}'; fi"
+            "command": "changed=$(git diff --name-only HEAD 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null); user_facing=$(printf \"%s\\n\" \"$changed\" | grep -E \"\\.(py|html|css|js)$\" | grep -vE \"^(tests/|qa/)\"); if [ -n \"$user_facing\" ] && ! printf \"%s\\n\" \"$changed\" | grep -q \"release_notes\\.json\"; then date=$(TZ=America/Chicago date +%Y-%m-%d); jq -n --arg d \"$date\" --arg f \"$(printf \"%s\\n\" \"$user_facing\" | head -10 | sed \"s/^/  /\")\" '{\"systemMessage\": (\"\\u26a0\\ufe0f  Release notes reminder \\u2014 update release_notes.json before committing.\\nToday (Houston): \" + $d + \"\\nChanged:\\n\" + $f)}'; elif [ -n \"$changed\" ]; then jq -n '{\"systemMessage\": \"\\u26a0\\ufe0f  Uncommitted changes detected \\u2014 commit and push before ending the session.\"}'; fi"
           }
         ]
       }
