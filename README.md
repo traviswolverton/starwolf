@@ -5,7 +5,7 @@ A web app for planning optimal stargazing nights at dark-sky sites across the US
 Live instance: [starwolf.wolvertons.net](https://starwolf.wolvertons.net)
 Source: [github.com/traviswolverton/starwolf](https://github.com/traviswolverton/starwolf)
 
-> **Architecture note:** The app has been migrated from Streamlit to Django + HTMX (Phase 2 complete). Django runs on port 8080 alongside the legacy Streamlit app on port 8501. The Streamlit frontend will be retired in Phase 3 once routing is fully cut over. See [`prompts/django-migration-plan.md`](prompts/django-migration-plan.md) for status.
+> Built with Django + HTMX on a Postgres/Redis backend. Legacy Streamlit infrastructure is preserved in `archive/` for reference.
 
 ---
 
@@ -30,7 +30,7 @@ Source: [github.com/traviswolverton/starwolf](https://github.com/traviswolverton
 - Dual composite scores — telescope and naked eye — with Bortle class modifier
 - Tonight's Forecast Map — color-coded heatmap of all 2,385+ sites scored for tonight
 - 2,385+ site catalog with colored type badges (IDA Certified, National Park, National Forest, State Park, Community, Observatory), country/state columns, and multi-select filters
-- REST API on port 8000 for programmatic access to the same forecast and scoring pipeline
+- REST API for programmatic access to the forecast and scoring pipeline
 
 ---
 
@@ -38,33 +38,29 @@ Source: [github.com/traviswolverton/starwolf](https://github.com/traviswolverton
 
 ```
 stargazing-app/
-├── django/                         # Django + HTMX frontend (port 8080) — primary
-│   ├── config/                     # Django settings, URLs
-│   ├── accounts/                   # User model, RBAC, auth middleware, management commands
+├── django/                         # Django + HTMX app (port 8080)
+│   ├── config/                     # Settings, URLs
+│   ├── accounts/                   # User model, RBAC, auth, management commands
 │   │   └── management/commands/
-│   │       ├── create_local_admin.py       # Create local admin (bypasses Cloudflare)
+│   │       ├── create_local_admin.py       # Create local admin account
 │   │       ├── offboard_user.py            # Deactivate/reactivate users
-│   │       ├── compute_heatmap.py          # Score all sites for tonight (run via cron at noon CDT)
+│   │       ├── compute_heatmap.py          # Score all sites for tonight (cron at noon CDT)
 │   │       ├── populate_site_locations.py  # Reverse-geocode sites → country + state/province
 │   │       └── enrich_notes.py             # Rewrite site notes via Ollama + Wikipedia
 │   ├── pages/                      # All page views
-│   ├── templates/                  # Jinja2-style Django templates
+│   ├── templates/                  # Django templates
 │   └── static/css/main.css         # Single dark-theme stylesheet
-├── Planner.py                      # Streamlit entry point (port 8501) — legacy, being retired
-├── pages/                          # Streamlit pages — legacy
-├── api.py                          # FastAPI REST API (port 8000) — kept as-is
 ├── forecast.py                     # Open-Meteo + 7timer API client (Redis-cached)
 ├── scorer.py                       # Composite night quality scorer
+├── bortle_lookup.py                # World Atlas GeoTIFF Bortle class lookup
 ├── ai_summary.py                   # Ollama AI narrative summary generator
 ├── cache.py                        # Redis wrapper with silent fallback
-├── db.py                           # PostgreSQL schema, seed data, SQLAlchemy engine
-├── bortle_lookup.py                # World Atlas GeoTIFF Bortle class lookup
-├── Dockerfile                      # Streamlit/shared app image
-├── Dockerfile.django               # Django app image
-├── docker-compose.yml              # django + app + api + postgres:16 + redis:7
-└── docs/
-    ├── API_GUIDE.md                # Full REST API documentation
-    └── COMMANDS.md                 # Management command reference
+├── requirements.txt                # Shared Python dependencies
+├── docker-compose.yml              # django + db + redis
+├── docs/
+│   ├── API_GUIDE.md                # REST API documentation
+│   └── COMMANDS.md                 # Management command reference
+└── archive/                        # Legacy Streamlit infrastructure (not tracked in git)
 ```
 
 ### Django Pages
@@ -207,17 +203,7 @@ Key/value pairs for admin-configurable application settings.
 
 ## REST API
 
-The app exposes a scored forecast API on port 8000. See **[docs/COMMANDS.md](docs/COMMANDS.md)** for full management command reference including all flags, progress checks, and the cron setup for the daily heatmap auto-refresh.
-
-See **[docs/API_GUIDE.md](docs/API_GUIDE.md)** for full API documentation including parameters, response schema, curl/Python examples, and caching details.
-
-```bash
-# Quick example
-curl "http://localhost:8000/v1/forecast?lat=30.67&lon=-104.02&days=7&bortle_class=2"
-
-# Interactive docs
-open http://localhost:8000/docs
-```
+See **[docs/COMMANDS.md](docs/COMMANDS.md)** for full management command reference and **[docs/API_GUIDE.md](docs/API_GUIDE.md)** for full API documentation including parameters, response schema, and curl/Python examples.
 
 ---
 
@@ -306,20 +292,6 @@ Each scored night dict:
 }
 ```
 
-### `utils.py`
-
-Shared helpers used across all pages:
-
-| Function | Description |
-|----------|-------------|
-| `init_session_settings()` | Seed all session state keys from DB defaults on first page load |
-| `sync_site_active()` | Sync `site_active` dict with DB; preserves per-session overrides |
-| `render_sidebar()` | Display user location (or "set location" link) at sidebar bottom |
-| `dist_display(km)` | Format a km value as `"43 km"` or `"27 mi"` per session units |
-| `dist_unit()` | Returns `"km"` or `"mi"` |
-| `km_to_display(km)` | Convert km to display-unit float |
-| `display_to_km(val)` | Convert display-unit float back to km |
-
 ---
 
 ## Setup
@@ -336,13 +308,7 @@ git clone https://github.com/traviswolverton/starwolf
 cd starwolf
 ```
 
-Create `.streamlit/secrets.toml` (git-ignored):
-```toml
-admin_password = "your-admin-password"
-github_token   = "your-github-token"   # fine-grained PAT, Issues: Read & Write
-```
-
-Create `.env` (git-ignored) for Django secrets and OAuth credentials:
+Create `.env` (git-ignored) for secrets and OAuth credentials:
 ```env
 POSTGRES_PASSWORD=your-db-password
 DJANGO_SECRET_KEY=your-django-secret-key
@@ -365,10 +331,8 @@ IP_HASH_SALT=random-string     # salts visitor IP hashes
 docker compose up -d
 ```
 
-This starts five containers:
-- **django** — Django + HTMX on port 8080 (primary frontend)
-- **app** — Streamlit on port 8501 (legacy, being retired)
-- **api** — FastAPI / uvicorn on port 8000
+This starts three containers:
+- **django** — Django + HTMX on port 8080
 - **db** — PostgreSQL 16 (data in `postgres_data` Docker volume)
 - **redis** — Redis 7 (data in `redis_data` Docker volume)
 
@@ -386,7 +350,6 @@ This creates an admin user that can log in at `/accounts/login/` with email + pa
 ```bash
 docker compose ps
 curl localhost:8080/django-health    # should return: {"status":"ok"}
-curl localhost:8000/healthz          # should return: {"status":"ok"}
 ```
 
 Opens at `http://localhost:8080`.
@@ -446,9 +409,7 @@ docker compose up -d --build   # rebuilds the app image, leaves db/redis untouch
 | `GITHUB_TOKEN` | `.env` | Fine-grained PAT for the feedback → GitHub Issues integration |
 | `GITHUB_REPO` | `.env` | `owner/repo` for GitHub Issues (e.g. `traviswolverton/starwolf`) |
 | `IP_HASH_SALT` | `.env` | Random string to salt visitor IP hashes |
-| `AUTH_EMAIL_HEADER` | `.env` | Header name for Cloudflare Access auth (default: `Cf-Access-Authenticated-User-Email`) |
 | `AUTH_BYPASS` | `.env` | Set `true` in local dev to skip auth entirely |
-| `ADMIN_PASSWORD` | `.streamlit/secrets.toml` | Legacy Streamlit admin page password |
 
 ### Caching
 
@@ -470,13 +431,3 @@ docker compose exec redis redis-cli keys "*"
 
 Postgres and Redis data live in named Docker volumes and survive container restarts. They are only removed if you explicitly run `docker compose down -v`.
 
-### Migrating from SQLite
-
-If upgrading from a previous SQLite-based install:
-```bash
-# Expose Postgres port temporarily (add ports: ["5432:5432"] to db in docker-compose.yml)
-docker compose up -d
-
-DATABASE_URL=postgresql://stargazing:stargazing@localhost:5432/stargazing \
-    python migrate_sqlite_to_postgres.py
-```

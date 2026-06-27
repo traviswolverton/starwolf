@@ -6,3 +6,4 @@ stargazing.db
 .gitignore
 .streamlit/secrets.toml
 data/
+archive/
