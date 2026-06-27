@@ -29,6 +29,11 @@ def _score_humidity(rh: float) -> float:
     return max(0.0, min(100.0, (100.0 - rh) / 40.0 * 100.0))
 
 
+def _score_night_hours(hours: int) -> float:
+    # Linear 0–100 capped at 9h; 3h≈33, 6h≈67, 9h+=100
+    return min(100.0, (hours / 9.0) * 100.0)
+
+
 def _bortle_naked_eye_modifier(bortle_class: int | None) -> float:
     """
     Returns a multiplier (0.7–1.0) applied to the naked eye composite.
@@ -187,12 +192,14 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
             if avg_vis_km < disqualifiers.get("min_visibility_km", 0):
                 disq_reasons.append(f"Visibility {avg_vis_km:.1f} km < {disqualifiers['min_visibility_km']} km minimum")
 
+        night_hrs = len(idxs)
         factor_scores = {
             "cloud_cover":  _score_cloud_cover(avg_cloud or 0),
             "high_cloud":   _score_high_cloud(avg_hi_cloud or 0),
             "moon":         _score_moon(night_date, site["lat"], site["lon"], tz_str),
             "lifted_index": _score_lifted_index(avg_li if avg_li is not None else 0),
             "humidity":     _score_humidity(avg_rh if avg_rh is not None else 50),
+            "night_hours":  _score_night_hours(night_hrs),
         }
 
         bortle = site.get("bortle_class")
@@ -227,7 +234,9 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
                 "avg_high_cloud":      round(avg_hi_cloud, 1) if avg_hi_cloud is not None else None,
                 "avg_humidity":        round(avg_rh, 1)       if avg_rh is not None else None,
                 "avg_lifted_index":    round(avg_li, 2)       if avg_li is not None else None,
-                "night_hours":         len(idxs),
+                "night_hours":         night_hrs,
+                "dark_start":          times[idxs[0]]  if idxs else None,
+                "dark_end":            times[idxs[-1]] if idxs else None,
                 "seeing_7timer":       avg_st7_seeing,
                 "transparency_7timer": avg_st7_trans,
                 "bortle_class":        bortle,

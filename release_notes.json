@@ -3,6 +3,14 @@
     {
       "date": "2026-06-27",
       "features": [
+        "Planner — Night Hours now factors into both telescope and naked-eye scores (10% weight, proportionally reduced from other factors). 3 hours of dark sky scores ~33; 9+ hours scores 100.",
+        "Planner — Each result card now shows the dark sky window (e.g. '11p – 2a') beneath the date — so you know at a glance when you need to be out.",
+        "Planner — metric explanation tooltips no longer get clipped on mobile; they now expand inline below the tapped cell."
+      ]
+    },
+    {
+      "date": "2026-06-27",
+      "features": [
         "Nav — 'Developers' dropdown now appears in teal with a subtle vertical separator, distinguishing it from primary and secondary nav links.",
         "Nav — 'Developers' button now aligns correctly with other nav items on desktop.",
         "Planner — radius slider on mobile now spans full width with 'Radius' and the distance value on one line above it.",

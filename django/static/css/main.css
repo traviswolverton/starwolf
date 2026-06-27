@@ -21,7 +21,7 @@ code {
 
 hr { border: none; border-top: 1px solid #2a2d3e; margin: 2rem 0; }
 
-h1, h2, h3 { color: #fafafa; margin-top: 1.5rem; }
+h1, h2, h3 { color: #fafafa; margin-top: 0.5rem; }
 h1 { font-size: 1.8rem; font-weight: 700; }
 h2 { font-size: 1.35rem; }
 h3 { font-size: 1.1rem; color: #b0b8c8; }
@@ -383,7 +383,8 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   border: 1px solid #2a2d3e;
   border-radius: 8px;
   margin-bottom: 0.5rem;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 .night-card[open] { border-color: #3a4060; }
 .night-summary {
@@ -409,6 +410,10 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .night-sep   { color: #444; }
 .night-site  { color: #c0c8d8; }
 .night-dist  { font-size: 0.82rem; color: #4caf96; white-space: nowrap; }
+.night-site-row {
+  display: flex; align-items: baseline; gap: 0.5rem;
+  flex-basis: 100%; padding-left: 1.25rem;
+}
 .night-detail {
   padding: 0.85rem;
   border-top: 1px solid #2a2d3e;
@@ -420,9 +425,46 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   gap: 0.6rem;
   margin-bottom: 0.75rem;
 }
-.metric-cell { text-align: center; }
+.metric-cell {
+  text-align: center;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 0.35rem 0.25rem;
+  transition: background 0.15s;
+  position: relative;
+}
+.metric-cell:hover, .metric-cell--active { background: #1e2436; }
 .metric-label { font-size: 0.7rem; color: #555; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem; }
 .metric-value { font-size: 1.2rem; font-weight: 700; }
+.metric-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  text-align: left;
+  font-size: 0.78rem;
+  color: #c0c8d8;
+  background: #1a1d27;
+  border: 1px solid #4caf96;
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  line-height: 1.5;
+  z-index: 100;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .metric-tip {
+    position: static;
+    transform: none;
+    width: auto;
+    bottom: auto;
+    left: auto;
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    pointer-events: auto;
+  }
+}
 .night-map-link { font-size: 0.82rem; color: #4caf96; text-decoration: none; }
 .night-map-link:hover { text-decoration: underline; }
 .load-more { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; }
@@ -676,6 +718,169 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .col-map    { text-align: center; font-size: 1rem; width: 2rem; }
 .col-map a  { text-decoration: none; opacity: 0.7; transition: opacity 0.1s; }
 .col-map a:hover { opacity: 1; }
+
+/* ── Planner calendar date widget ───────────────────────────────────────── */
+.night-cal-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.night-cal {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 6px;
+  overflow: hidden;
+  width: 2.4rem;
+  flex-shrink: 0;
+  vertical-align: middle;
+  line-height: 1;
+}
+.night-dark-window {
+  font-size: 0.6rem;
+  color: #7080a0;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.night-cal-month {
+  background: #4caf96;
+  color: #0a0d14;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  width: 100%;
+  text-align: center;
+  padding: 0.15rem 0;
+}
+.night-cal-day {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e0e8f5;
+  padding: 0.1rem 0 0.15rem;
+}
+
+/* ── Mobile site cards ───────────────────────────────────────────────────── */
+.site-cards { display: none; }
+
+@media (max-width: 640px) {
+  .table-wrap { display: none; }
+  .site-cards { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .site-card {
+    background: #13161f;
+    border: 1px solid #2a2d3e;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+  }
+  .site-card-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+  .site-card-name {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #e0e8f5;
+    text-align: left;
+    cursor: default;
+    flex: 1;
+  }
+  .site-card-name.tappable { cursor: pointer; color: #c0c8d8; }
+  .site-card-name.tappable:hover { color: #4caf96; }
+  .site-card-chevron { font-size: 0.6rem; margin-left: 0.3rem; color: #555; }
+  .site-card-dist { color: #4caf96; font-size: 0.85rem; font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .site-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: #8a9ab5;
+  }
+  .site-card-state { color: #8a9ab5; }
+  .site-card-map { text-decoration: none; opacity: 0.7; font-size: 1rem; margin-left: auto; }
+  .site-card-notes {
+    margin-top: 0.5rem;
+    font-size: 0.82rem;
+    color: #8a9ab5;
+    border-top: 1px solid #2a2d3e;
+    padding-top: 0.5rem;
+    line-height: 1.5;
+  }
+
+  /* Type abbreviation badge */
+  .type-abbr {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    background: none;
+    font-family: inherit;
+  }
+  .type-abbr-tooltip {
+    font-size: 0.75rem;
+    color: #c0c8d8;
+    background: #1a1d27;
+    border: 1px solid #4caf96;
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    white-space: nowrap;
+  }
+
+  /* State/province box */
+  .site-card-state-box {
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: monospace;
+    color: #8a9ab5;
+    background: #1a1d27;
+    border: 1px solid #2a2d3e;
+    border-radius: 4px;
+    padding: 0.1rem 0.35rem;
+    letter-spacing: 0.03em;
+  }
+
+  /* Type legend */
+  .site-type-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+    font-size: 0.72rem;
+    color: #666;
+    margin-bottom: 0.75rem;
+  }
+  .stl-item { display: flex; align-items: center; gap: 0.3rem; }
+  .type-dot-sm {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .type-dot-sm.type-ida_certified   { background: #f0b429; }
+  .type-dot-sm.type-national_park   { background: #4ccea8; }
+  .type-dot-sm.type-national_forest { background: #6bbf85; }
+  .type-dot-sm.type-state_park      { background: #5b9fd6; }
+  .type-dot-sm.type-community       { background: #b07de0; }
+  .type-dot-sm.type-observatory     { background: #4ca8d6; }
+}
 
 .bortle-badge {
   display: inline-flex;

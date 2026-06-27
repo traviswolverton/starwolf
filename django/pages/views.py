@@ -240,6 +240,30 @@ def preferences_reset(request):
 
 _KM_TO_MI = 0.621371
 
+_STATE_ABBR = {
+    # US states
+    "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR",
+    "California": "CA", "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE",
+    "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID",
+    "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS",
+    "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD",
+    "Massachusetts": "MA", "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS",
+    "Missouri": "MO", "Montana": "MT", "Nebraska": "NE", "Nevada": "NV",
+    "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY",
+    "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK",
+    "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC",
+    "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT",
+    "Vermont": "VT", "Virginia": "VA", "Washington": "WA", "West Virginia": "WV",
+    "Wisconsin": "WI", "Wyoming": "WY",
+    # Canadian provinces/territories
+    "Alberta": "AB", "British Columbia": "BC", "Manitoba": "MB",
+    "New Brunswick": "NB", "New Brunswick / Nouveau-Brunswick": "NB",
+    "Newfoundland and Labrador": "NL", "Northwest Territories": "NT",
+    "Nova Scotia": "NS", "Nunavut": "NU", "Ontario": "ON",
+    "Prince Edward Island": "PE", "Québec": "QC", "Quebec": "QC",
+    "Saskatchewan": "SK", "Yukon": "YT",
+}
+
 _SITE_TYPE_LABELS = {
     "ida_certified":  "IDA Certified",
     "state_park":     "State Park",
@@ -307,6 +331,7 @@ def sites(request):
     for row in rows:
         row["type_label"] = _SITE_TYPE_LABELS.get(row["site_type"] or "", row["site_type"] or "—")
         row["bortle_color"] = _BORTLE_COLOR.get(row["bortle_class"] or 5, "#555")
+        row["state_abbr"] = _STATE_ABBR.get(row.get("state_province") or "", row.get("state_province") or "")
         code = (row.get("country") or "").upper()
         row["flag"] = (
             chr(0x1F1E6 + ord(code[0]) - 65) + chr(0x1F1E6 + ord(code[1]) - 65)
@@ -746,16 +771,39 @@ def _enrich_night(night, prefs, site_coords):
         dist_km = km
     bortle = stats.get("bortle_class")
     metrics = [
-        {"label": "Cloud Cover", "value": _fmt_val(stats.get("avg_cloud_cover"), suffix="%"),  "color": _metric_color(_norm(stats.get("avg_cloud_cover"),      0, 100, False))},
-        {"label": "High Cloud",  "value": _fmt_val(stats.get("avg_high_cloud"),  suffix="%"),  "color": _metric_color(_norm(stats.get("avg_high_cloud"),        0, 100, False))},
-        {"label": "Moon Score",  "value": _fmt_val(factors.get("moon")),                       "color": _metric_color(_norm(factors.get("moon"),                0, 100, True))},
-        {"label": "Night Hours", "value": _fmt_val(stats.get("night_hours"), ".0f", "h"),      "color": _metric_color(_norm(stats.get("night_hours"),           4,  12, True))},
-        {"label": "Humidity",    "value": _fmt_val(stats.get("avg_humidity"), suffix="%"),     "color": _metric_color(_norm(stats.get("avg_humidity"),          0, 100, False))},
-        {"label": "Stability",   "value": _fmt_val(factors.get("lifted_index")),               "color": _metric_color(_norm(factors.get("lifted_index"),        0, 100, True))},
-        {"label": "Seeing †",    "value": _fmt_val(stats.get("seeing_7timer"), ".1f"),         "color": _metric_color(_norm(stats.get("seeing_7timer"),         1,   8, False))},
-        {"label": "Transp. †",   "value": _fmt_val(stats.get("transparency_7timer"), ".1f"),  "color": _metric_color(_norm(stats.get("transparency_7timer"),   1,   8, False))},
-        {"label": "Bortle",      "value": f"Class {bortle}" if bortle else "—",               "color": _metric_color(_norm(bortle,                             1,   9, False))},
+        {"label": "Cloud Cover", "value": _fmt_val(stats.get("avg_cloud_cover"), suffix="%"),  "color": _metric_color(_norm(stats.get("avg_cloud_cover"),      0, 100, False)), "tip": "Average low/mid-level cloud cover during astronomical night. Lower is better — clouds are the #1 enemy of stargazing."},
+        {"label": "High Cloud",  "value": _fmt_val(stats.get("avg_high_cloud"),  suffix="%"),  "color": _metric_color(_norm(stats.get("avg_high_cloud"),        0, 100, False)), "tip": "Thin cirrus cloud cover. Less obvious than low clouds but still reduces transparency and scatters light."},
+        {"label": "Moon Score",  "value": _fmt_val(factors.get("moon")),                       "color": _metric_color(_norm(factors.get("moon"),                0, 100, True)),  "tip": "How moon-free the night is. 99 = new moon (ideal). Accounts for moon phase and hours above horizon."},
+        {"label": "Night Hours", "value": _fmt_val(stats.get("night_hours"), ".0f", "h"),      "color": _metric_color(_norm(stats.get("night_hours"),           4,  12, True)),  "tip": "Hours of astronomical darkness (sun more than 18° below horizon). More hours = more time under truly dark skies."},
+        {"label": "Humidity",    "value": _fmt_val(stats.get("avg_humidity"), suffix="%"),     "color": _metric_color(_norm(stats.get("avg_humidity"),          0, 100, False)), "tip": "Relative humidity. High humidity causes dew on optics and increases atmospheric haze, washing out faint objects."},
+        {"label": "Stability",   "value": _fmt_val(factors.get("lifted_index")),               "color": _metric_color(_norm(factors.get("lifted_index"),        0, 100, True)),  "tip": "Atmospheric stability score derived from the lifted index. Higher = calmer air = steadier stars and sharper planetary views."},
+        {"label": "Seeing †",    "value": _fmt_val(stats.get("seeing_7timer"), ".1f"),         "color": _metric_color(_norm(stats.get("seeing_7timer"),         1,   8, False)), "tip": "Atmospheric turbulence from 7timer (1–8, lower is better). Poor seeing makes stars twinkle and blur — critical for planets and double stars."},
+        {"label": "Transp. †",   "value": _fmt_val(stats.get("transparency_7timer"), ".1f"),  "color": _metric_color(_norm(stats.get("transparency_7timer"),   1,   8, False)), "tip": "Atmospheric transparency from 7timer (1–8, lower is better). Affects how dark and clear the sky appears — key for deep-sky objects."},
+        {"label": "Bortle",      "value": f"Class {bortle}" if bortle else "—",               "color": _metric_color(_norm(bortle,                             1,   9, False)), "tip": "Light pollution class (1–9, lower is better). Class 1 = pristine dark sky. Class 9 = inner-city sky. Determined by the World Atlas of Artificial Sky Brightness."},
     ]
+    def _fmt_hour(iso_str):
+        if not iso_str:
+            return None
+        h = datetime.fromisoformat(iso_str).hour
+        if h == 0:
+            return "12a"
+        if h < 12:
+            return f"{h}a"
+        if h == 12:
+            return "12p"
+        return f"{h - 12}p"
+
+    dark_start_str = stats.get("dark_start")
+    dark_end_str   = stats.get("dark_end")
+    dark_window = None
+    if dark_start_str and dark_end_str:
+        end_h = datetime.fromisoformat(dark_end_str).hour + 1  # last slot + 1hr = window end
+        if end_h >= 24:
+            end_label = "12a"
+        else:
+            end_label = _fmt_hour(dark_end_str[:11] + f"{end_h:02d}:00")
+        dark_window = f"{_fmt_hour(dark_start_str)} – {end_label}"
+
     date_obj = datetime.fromisoformat(night["date"])
     composite = night.get("composite") or 0
     naked_eye = night.get("naked_eye")
@@ -765,6 +813,9 @@ def _enrich_night(night, prefs, site_coords):
     return {
         **night,
         "date_str":    date_obj.strftime("%a %-d %b"),
+        "date_day":    date_obj.strftime("%-d"),
+        "date_month":  date_obj.strftime("%b").upper(),
+        "dark_window": dark_window,
         "dist_str":    dist_str,
         "dist_km":     dist_km,
         "metrics":     metrics,
@@ -817,6 +868,9 @@ def _load_planner_sites(prefs, max_dist_km=None):
 
 
 def _run_planner_thread(user_id, sites, forecast_days, tz, disq):
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
     from concurrent.futures import ThreadPoolExecutor, as_completed
     state_key   = f"planner:status:{user_id}"
     results_key = f"planner:nights:{user_id}"
@@ -824,19 +878,23 @@ def _run_planner_thread(user_id, sites, forecast_days, tz, disq):
     cache.set(state_key, {"running": True, "done": 0, "total": total}, 600)
     forecasts = []
     done = 0
-    with ThreadPoolExecutor(max_workers=5) as ex:
-        futures = {ex.submit(fetch_site_forecast, s, forecast_days, tz): s for s in sites}
-        for future in as_completed(futures):
-            try:
-                forecasts.append(future.result())
-            except Exception:
-                pass
-            done += 1
-            if done % 10 == 0 or done == total:
-                cache.set(state_key, {"running": True, "done": done, "total": total}, 600)
-    nights = score_all(forecasts, tz, disq)
-    cache.set(results_key, json.dumps(nights), 7200)
-    cache.set(state_key, {"running": False, "done": done, "total": total}, 120)
+    try:
+        with ThreadPoolExecutor(max_workers=5) as ex:
+            futures = {ex.submit(fetch_site_forecast, s, forecast_days, tz): s for s in sites}
+            for future in as_completed(futures):
+                try:
+                    forecasts.append(future.result())
+                except Exception:
+                    pass
+                done += 1
+                if done % 10 == 0 or done == total:
+                    cache.set(state_key, {"running": True, "done": done, "total": total}, 600)
+        nights = score_all(forecasts, tz, disq)
+        cache.set(results_key, json.dumps(nights), 7200)
+        cache.set(state_key, {"running": False, "done": done, "total": total}, 120)
+    except Exception:
+        logger.error("Planner thread crashed:\n%s", traceback.format_exc())
+        cache.set(state_key, {"running": False, "done": done, "total": total, "error": True}, 120)
 
 
 def _get_planner_max_sites():

@@ -38,17 +38,29 @@
     {% if night.eye_score is not None %}
     <span class="night-score-badge eye" style="background:{{ night.eye_color }};" title="Naked eye score">👁 {{ night.eye_score }}</span>
     {% endif %}
-    <span class="night-date">{{ night.date_str }}</span>
-    <span class="night-sep">·</span>
-    <span class="night-site">{{ night.site }}</span>
-    {% if night.dist_str %}<span class="night-dist">{{ night.dist_str }}</span>{% endif %}
+    <span class="night-cal-wrap">
+      <span class="night-cal" title="{{ night.date_str }}">
+        <span class="night-cal-month">{{ night.date_month }}</span>
+        <span class="night-cal-day">{{ night.date_day }}</span>
+      </span>
+      {% if night.dark_window %}<span class="night-dark-window">{{ night.dark_window }}</span>{% endif %}
+    </span>
+    <span class="night-site-row">
+      <span class="night-site">{{ night.site }}</span>
+      {% if night.dist_str %}<span class="night-dist">{{ night.dist_str }}</span>{% endif %}
+    </span>
   </summary>
   <div class="night-detail">
-    <div class="metrics-grid">
+    <div class="metrics-grid" x-data="{ tip: null }">
       {% for m in night.metrics %}
-      <div class="metric-cell">
+      <div class="metric-cell"
+           @mouseenter="tip = '{{ m.label }}'"
+           @mouseleave="tip = null"
+           @click="tip = tip === '{{ m.label }}' ? null : '{{ m.label }}'"
+           :class="{ 'metric-cell--active': tip === '{{ m.label }}' }">
         <div class="metric-label">{{ m.label }}</div>
         <div class="metric-value" style="color:{{ m.color }};">{{ m.value }}</div>
+        <div class="metric-tip" x-show="tip === '{{ m.label }}'" x-cloak x-transition>{{ m.tip }}</div>
       </div>
       {% endfor %}
     </div>
