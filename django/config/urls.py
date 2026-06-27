@@ -1,8 +1,33 @@
+import json
+from datetime import date, timedelta
+from pathlib import Path
+
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import include, path
 
 from pages import views as page_views
+
+_NOTES_PATH = Path(__file__).resolve().parent.parent.parent / "release_notes.json"
+
+
+def _load_release_notes_since(since_date):
+    """Return list of {date, bullets} merged by date, newest first."""
+    try:
+        data = json.loads(_NOTES_PATH.read_text())
+    except Exception:
+        return []
+    merged = {}
+    for entry in data.get("releases", []):
+        try:
+            entry_date = date.fromisoformat(entry["date"])
+        except (KeyError, ValueError):
+            continue
+        if entry_date >= since_date:
+            bullets = entry.get("features", []) + entry.get("fixes", []) + entry.get("notes", [])
+            if bullets:
+                merged.setdefault(entry["date"], []).extend(bullets)
+    return [{"date": d, "bullets": b} for d, b in sorted(merged.items(), reverse=True)]
 
 
 def health(request):
@@ -10,7 +35,27 @@ def health(request):
 
 
 def home(request):
-    return render(request, "home.html")
+    # Determine what's "new" since last visit
+    session_key = "last_home_visit"
+    today = date.today()
+    last_visit_str = request.session.get(session_key)
+    if last_visit_str:
+        try:
+            since = date.fromisoformat(last_visit_str)
+        except ValueError:
+            since = today - timedelta(days=7)
+    else:
+        since = today - timedelta(days=7)
+
+    new_notes = _load_release_notes_since(since)
+
+    # Store yesterday so today's entries always appear on next same-day visit
+    request.session[session_key] = (today - timedelta(days=1)).isoformat()
+
+    return render(request, "home.html", {
+        "new_notes": new_notes,
+        "has_new_notes": bool(new_notes),
+    })
 
 
 urlpatterns = [

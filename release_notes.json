@@ -3,43 +3,33 @@
     {
       "date": "2026-06-27",
       "features": [
-        "Planner — Night Hours now factors into both telescope and naked-eye scores (10% weight, proportionally reduced from other factors). 3 hours of dark sky scores ~33; 9+ hours scores 100.",
-        "Planner — Each result card now shows the dark sky window (e.g. '11p – 2a') beneath the date — so you know at a glance when you need to be out.",
-        "Planner — metric explanation tooltips no longer get clipped on mobile; they now expand inline below the tapped cell."
-      ]
-    },
-    {
-      "date": "2026-06-27",
-      "features": [
-        "Nav — 'Developers' dropdown now appears in teal with a subtle vertical separator, distinguishing it from primary and secondary nav links.",
-        "Nav — 'Developers' button now aligns correctly with other nav items on desktop.",
-        "Planner — radius slider on mobile now spans full width with 'Radius' and the distance value on one line above it.",
-        "Login — removed autofocus from the email field to fix intermittent keyboard-not-appearing bug on iOS Safari."
-      ]
-    },
-    {
-      "date": "2026-06-27",
-      "features": [
-        "Tonight's Forecast Map now shows a Top 10 Sites Tonight table below the map — ranked by composite score, with Bortle class and location. Top 10 sites are rendered as colored stars on the map (with rank number) instead of dots, and always appear on top of other markers.",
+        "Planner \u2014 Night Hours now factors into both telescope and naked-eye scores (10% weight, proportionally reduced from other factors). 3 hours of dark sky scores ~33; 9+ hours scores 100.",
+        "Planner \u2014 Each result card now shows the dark sky window (e.g. '11p \u2013 2a') beneath the date \u2014 so you know at a glance when you need to be out.",
+        "Planner \u2014 metric explanation tooltips no longer get clipped on mobile; they now expand inline below the tapped cell.",
+        "Nav \u2014 'Developers' dropdown now appears in teal with a subtle vertical separator, distinguishing it from primary and secondary nav links.",
+        "Nav \u2014 'Developers' button now aligns correctly with other nav items on desktop.",
+        "Planner \u2014 radius slider on mobile now spans full width with 'Radius' and the distance value on one line above it.",
+        "Login \u2014 removed autofocus from the email field to fix intermittent keyboard-not-appearing bug on iOS Safari.",
+        "Tonight's Forecast Map now shows a Top 10 Sites Tonight table below the map \u2014 ranked by composite score, with Bortle class and location. Top 10 sites are rendered as colored stars on the map (with rank number) instead of dots, and always appear on top of other markers.",
         "Tonight's Forecast Map now shows a 'Data last gathered' stat bar with site count and timestamp, visible to all users.",
-        "Heatmap auto-refresh — a cron job now recomputes tonight's forecast at noon CDT (17:00 UTC) daily via a new compute_heatmap management command. Admins can still trigger manual recomputes from the page.",
-        "Heatmap admin controls improved — the 'Retry N missing' count was showing incorrect math; fixed. The 'All sites scored' button is now active ('Recompute all') so admins can refresh data mid-day.",
-        "Planner page — Location and Sites setup cards merged into a single card with a two-column layout. The site count updates live as you drag the radius slider (HTMX, 300ms debounce).",
-        "Preferences page redesigned as a compact table — Units as a pill toggle, Timezone as a dropdown with an auto-detected tooltip, Min Score and all Hard Disqualifiers as +/− spinners. Scoring weights removed from this page.",
-        "Scoring weights moved to the Planner page — a collapsed 'How scores are calculated' section at the bottom, referenced by a subtle link just below the results area.",
+        "Heatmap auto-refresh \u2014 a cron job now recomputes tonight's forecast at noon CDT (17:00 UTC) daily via a new compute_heatmap management command. Admins can still trigger manual recomputes from the page.",
+        "Heatmap admin controls improved \u2014 the 'Retry N missing' count was showing incorrect math; fixed. The 'All sites scored' button is now active ('Recompute all') so admins can refresh data mid-day.",
+        "Planner page \u2014 Location and Sites setup cards merged into a single card with a two-column layout. The site count updates live as you drag the radius slider (HTMX, 300ms debounce).",
+        "Preferences page redesigned as a compact table \u2014 Units as a pill toggle, Timezone as a dropdown with an auto-detected tooltip, Min Score and all Hard Disqualifiers as +/\u2212 spinners. Scoring weights removed from this page.",
+        "Scoring weights moved to the Planner page \u2014 a collapsed 'How scores are calculated' section at the bottom, referenced by a subtle link just below the results area.",
         "Feedback page now requires login (IP rate limit retained). API Guide remains public.",
-        "Two-factor authentication (TOTP) fully wired — the 2FA menu link now works end-to-end. Includes: TOTP setup with QR code, reauthentication confirmation, disable flow, recovery code generation and download, and a styled authenticate prompt at login. TOTP challenge only fires for password-based (local admin) logins; OAuth users are unaffected.",
-        "COMMANDS.md added — full reference for all six management commands with flags, examples, progress checks, and the cron setup for the daily heatmap auto-refresh.",
-        "Nav modernized — slimmed to a 50px bar, two-tier visual hierarchy (primary: Planner/Sites/Tonight's Sky Map; secondary/dimmed: Bortle Scorer, About, Developers), active-page teal underline indicator, and an initials avatar replacing the text user button.",
-        "Nav labels updated — 'Bortle' renamed to 'Bortle Scorer'; 'Feedback' moved out of the nav to a persistent footer link; 'API' replaced by a 'Developers' dropdown containing the API Guide.",
-        "Display Name preference — users can set a short name (e.g. 'Travis') that appears in the nav avatar tooltip and pre-fills the feedback form name field.",
+        "Two-factor authentication (TOTP) fully wired \u2014 the 2FA menu link now works end-to-end. Includes: TOTP setup with QR code, reauthentication confirmation, disable flow, recovery code generation and download, and a styled authenticate prompt at login. TOTP challenge only fires for password-based (local admin) logins; OAuth users are unaffected.",
+        "COMMANDS.md added \u2014 full reference for all six management commands with flags, examples, progress checks, and the cron setup for the daily heatmap auto-refresh.",
+        "Nav modernized \u2014 slimmed to a 50px bar, two-tier visual hierarchy (primary: Planner/Sites/Tonight's Sky Map; secondary/dimmed: Bortle Scorer, About, Developers), active-page teal underline indicator, and an initials avatar replacing the text user button.",
+        "Nav labels updated \u2014 'Bortle' renamed to 'Bortle Scorer'; 'Feedback' moved out of the nav to a persistent footer link; 'API' replaced by a 'Developers' dropdown containing the API Guide.",
+        "Display Name preference \u2014 users can set a short name (e.g. 'Travis') that appears in the nav avatar tooltip and pre-fills the feedback form name field.",
         "Homepage step cards and planner setup cards have softer borders and a subtle drop shadow; homepage steps now show a teal left accent at decreasing opacity to signal visual priority.",
-        "Documentation consolidated into docs/ — API_GUIDE.md and COMMANDS.md moved from root into a docs/ folder; all internal references updated.",
-        "Streamlit fully decommissioned — legacy frontend, API service, and all Streamlit-specific Python files removed from the repo and moved to an on-disk archive/. Docker stack is now django + db + redis only."
+        "Documentation consolidated into docs/ \u2014 API_GUIDE.md and COMMANDS.md moved from root into a docs/ folder; all internal references updated.",
+        "Streamlit fully decommissioned \u2014 legacy frontend, API service, and all Streamlit-specific Python files removed from the repo and moved to an on-disk archive/. Docker stack is now django + db + redis only."
       ],
       "fixes": [
-        "MFA index page was rendering unstyled allauth default templates — all MFA and reauthenticate pages now extend base.html with the dark theme.",
-        "TOTP setup URL wrapping — the manual-entry otpauth:// URL on the QR code page now wraps correctly inside a styled code block instead of overflowing the card.",
+        "MFA index page was rendering unstyled allauth default templates \u2014 all MFA and reauthenticate pages now extend base.html with the dark theme.",
+        "TOTP setup URL wrapping \u2014 the manual-entry otpauth:// URL on the QR code page now wraps correctly inside a styled code block instead of overflowing the card.",
         "Recovery Codes page heading capitalization corrected.",
         "Developers nav dropdown trigger now matches primary nav link font size, weight, and color exactly."
       ]
@@ -47,92 +37,74 @@
     {
       "date": "2026-06-26",
       "features": [
-        "Address autocomplete on the Set Location page — as you type, suggested addresses appear powered by OpenStreetMap data; click one to fill in your coordinates automatically.",
-        "Planner distance slider now auto-adjusts after results load — if your furthest result is 347 miles away, the slider max snaps to 350 so the control stays useful.",
+        "Address autocomplete on the Set Location page \u2014 as you type, suggested addresses appear powered by OpenStreetMap data; click one to fill in your coordinates automatically.",
+        "Planner distance slider now auto-adjusts after results load \u2014 if your furthest result is 347 miles away, the slider max snaps to 350 so the control stays useful.",
         "Renamed the catalog page from \"Dark Sky Sites\" to \"Stargazing Sites\".",
-        "Colored type badges on the Stargazing Sites page — IDA Certified, National Park, National Forest, State Park, Community, and Observatory each have a distinct color.",
-        "Collapsible \"Site Types\" legend — click to expand a plain-English description of each site category.",
-        "Site type filter is now a multi-select dropdown — check multiple types to show only those; the old single-select is gone.",
-        "Country filter added to the Stargazing Sites page — filter by one or more countries using a multi-select dropdown with flag icons.",
-        "Country and state/province now appear in the sites table — each row shows a flag and state name once location data is populated.",
-        "Sign-in success banners are now closable with an × and auto-fade after 10 seconds.",
-        "Site descriptions rewritten — each site in the catalog now has a concise, stargazer-focused 1–2 sentence description drawn from Wikipedia and written by a local AI model, replacing the old inconsistent admin text.",
+        "Colored type badges on the Stargazing Sites page \u2014 IDA Certified, National Park, National Forest, State Park, Community, and Observatory each have a distinct color.",
+        "Collapsible \"Site Types\" legend \u2014 click to expand a plain-English description of each site category.",
+        "Site type filter is now a multi-select dropdown \u2014 check multiple types to show only those; the old single-select is gone.",
+        "Country filter added to the Stargazing Sites page \u2014 filter by one or more countries using a multi-select dropdown with flag icons.",
+        "Country and state/province now appear in the sites table \u2014 each row shows a flag and state name once location data is populated.",
+        "Sign-in success banners are now closable with an \u00d7 and auto-fade after 10 seconds.",
+        "Site descriptions rewritten \u2014 each site in the catalog now has a concise, stargazer-focused 1\u20132 sentence description drawn from Wikipedia and written by a local AI model, replacing the old inconsistent admin text.",
         "Night quality heatmap now shows distance to each site and can be sorted alphabetically or by distance from your location.",
-        "Fixed two Alaska sites (Alaska Maritime NWR and Aleutian Islands Wilderness) that had incorrect coordinates placing them in Europe — coordinates, country, and state now correctly show Alaska, US."
+        "Fixed two Alaska sites (Alaska Maritime NWR and Aleutian Islands Wilderness) that had incorrect coordinates placing them in Europe \u2014 coordinates, country, and state now correctly show Alaska, US.",
+        "Social sign-in \u2014 users can now sign in with Google or GitHub (OAuth2) instead of relying solely on Cloudflare Access. A dark-themed login page shows both social buttons plus an email/password fallback for local accounts.",
+        "Two-factor authentication (TOTP) \u2014 users can enroll an authenticator app (Google Authenticator, Authy, etc.) from the user menu \u2192 Two-factor auth. Uses django-allauth MFA module; QR code shown on setup.",
+        "\"Sign in\" button \u2014 navigation bar now shows a Sign in link for unauthenticated visitors and a Sign out option in the user dropdown for signed-in users.",
+        "Guest access to public pages \u2014 heatmap, sites, bortle scorer, and API guide are accessible without signing in. Planner, location, and preferences require a login and redirect to the sign-in page.",
+        "Guest nudge banner \u2014 unauthenticated visitors on the Forecast Map see a subtle banner inviting them to sign in and access the Planner.",
+        "Cloudflare Access retained as a fallback \u2014 if CF passes the auth email header, ProxyAuthMiddleware still auto-logs the user in, so existing access patterns keep working alongside the new social login.",
+        "New Planner page (Django) \u2014 enter a search radius, run a multi-site forecast in the background, and get a ranked list of the best nights at nearby dark-sky sites. Night cards expand to show 9 color-coded metrics (cloud cover, moon score, humidity, night hours, stability, seeing, transparency, Bortle class). A collapsible heatmap shows every site \u00d7 night at a glance, color-coded from red (poor) to green (excellent). Disqualified nights (exceeding cloud, precipitation, or visibility hard limits from Preferences) are listed separately. AI narrative summary shown when Ollama is available.",
+        "Planner results sort by composite telescope score, naked-eye score, date, or location \u2014 HTMX re-fetch with no page reload.",
+        "Planner progress bar \u2014 long-running forecast runs in a background thread and polls for status every 3 seconds; cached results are reloaded on revisit without re-running.",
+        "Planner site cap \u2014 admin-configurable maximum number of sites per forecast run (default 250, set via Admin \u2192 Settings). When the radius contains more sites than the cap allows, the closest sites are scored first; the setup card shows \"250 of N (capped)\" so the user knows what's happening.",
+        "New offboard_user management command \u2014 deactivates a user by email when they are removed from Cloudflare Access, preserving their preferences in case they are re-added later. Re-activation supported with --reactivate flag."
       ],
       "fixes": [
-        "Fixed 95 IDA Certified sites that were incorrectly marked inactive — they now appear in the catalog and planner.",
-        "Removed \"Private\" from the site type filter — no sites use that label."
-      ]
-    },
-    {
-      "date": "2026-06-26",
-      "features": [
-        "Social sign-in — users can now sign in with Google or GitHub (OAuth2) instead of relying solely on Cloudflare Access. A dark-themed login page shows both social buttons plus an email/password fallback for local accounts.",
-        "Two-factor authentication (TOTP) — users can enroll an authenticator app (Google Authenticator, Authy, etc.) from the user menu → Two-factor auth. Uses django-allauth MFA module; QR code shown on setup.",
-        "\"Sign in\" button — navigation bar now shows a Sign in link for unauthenticated visitors and a Sign out option in the user dropdown for signed-in users.",
-        "Guest access to public pages — heatmap, sites, bortle scorer, and API guide are accessible without signing in. Planner, location, and preferences require a login and redirect to the sign-in page.",
-        "Guest nudge banner — unauthenticated visitors on the Forecast Map see a subtle banner inviting them to sign in and access the Planner.",
-        "Cloudflare Access retained as a fallback — if CF passes the auth email header, ProxyAuthMiddleware still auto-logs the user in, so existing access patterns keep working alongside the new social login."
-      ],
-      "fixes": []
-    },
-    {
-      "date": "2026-06-26",
-      "features": [
-        "New Planner page (Django) — enter a search radius, run a multi-site forecast in the background, and get a ranked list of the best nights at nearby dark-sky sites. Night cards expand to show 9 color-coded metrics (cloud cover, moon score, humidity, night hours, stability, seeing, transparency, Bortle class). A collapsible heatmap shows every site × night at a glance, color-coded from red (poor) to green (excellent). Disqualified nights (exceeding cloud, precipitation, or visibility hard limits from Preferences) are listed separately. AI narrative summary shown when Ollama is available.",
-        "Planner results sort by composite telescope score, naked-eye score, date, or location — HTMX re-fetch with no page reload.",
-        "Planner progress bar — long-running forecast runs in a background thread and polls for status every 3 seconds; cached results are reloaded on revisit without re-running.",
-        "Planner site cap — admin-configurable maximum number of sites per forecast run (default 250, set via Admin → Settings). When the radius contains more sites than the cap allows, the closest sites are scored first; the setup card shows \"250 of N (capped)\" so the user knows what's happening.",
-        "New offboard_user management command — deactivates a user by email when they are removed from Cloudflare Access, preserving their preferences in case they are re-added later. Re-activation supported with --reactivate flag."
-      ],
-      "fixes": [
-        "Planner no longer shows a stuck spinner after a container restart — stale \"running\" status keys in Redis are now cleared automatically on startup via AppConfig.ready().",
-        "ProxyAuthMiddleware now checks is_active before granting a session to a proxy-authed user — deactivated users are blocked at the application layer even if their email header is present (defense-in-depth on top of Cloudflare's block)."
-      ]
-    },
-    {
-      "date": "2026-06-26",
-      "notes": [
-        "Django scaffold added alongside Streamlit — runs on port 8080, shares the same Postgres and Redis, manages its own starwolf_user table for future RBAC.",
-        "Custom User model added with guest/user/admin roles; user accounts are auto-created on first authenticated request via the proxy auth header.",
-        "ProxyAuthMiddleware reads AUTH_EMAIL_HEADER (Cloudflare Access or oauth2-proxy) to log users in without a login form; AUTH_BYPASS=true available for local dev.",
-        "Health check endpoint at /django-health returns 200 for NPM upstream monitoring.",
-        "Sidebar now shows the logged-in user's email when behind Cloudflare Access."
-      ],
-      "fixes": [
-        "Heatmap no longer shows \"nan\" for sites that failed to score — SQL NULLs now display as \"n/a\" correctly.",
+        "Fixed 95 IDA Certified sites that were incorrectly marked inactive \u2014 they now appear in the catalog and planner.",
+        "Removed \"Private\" from the site type filter \u2014 no sites use that label.",
+        "Planner no longer shows a stuck spinner after a container restart \u2014 stale \"running\" status keys in Redis are now cleared automatically on startup via AppConfig.ready().",
+        "ProxyAuthMiddleware now checks is_active before granting a session to a proxy-authed user \u2014 deactivated users are blocked at the application layer even if their email header is present (defense-in-depth on top of Cloudflare's block).",
+        "Heatmap no longer shows \"nan\" for sites that failed to score \u2014 SQL NULLs now display as \"n/a\" correctly.",
         "Heatmap concurrent workers reduced from 20 to 5 to avoid Open-Meteo rate limiting, which was causing ~56% of sites to score as NULL.",
         "Heatmap now shows a \"Retry N missing\" button when some sites failed to score, instead of permanently disabling the compute button.",
         "Ollama URL is now validated to be loopback-only before any request is made, closing an SSRF path that could probe internal services.",
         "Feedback form now rate-limited to 3 submissions per IP per 24 hours, preventing GitHub issue spam.",
         "Geolocation lookups now use HTTPS (ipwho.is) instead of plain HTTP (ip-api.com), preventing eavesdropping on visitor IP lookups.",
-        "Visitor analytics page now requires admin login — visitor city, region, and map data are no longer publicly visible.",
+        "Visitor analytics page now requires admin login \u2014 visitor city, region, and map data are no longer publicly visible.",
         "IP hashes used for visit deduplication are now salted, preventing rainbow-table reversal of visitor IPs.",
-        "API rate limits added — forecast endpoint capped at 30 requests/min per IP, Bortle at 60/min, sites export at 10/min; returns HTTP 429 when exceeded.",
-        "Postgres port 5432 is no longer exposed to the host network — database is only reachable by app containers on the internal Docker network.",
+        "API rate limits added \u2014 forecast endpoint capped at 30 requests/min per IP, Bortle at 60/min, sites export at 10/min; returns HTTP 429 when exceeded.",
+        "Postgres port 5432 is no longer exposed to the host network \u2014 database is only reachable by app containers on the internal Docker network.",
         "Database credentials moved from hardcoded values to a .env file (gitignored); docker-compose now requires POSTGRES_PASSWORD to be set explicitly."
+      ],
+      "notes": [
+        "Django scaffold added alongside Streamlit \u2014 runs on port 8080, shares the same Postgres and Redis, manages its own starwolf_user table for future RBAC.",
+        "Custom User model added with guest/user/admin roles; user accounts are auto-created on first authenticated request via the proxy auth header.",
+        "ProxyAuthMiddleware reads AUTH_EMAIL_HEADER (Cloudflare Access or oauth2-proxy) to log users in without a login form; AUTH_BYPASS=true available for local dev.",
+        "Health check endpoint at /django-health returns 200 for NPM upstream monitoring.",
+        "Sidebar now shows the logged-in user's email when behind Cloudflare Access."
       ]
     },
     {
       "date": "2026-06-25",
       "features": [
-        "New Tonight's Forecast Map page — compute tonight's telescope score for all 2,385 sites at once, shown as a color-coded scatter map (green = good, red = poor). Results are cached; only one computation allowed per day.",
-        "Expanded site catalog to 2,385 locations — added 2,235 US state parks, national forests, and national parks across all 44 previously uncovered states, each Bortle-scored via the World Atlas GeoTIFF (Bortle ≤ 5 only).",
-        "New Bortle Scorer page — enter any address or lat/lon to get the Bortle class, SQM sky quality value, plain-language description, and a map of the location.",
-        "Added 28 southeastern US stargazing sites across MS, AL, GA, FL, and LA — state parks, national forests, and national parks with Bortle classes auto-scored from the World Atlas GeoTIFF.",
+        "New Tonight's Forecast Map page \u2014 compute tonight's telescope score for all 2,385 sites at once, shown as a color-coded scatter map (green = good, red = poor). Results are cached; only one computation allowed per day.",
+        "Expanded site catalog to 2,385 locations \u2014 added 2,235 US state parks, national forests, and national parks across all 44 previously uncovered states, each Bortle-scored via the World Atlas GeoTIFF (Bortle \u2264 5 only).",
+        "New Bortle Scorer page \u2014 enter any address or lat/lon to get the Bortle class, SQM sky quality value, plain-language description, and a map of the location.",
+        "Added 28 southeastern US stargazing sites across MS, AL, GA, FL, and LA \u2014 state parks, national forests, and national parks with Bortle classes auto-scored from the World Atlas GeoTIFF.",
         "Renamed site type 'Texas State Park' to the generic 'State Park' to support multi-state catalogs.",
-        "New API endpoint GET /v1/bortle?lat=&lon= returns the Bortle class (1–9) and SQM sky quality reading for any coordinates, using the Falchi et al. 2016 World Atlas.",
+        "New API endpoint GET /v1/bortle?lat=&lon= returns the Bortle class (1\u20139) and SQM sky quality reading for any coordinates, using the Falchi et al. 2016 World Atlas.",
         "New API endpoint GET /v1/sites returns the full site catalog (name, coordinates, Bortle class, type, notes) for external use.",
         "Forecast API now returns HTTP 502 with a clear error message when Open-Meteo is unavailable, instead of silently returning empty results.",
         "Added an API Guide page (sidebar: API) that documents all endpoints, fields, and examples.",
-        "Added a collapsible 'How scores are calculated' section on the results page — shows telescope and naked eye factor weights as visual bars so you can understand why one night scores higher than another.",
-        "7timer seeing and transparency data now powers a new 'seven_timer_tier' field in scored results — rates atmospheric quality as mediocre / good / excellent (65% seeing, 35% transparency blend on an inverted 1–8 scale).",
-        "Added a GitHub icon in the bottom-right corner — always visible, links to the source code.",
+        "Added a collapsible 'How scores are calculated' section on the results page \u2014 shows telescope and naked eye factor weights as visual bars so you can understand why one night scores higher than another.",
+        "7timer seeing and transparency data now powers a new 'seven_timer_tier' field in scored results \u2014 rates atmospheric quality as mediocre / good / excellent (65% seeing, 35% transparency blend on an inverted 1\u20138 scale).",
+        "Added a GitHub icon in the bottom-right corner \u2014 always visible, links to the source code.",
         "The sidebar menu button on mobile now pulses green so it's easier to spot.",
-        "Each site in the catalog now shows its category — IDA Certified, Texas State Park, National Park, National Forest, Observatory, or IDA Dark Sky Community.",
+        "Each site in the catalog now shows its category \u2014 IDA Certified, Texas State Park, National Park, National Forest, Observatory, or IDA Dark Sky Community.",
         "Added 30+ new Texas stargazing sites to the catalog, including Davis Mountains, Enchanted Rock, Big Bend, McDonald Observatory, and IDA Dark Sky Communities like Fredericksburg and Fort Davis.",
-        "Naked eye scoring weights are now configurable in the Admin panel — adjust how much cloud cover, moon phase, and other factors influence the 👁 score, just like you can for the 🔭 score.",
+        "Naked eye scoring weights are now configurable in the Admin panel \u2014 adjust how much cloud cover, moon phase, and other factors influence the \ud83d\udc41 score, just like you can for the \ud83d\udd2d score.",
         "Renamed 'Scoring Weights' to 'Telescope Weights' in the Admin panel to make the distinction clear."
       ],
       "fixes": [
@@ -143,19 +115,19 @@
     {
       "date": "2026-06-24",
       "features": [
-        "Added a naked eye score (👁) to every forecast card alongside the telescope score (🔭), so you can plan trips with or without equipment.",
-        "Sort your results by naked eye score, telescope score, date, or distance from home — whichever matters most for your trip.",
-        "Loaded all 97 IDA-certified dark sky sites into the catalog — tap 'Activate nearby' on the planner to light up everything within your chosen radius.",
+        "Added a naked eye score (\ud83d\udc41) to every forecast card alongside the telescope score (\ud83d\udd2d), so you can plan trips with or without equipment.",
+        "Sort your results by naked eye score, telescope score, date, or distance from home \u2014 whichever matters most for your trip.",
+        "Loaded all 97 IDA-certified dark sky sites into the catalog \u2014 tap 'Activate nearby' on the planner to light up everything within your chosen radius.",
         "Set your location once and the app figures out your timezone automatically, with the option to override it in Preferences.",
         "Setting your location now drops you straight back on the planner so you can run a forecast immediately.",
-        "Added a Bortle class lookup button that reads light pollution data from the World Atlas of Artificial Night Sky Brightness — no manual entry needed when adding a new site.",
+        "Added a Bortle class lookup button that reads light pollution data from the World Atlas of Artificial Night Sky Brightness \u2014 no manual entry needed when adding a new site.",
         "Redesigned the planner page so tips and score explanations are tucked into collapsible sections, keeping your forecast front and center.",
         "Added a Release Notes section to the sidebar so you can always see what's changed.",
         "Added a 'What's New' prompt that appears at the top of the planner after updates and shows only what changed since your last visit.",
-        "Added an AI forecast summary (powered by Ollama running locally) that reads your top-scored nights and tells you in plain language which site and night look best — appears automatically after you run a forecast.",
+        "Added an AI forecast summary (powered by Ollama running locally) that reads your top-scored nights and tells you in plain language which site and night look best \u2014 appears automatically after you run a forecast.",
         "Added a Metric / Imperial quick switch to the sidebar so you can change units without going to Preferences.",
-        "Switched to a dark starry-night theme — deep navy background with green accents throughout.",
-        "Added an on/off toggle in Admin to enable or disable AI features entirely — when disabled, the summary section won't appear even if Ollama is running.",
+        "Switched to a dark starry-night theme \u2014 deep navy background with green accents throughout.",
+        "Added an on/off toggle in Admin to enable or disable AI features entirely \u2014 when disabled, the summary section won't appear even if Ollama is running.",
         "Added an About page with full data source attribution, license summaries, a technical architecture overview, and a forecast disclaimer."
       ],
       "fixes": [

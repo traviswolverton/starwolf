@@ -45,4 +45,20 @@
   </div>
 
 </div>
+
+{% if new_notes %}
+<details class="whats-new" id="whats-new" open>
+  <summary class="whats-new-summary">✨ What's new since your last visit</summary>
+  <div class="whats-new-body">
+    {% for entry in new_notes %}
+    <div class="whats-new-entry">
+      <span class="whats-new-date">{{ entry.date }}</span>
+      <ul class="whats-new-list">
+        {% for bullet in entry.bullets %}<li>{{ bullet }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}
 {% endblock %}

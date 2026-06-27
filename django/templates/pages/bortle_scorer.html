@@ -14,6 +14,13 @@
     <label class="radio-label">
       <input type="radio" x-model="mode" value="coords"> 🌐 Coordinates
     </label>
+    {% if request.prefs and request.prefs.has_location %}
+    <label class="radio-label">
+      <input type="radio" x-model="mode" value="myloc"
+             @change="if ($event.target.value === 'myloc') $nextTick(() => document.getElementById('myloc-form').requestSubmit())">
+      📌 My Location
+    </label>
+    {% endif %}
   </div>
 
   <!-- Address form -->
@@ -67,6 +74,28 @@
       </div>
     </div>
   </form>
+
+  <!-- My Location form -->
+  {% if request.prefs and request.prefs.has_location %}
+  <form
+    id="myloc-form"
+    x-show="mode === 'myloc'"
+    method="post"
+    hx-post="{% url 'bortle_scorer' %}"
+    hx-target="#result"
+    hx-swap="innerHTML"
+    hx-indicator="#spinner"
+    class="bortle-form"
+  >
+    {% csrf_token %}
+    <input type="hidden" name="lat" value="{{ request.prefs.location_lat }}">
+    <input type="hidden" name="lon" value="{{ request.prefs.location_lon }}">
+    <p class="field-hint" style="margin: 0 0 0.5rem;">
+      Using saved location: <strong>{{ request.prefs.location_lat|floatformat:4 }}, {{ request.prefs.location_lon|floatformat:4 }}</strong>
+    </p>
+    <button type="submit" class="btn-primary">Score my location</button>
+  </form>
+  {% endif %}
 
   <div id="spinner" class="htmx-indicator">Looking up…</div>
 
