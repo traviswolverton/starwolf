@@ -1087,6 +1087,23 @@ details[open] summary::before { transform: rotate(90deg); }
   .arch-grid { grid-template-columns: 1fr; }
 }
 
+.email-login-expander {
+  margin-top: 1.25rem;
+  border-top: 1px solid #2a2d3e;
+  padding-top: 1rem;
+}
+.email-login-expander summary {
+  color: #556070;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: center;
+  list-style: none;
+  user-select: none;
+}
+.email-login-expander summary:hover { color: #7080a0; }
+.email-login-expander summary::-webkit-details-marker { display: none; }
+.email-login-expander[open] summary { margin-bottom: 0.9rem; color: #7080a0; }
+
 /* ── Callout / info box ──────────────────────────────────────────────────── */
 .callout {
   padding: 1rem 1.25rem;

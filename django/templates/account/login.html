@@ -31,6 +31,27 @@
     <div class="auth-divider"><span>or</span></div>
     <a href="{% url 'planner' %}" class="guest-continue">Continue as guest →</a>
     <p class="field-hint" style="text-align:center;margin-top:0.4rem;">Houston, TX · default settings · no data saved</p>
+
+    <details class="email-login-expander">
+      <summary>Sign in with email</summary>
+      <p class="field-hint" style="margin-bottom:0.75rem;">New email accounts are disabled — contact the site admin if you need access.</p>
+      <form method="post" action="{% url 'account_login' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+        <div class="field-group">
+          <label class="field-label" for="id_login">Email</label>
+          <input class="field-input" type="email" name="login" id="id_login" autocomplete="email">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="id_password">Password</label>
+          <input class="field-input" type="password" name="password" id="id_password" autocomplete="current-password">
+        </div>
+        {% if form.errors %}
+        <div class="alert error">{{ form.non_field_errors|join:", " }}</div>
+        {% endif %}
+        <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;">Sign in</button>
+      </form>
+    </details>
   </div>
 </div>
 {% endblock %}
