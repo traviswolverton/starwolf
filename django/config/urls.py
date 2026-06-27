@@ -82,10 +82,16 @@ urlpatterns = [
     path("bortle", page_views.bortle_scorer, name="bortle_scorer"),
     path("api-guide", page_views.api_guide, name="api_guide"),
     path("feedback", page_views.feedback, name="feedback"),
+    # Routes with /api/ prefix (direct access)
     path("api/v1/bortle", api_views.bortle, name="api_bortle"),
     path("api/v1/sites", api_views.sites, name="api_sites"),
     path("api/v1/forecast", api_views.forecast, name="api_forecast"),
     path("api/healthz", lambda r: JsonResponse({"status": "ok"}), name="api_health"),
+    # Routes without prefix (proxy strips /api before forwarding)
+    path("v1/bortle", api_views.bortle),
+    path("v1/sites", api_views.sites),
+    path("v1/forecast", api_views.forecast),
+    path("healthz", lambda r: JsonResponse({"status": "ok"})),
     path("django-health", health),
     path("accounts/", include("allauth.urls")),
 ]
