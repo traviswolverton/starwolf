@@ -46,7 +46,7 @@
       {% if night.dark_window %}<span class="night-dark-window">{{ night.dark_window }}</span>{% endif %}
     </span>
     <span class="night-site-row">
-      {% if night.site_id %}<a href="{% url 'site_detail' night.site_id %}" class="night-site-link">{{ night.site }}</a>{% else %}{{ night.site }}{% endif %}
+      {% if night.site_id %}<a href="{% url 'site_detail' night.site_id %}?from=planner" class="night-site-link">{{ night.site }}{% if night.has_detail %}<span class="night-site-detail-dot" title="Full site info available">✦</span>{% endif %}</a>{% else %}{{ night.site }}{% endif %}
       {% if night.dist_str %}<span class="night-dist">{{ night.dist_str }}</span>{% endif %}
     </span>
   </summary>

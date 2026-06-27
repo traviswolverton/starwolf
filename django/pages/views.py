@@ -429,6 +429,11 @@ def sites(request):
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, row)) for row in cur.fetchall()]
 
+    # Which sites have enriched detail pages
+    with connection.cursor() as cur:
+        cur.execute("SELECT site_id FROM site_details")
+        enriched_ids = {r[0] for r in cur.fetchall()}
+
     # ── Distance + display enrichment ─────────────────────────────────────────
     for row in rows:
         row["type_label"] = _SITE_TYPE_LABELS.get(row["site_type"] or "", row["site_type"] or "—")
@@ -443,6 +448,7 @@ def sites(request):
             f"https://www.openstreetmap.org/?mlat={row['lat']}&mlon={row['lon']}"
             f"#map=12/{row['lat']}/{row['lon']}"
         )
+        row["has_detail"] = row["id"] in enriched_ids
         if has_loc:
             km = _haversine(prefs.location_lat, prefs.location_lon, row["lat"], row["lon"])
             row["dist_km"] = km
@@ -571,7 +577,8 @@ def site_detail(request, site_id):
             f"https://www.google.com/maps/search/?api=1&query={site['lat']},{site['lon']}"
         )
 
-    return render(request, "pages/site_detail.html", {"site": site})
+    came_from = request.GET.get("from", "sites")
+    return render(request, "pages/site_detail.html", {"site": site, "came_from": came_from})
 
 
 _CDT = ZoneInfo("America/Chicago")
@@ -917,7 +924,7 @@ def _heatmap_bg(score, threshold):
     return f"hsl({hue}, 55%, 28%)"
 
 
-def _enrich_night(night, prefs, site_coords, site_ids=None):
+def _enrich_night(night, prefs, site_coords, site_ids=None, enriched_site_ids=None):
     stats = night.get("stats", {})
     factors = night.get("factors", {})
     lat, lon = site_coords.get(night["site"], (None, None))
@@ -983,6 +990,7 @@ def _enrich_night(night, prefs, site_coords, site_ids=None):
         "eye_color":   f"hsl({int(eye_norm * 120)}, 70%, 42%)" if eye_norm is not None else "#555",
         "map_url":     map_url,
         "site_id":     site_ids.get(night["site"]) if site_ids else None,
+        "has_detail":  (site_ids.get(night["site"]) in enriched_site_ids) if (site_ids and enriched_site_ids) else False,
     }
 
 
@@ -1259,7 +1267,11 @@ def _render_results(request, nights):
     site_coords = {r[1]: (r[2], r[3]) for r in rows_sites}
     site_ids    = {r[1]: r[0]         for r in rows_sites}
 
-    enriched = [_enrich_night(n, prefs, site_coords, site_ids) for n in scored]
+    with connection.cursor() as cur:
+        cur.execute("SELECT site_id FROM site_details")
+        enriched_site_ids = {r[0] for r in cur.fetchall()}
+
+    enriched = [_enrich_night(n, prefs, site_coords, site_ids, enriched_site_ids) for n in scored]
 
     # Distance lookup for heatmap rows
     is_imperial = prefs and prefs.units == "imperial"

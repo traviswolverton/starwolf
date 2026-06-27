@@ -48,7 +48,7 @@
       {% if row.state_abbr %}<span class="site-card-state-box">{{ row.state_abbr }}</span>{% endif %}
       <span class="bortle-badge" style="background:{{ row.bortle_color }};">{{ row.bortle_class }}</span>
       <a href="{{ row.map_url }}" target="_blank" rel="noopener" class="site-card-map">🗺️</a>
-      <a href="{% url 'site_detail' row.id %}" class="site-card-info" title="Site info">ℹ️</a>
+      <a href="{% url 'site_detail' row.id %}?from=sites" class="site-card-info {% if row.has_detail %}site-card-info--enriched{% endif %}" title="{% if row.has_detail %}Site info + photos{% else %}Site info{% endif %}">ℹ️</a>
     </div>
     {% if row.notes %}
     <div class="site-card-notes" x-show="open" x-cloak>{{ row.notes }}</div>
@@ -89,7 +89,7 @@
         <td class="col-notes">{{ row.notes|default:"" }}</td>
         <td class="col-map">
           <a href="{{ row.map_url }}" target="_blank" rel="noopener" title="Open in maps">🗺️</a>
-          <a href="{% url 'site_detail' row.id %}" title="Site info">ℹ️</a>
+          <a href="{% url 'site_detail' row.id %}?from=sites" class="{% if row.has_detail %}site-card-info--enriched{% endif %}" title="{% if row.has_detail %}Site info + photos{% else %}Site info{% endif %}">ℹ️</a>
         </td>
       </tr>
       {% endfor %}

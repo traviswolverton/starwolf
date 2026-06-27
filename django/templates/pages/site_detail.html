@@ -69,5 +69,11 @@
 
 </div>
 
-<p style="margin-top:1.5rem;"><a href="{% url 'sites' %}" class="back-link">← All sites</a></p>
+<p style="margin-top:1.5rem;">
+  {% if came_from == "planner" %}
+  <a href="{% url 'planner' %}" class="back-link">← Back to Planner</a>
+  {% else %}
+  <a href="{% url 'sites' %}" class="back-link">← All sites</a>
+  {% endif %}
+</p>
 {% endblock %}

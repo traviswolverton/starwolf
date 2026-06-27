@@ -1675,7 +1675,7 @@ select.text-input { cursor: pointer; }
 .site-hero-title h1 { margin: 0; font-size: 1.5rem; color: #e8eaf0; }
 .site-hero-credit { margin: 0.2rem 0 0; font-size: 0.68rem; color: #6070a0; }
 
-.site-detail-wrap { max-width: 640px; }
+.site-detail-wrap { max-width: 900px; }
 
 .site-stat-row {
   display: flex; flex-wrap: wrap; gap: 0.6rem;
@@ -1719,8 +1719,10 @@ select.text-input { cursor: pointer; }
 .back-link:hover { color: #7080a0; }
 
 /* Info link in sites list and planner */
-.site-card-info { font-size: 0.9rem; text-decoration: none; opacity: 0.7; }
+.site-card-info { font-size: 0.9rem; text-decoration: none; opacity: 0.5; }
 .site-card-info:hover { opacity: 1; }
+.site-card-info--enriched { opacity: 0.9; }
+.night-site-detail-dot { font-size: 0.55rem; color: #4caf96; margin-left: 0.2rem; vertical-align: super; }
 .night-site-link {
   color: #c0c8d8; text-decoration: none;
   border-bottom: 1px dashed #3a4060;
