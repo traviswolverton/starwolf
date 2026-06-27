@@ -518,6 +518,62 @@ def sites(request):
     return render(request, "pages/sites.html", ctx)
 
 
+@login_required
+@require_http_methods(["GET"])
+def site_detail(request, site_id):
+    prefs = request.prefs
+    is_imperial = prefs and prefs.units == "imperial"
+
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT s.id, s.name, s.lat, s.lon, s.bortle_class, s.elevation_m, "
+            "       s.notes, s.site_type, s.country, s.state_province, "
+            "       sd.wikipedia_url, sd.wikipedia_summary, sd.image_url, "
+            "       sd.image_credit, sd.narrative, sd.maps_url, sd.enriched_at "
+            "FROM sites s "
+            "LEFT JOIN site_details sd ON sd.site_id = s.id "
+            "WHERE s.id = %s AND s.active = 1",
+            [site_id],
+        )
+        row = cur.fetchone()
+
+    if not row:
+        from django.http import Http404
+        raise Http404
+
+    cols = ["id", "name", "lat", "lon", "bortle_class", "elevation_m",
+            "notes", "site_type", "country", "state_province",
+            "wikipedia_url", "wikipedia_summary", "image_url",
+            "image_credit", "narrative", "maps_url", "enriched_at"]
+    site = dict(zip(cols, row))
+
+    site["type_label"] = _SITE_TYPE_LABELS.get(site["site_type"] or "", site["site_type"] or "—")
+    site["bortle_color"] = _BORTLE_COLOR.get(site["bortle_class"] or 5, "#555")
+
+    elev = site["elevation_m"]
+    if elev is not None:
+        if is_imperial:
+            site["elevation_display"] = f"{elev * 3.28084:.0f} ft"
+        else:
+            site["elevation_display"] = f"{elev:.0f} m"
+    else:
+        site["elevation_display"] = None
+
+    if prefs and prefs.has_location:
+        km = _haversine(prefs.location_lat, prefs.location_lon, site["lat"], site["lon"])
+        site["dist_display"] = f"{km * _KM_TO_MI:.0f} mi" if is_imperial else f"{km:.0f} km"
+    else:
+        site["dist_display"] = None
+
+    # OSM map link as fallback if enrichment hasn't run yet
+    if not site["maps_url"]:
+        site["maps_url"] = (
+            f"https://www.google.com/maps/search/?api=1&query={site['lat']},{site['lon']}"
+        )
+
+    return render(request, "pages/site_detail.html", {"site": site})
+
+
 _CDT = ZoneInfo("America/Chicago")
 _COMPUTE_WORKERS = 5
 _COMPUTE_STATE_KEY = "heatmap:compute_state"
@@ -861,7 +917,7 @@ def _heatmap_bg(score, threshold):
     return f"hsl({hue}, 55%, 28%)"
 
 
-def _enrich_night(night, prefs, site_coords):
+def _enrich_night(night, prefs, site_coords, site_ids=None):
     stats = night.get("stats", {})
     factors = night.get("factors", {})
     lat, lon = site_coords.get(night["site"], (None, None))
@@ -926,6 +982,7 @@ def _enrich_night(night, prefs, site_coords):
         "tel_color":   f"hsl({int(tel_norm * 120)}, 70%, 42%)",
         "eye_color":   f"hsl({int(eye_norm * 120)}, 70%, 42%)" if eye_norm is not None else "#555",
         "map_url":     map_url,
+        "site_id":     site_ids.get(night["site"]) if site_ids else None,
     }
 
 
@@ -1197,10 +1254,12 @@ def _render_results(request, nights):
 
     # Enrich
     with connection.cursor() as cur:
-        cur.execute("SELECT name, lat, lon FROM sites WHERE active=1")
-        site_coords = {r[0]: (r[1], r[2]) for r in cur.fetchall()}
+        cur.execute("SELECT id, name, lat, lon FROM sites WHERE active=1")
+        rows_sites = cur.fetchall()
+    site_coords = {r[1]: (r[2], r[3]) for r in rows_sites}
+    site_ids    = {r[1]: r[0]         for r in rows_sites}
 
-    enriched = [_enrich_night(n, prefs, site_coords) for n in scored]
+    enriched = [_enrich_night(n, prefs, site_coords, site_ids) for n in scored]
 
     # Distance lookup for heatmap rows
     is_imperial = prefs and prefs.units == "imperial"

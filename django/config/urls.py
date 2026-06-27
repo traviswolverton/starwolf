@@ -63,6 +63,7 @@ urlpatterns = [
     path("about", page_views.about, name="about"),
     path("moon", page_views.moon_phase_page, name="moon_phase"),
     path("sites", page_views.sites, name="sites"),
+    path("sites/<int:site_id>", page_views.site_detail, name="site_detail"),
     path("location", page_views.location, name="location"),
     path("preferences", page_views.preferences, name="preferences"),
     path("preferences/reset", page_views.preferences_reset, name="preferences_reset"),

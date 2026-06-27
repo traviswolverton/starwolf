@@ -10,6 +10,54 @@
 </p>
 
 {% if rows %}
+<!-- Mobile cards -->
+<div class="site-cards">
+  <div class="site-type-legend">
+    <span class="stl-item"><span class="type-dot-sm type-ida_certified"></span>IDA = IDA Certified</span>
+    <span class="stl-item"><span class="type-dot-sm type-national_park"></span>NP = National Park</span>
+    <span class="stl-item"><span class="type-dot-sm type-national_forest"></span>NF = National Forest</span>
+    <span class="stl-item"><span class="type-dot-sm type-state_park"></span>SP = State Park</span>
+    <span class="stl-item"><span class="type-dot-sm type-community"></span>COM = Community</span>
+    <span class="stl-item"><span class="type-dot-sm type-observatory"></span>OBS = Observatory</span>
+  </div>
+  {% for row in rows %}
+  <div class="site-card" x-data="{ open: false, typeOpen: false, _tt: null }">
+    <div class="site-card-top">
+      {% if row.notes %}
+      <button class="site-card-name tappable" @click="open = !open">
+        {{ row.name }}<span class="site-card-chevron" x-text="open ? '▴' : '▾'"></span>
+      </button>
+      {% else %}
+      <span class="site-card-name">{{ row.name }}</span>
+      {% endif %}
+      {% if has_loc %}<span class="site-card-dist">{{ row.dist_display }}</span>{% endif %}
+    </div>
+    <div class="site-card-meta">
+      <button class="type-abbr type-{{ row.site_type }}"
+              @click.stop="clearTimeout(_tt); typeOpen = true; _tt = setTimeout(() => typeOpen = false, 3000)">
+        {% if row.site_type == 'ida_certified' %}ID
+        {% elif row.site_type == 'national_park' %}NP
+        {% elif row.site_type == 'national_forest' %}NF
+        {% elif row.site_type == 'state_park' %}SP
+        {% elif row.site_type == 'community' %}CM
+        {% elif row.site_type == 'observatory' %}OB
+        {% else %}{{ row.type_label|slice:":2" }}{% endif %}
+      </button>
+      <span class="type-abbr-tooltip" x-show="typeOpen" x-cloak x-transition>{{ row.type_label }}</span>
+      {% if row.flag %}<span>{{ row.flag }}</span>{% endif %}
+      {% if row.state_abbr %}<span class="site-card-state-box">{{ row.state_abbr }}</span>{% endif %}
+      <span class="bortle-badge" style="background:{{ row.bortle_color }};">{{ row.bortle_class }}</span>
+      <a href="{{ row.map_url }}" target="_blank" rel="noopener" class="site-card-map">🗺️</a>
+      <a href="{% url 'site_detail' row.id %}" class="site-card-info" title="Site info">ℹ️</a>
+    </div>
+    {% if row.notes %}
+    <div class="site-card-notes" x-show="open" x-cloak>{{ row.notes }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Desktop table -->
 <div class="table-wrap">
   <table class="sites-table">
     <thead>
@@ -39,7 +87,10 @@
           <span class="bortle-badge" style="background:{{ row.bortle_color }};">{{ row.bortle_class }}</span>
         </td>
         <td class="col-notes">{{ row.notes|default:"" }}</td>
-        <td class="col-map"><a href="{{ row.map_url }}" target="_blank" rel="noopener" title="Open in OSM">🗺️</a></td>
+        <td class="col-map">
+          <a href="{{ row.map_url }}" target="_blank" rel="noopener" title="Open in maps">🗺️</a>
+          <a href="{% url 'site_detail' row.id %}" title="Site info">ℹ️</a>
+        </td>
       </tr>
       {% endfor %}
     </tbody>

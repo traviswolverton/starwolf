@@ -46,7 +46,7 @@
       {% if night.dark_window %}<span class="night-dark-window">{{ night.dark_window }}</span>{% endif %}
     </span>
     <span class="night-site-row">
-      <span class="night-site">{{ night.site }}</span>
+      {% if night.site_id %}<a href="{% url 'site_detail' night.site_id %}" class="night-site-link">{{ night.site }}</a>{% else %}{{ night.site }}{% endif %}
       {% if night.dist_str %}<span class="night-dist">{{ night.dist_str }}</span>{% endif %}
     </span>
   </summary>

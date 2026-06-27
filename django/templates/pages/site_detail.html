@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ site.name }} — StarWolf{% endblock %}
+
+{% block content %}
+{% if site.image_url %}
+<div class="site-hero" style="background-image: url('{{ site.image_url }}');">
+  <div class="site-hero-overlay"></div>
+  <div class="site-hero-title">
+    <h1>{{ site.name }}</h1>
+    {% if site.image_credit %}<p class="site-hero-credit">{{ site.image_credit }}</p>{% endif %}
+  </div>
+</div>
+{% else %}
+<h1>{{ site.name }}</h1>
+{% endif %}
+
+<div class="site-detail-wrap">
+
+  <!-- Stat pills row -->
+  <div class="site-stat-row">
+    <span class="site-stat">
+      <span class="site-stat-label">Bortle</span>
+      <span class="bortle-badge" style="background:{{ site.bortle_color }};">{{ site.bortle_class }}</span>
+    </span>
+    {% if site.elevation_display %}
+    <span class="site-stat">
+      <span class="site-stat-label">Elevation</span>
+      <span class="site-stat-val">{{ site.elevation_display }}</span>
+    </span>
+    {% endif %}
+    {% if site.dist_display %}
+    <span class="site-stat">
+      <span class="site-stat-label">Distance</span>
+      <span class="site-stat-val">{{ site.dist_display }}</span>
+    </span>
+    {% endif %}
+    <span class="site-stat">
+      <span class="site-stat-label">Type</span>
+      <span class="site-stat-val">{{ site.type_label }}</span>
+    </span>
+  </div>
+
+  <!-- Narrative -->
+  {% if site.narrative %}
+  <div class="site-narrative">{{ site.narrative }}</div>
+  {% elif site.notes %}
+  <div class="site-narrative">{{ site.notes }}</div>
+  {% endif %}
+
+  <!-- Wikipedia summary -->
+  {% if site.wikipedia_summary %}
+  <div class="site-section">
+    <h2 class="site-section-title">About</h2>
+    <p class="site-wiki-summary">{{ site.wikipedia_summary }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Links -->
+  <div class="site-links">
+    <a href="{{ site.maps_url }}" target="_blank" rel="noopener" class="site-link-btn">🗺️ Google Maps</a>
+    {% if site.wikipedia_url %}
+    <a href="{{ site.wikipedia_url }}" target="_blank" rel="noopener" class="site-link-btn">📖 Wikipedia</a>
+    {% endif %}
+    <a href="{% url 'planner' %}" class="site-link-btn site-link-btn--secondary">🔭 Plan a visit →</a>
+  </div>
+
+  <!-- Coords -->
+  <p class="site-coords">{{ site.lat|floatformat:4 }}°, {{ site.lon|floatformat:4 }}°</p>
+
+</div>
+
+<p style="margin-top:1.5rem;"><a href="{% url 'sites' %}" class="back-link">← All sites</a></p>
+{% endblock %}

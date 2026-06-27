@@ -1652,3 +1652,77 @@ select.text-input { cursor: pointer; }
   border: 1px solid #2a2d3e;
   overflow: hidden;
 }
+
+/* ── Site detail page ────────────────────────────────────────────────────── */
+.site-hero {
+  width: 100%;
+  height: 220px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  position: relative;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+.site-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(10,12,20,0.85) 0%, rgba(10,12,20,0.2) 60%, transparent 100%);
+}
+.site-hero-title {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 1rem 1.25rem 0.75rem;
+}
+.site-hero-title h1 { margin: 0; font-size: 1.5rem; color: #e8eaf0; }
+.site-hero-credit { margin: 0.2rem 0 0; font-size: 0.68rem; color: #6070a0; }
+
+.site-detail-wrap { max-width: 640px; }
+
+.site-stat-row {
+  display: flex; flex-wrap: wrap; gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+.site-stat {
+  display: flex; align-items: center; gap: 0.35rem;
+  background: #12141f; border: 1px solid #2a2d3e;
+  border-radius: 6px; padding: 0.3rem 0.65rem;
+  font-size: 0.82rem;
+}
+.site-stat-label { color: #556070; }
+.site-stat-val   { color: #c0c8d8; font-weight: 600; }
+
+.site-narrative {
+  font-size: 0.95rem; line-height: 1.65;
+  color: #a0aab8; margin-bottom: 1.25rem;
+}
+
+.site-section { margin-bottom: 1.25rem; }
+.site-section-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: #556070; margin: 0 0 0.5rem; }
+.site-wiki-summary { font-size: 0.88rem; color: #7080a0; line-height: 1.6; margin: 0; }
+
+.site-links {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.site-link-btn {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.4rem 0.9rem; border-radius: 6px;
+  font-size: 0.85rem; text-decoration: none; font-weight: 600;
+  background: #1a1d27; border: 1px solid #3a4060; color: #c0c8d8;
+  transition: border-color 0.15s, color 0.15s;
+}
+.site-link-btn:hover { border-color: #4caf96; color: #4caf96; }
+.site-link-btn--secondary { color: #4caf96; border-color: #4caf9650; }
+.site-link-btn--secondary:hover { border-color: #4caf96; }
+
+.site-coords { font-size: 0.75rem; color: #445060; margin: 0; }
+.back-link { font-size: 0.85rem; color: #556070; text-decoration: none; }
+.back-link:hover { color: #7080a0; }
+
+/* Info link in sites list and planner */
+.site-card-info { font-size: 0.9rem; text-decoration: none; opacity: 0.7; }
+.site-card-info:hover { opacity: 1; }
+.night-site-link {
+  color: #c0c8d8; text-decoration: none;
+  border-bottom: 1px dashed #3a4060;
+}
+.night-site-link:hover { color: #4caf96; border-bottom-color: #4caf96; }

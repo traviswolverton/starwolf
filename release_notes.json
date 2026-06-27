@@ -3,6 +3,7 @@
     {
       "date": "2026-06-27",
       "features": [
+        "Site Detail pages — each dark-sky site now has a full info page with a hero image (from Wikimedia Commons), a narrative written by Ollama, Wikipedia summary, elevation, distance from your location, and links to Google Maps and Wikipedia. Accessible via the ℹ️ button on the Sites page and by tapping a site name in Planner results.",
         "Moon Phases page — tap the moon emoji in the nav to open a full phase guide. Phases are ordered starting from tonight's, with the current one highlighted. Includes stargazing impact notes and links to Wikipedia and NASA.",
         "Nav — moon phase emoji now appears in the top bar on every page. Tap it to open the Moon Phases guide.",
         "Guest access to Planner \u2014 a 'Continue as guest' option on the login page opens the planner pre-loaded with Houston, TX and default settings. A banner nudges guests to sign in to use their own location.",
