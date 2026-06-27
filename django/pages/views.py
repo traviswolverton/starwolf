@@ -1190,7 +1190,7 @@ def admin_bortle_fill(request):
 
 
 def api_guide(request):
-    guide_path = Path(settings.BASE_DIR).parent / "API_GUIDE.md"
+    guide_path = Path(settings.BASE_DIR).parent / "docs" / "API_GUIDE.md"
     raw = guide_path.read_text()
 
     parts = re.split(r"\n(?=### )", raw)

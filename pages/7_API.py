@@ -12,9 +12,9 @@ st.title("Stargazing Forecast API")
 st.link_button("🔬 Try it out — Swagger UI →", "/api/docs")
 st.divider()
 
-# Split API_GUIDE.md into tabs: each ### section → one tab, rest → Overview.
-# Adding a new endpoint only requires a new ### section in API_GUIDE.md.
-_md = pathlib.Path("API_GUIDE.md").read_text()
+# Split docs/API_GUIDE.md into tabs: each ### section → one tab, rest → Overview.
+# Adding a new endpoint only requires a new ### section in docs/API_GUIDE.md.
+_md = pathlib.Path("docs/API_GUIDE.md").read_text()
 _parts = re.split(r"\n(?=### )", _md)
 
 _overview, _endpoints = [], {}

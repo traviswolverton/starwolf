@@ -62,7 +62,9 @@ stargazing-app/
 ├── Dockerfile                      # Streamlit/shared app image
 ├── Dockerfile.django               # Django app image
 ├── docker-compose.yml              # django + app + api + postgres:16 + redis:7
-└── API_GUIDE.md                    # Full REST API documentation
+└── docs/
+    ├── API_GUIDE.md                # Full REST API documentation
+    └── COMMANDS.md                 # Management command reference
 ```
 
 ### Django Pages
@@ -76,7 +78,7 @@ stargazing-app/
 | **Location** | `/location` | Geocode a home base; drives distance display and proximity filter |
 | **Preferences** | `/preferences` | Per-user timezone, thresholds, units — stored in DB, not session |
 | **Admin** | `/admin-panel` | Scoring weights, app settings, Bortle fill (requires admin role) |
-| **API** | `/api-guide` | Rendered API_GUIDE.md with live endpoint tabs |
+| **API** | `/api-guide` | Rendered docs/API_GUIDE.md with live endpoint tabs |
 | **Feedback** | `/feedback` | Submit bug reports / feature requests → GitHub issues |
 
 ### User Preferences
@@ -205,9 +207,9 @@ Key/value pairs for admin-configurable application settings.
 
 ## REST API
 
-The app exposes a scored forecast API on port 8000. See **[COMMANDS.md](COMMANDS.md)** for full management command reference including all flags, progress checks, and the cron setup for the daily heatmap auto-refresh.
+The app exposes a scored forecast API on port 8000. See **[docs/COMMANDS.md](docs/COMMANDS.md)** for full management command reference including all flags, progress checks, and the cron setup for the daily heatmap auto-refresh.
 
-See **[API_GUIDE.md](API_GUIDE.md)** for full API documentation including parameters, response schema, curl/Python examples, and caching details.
+See **[docs/API_GUIDE.md](docs/API_GUIDE.md)** for full API documentation including parameters, response schema, curl/Python examples, and caching details.
 
 ```bash
 # Quick example

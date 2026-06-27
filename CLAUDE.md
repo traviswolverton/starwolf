@@ -78,13 +78,12 @@ If you catch yourself reading something "just to be safe," stop. Read it when th
 ## Stargazing App Context
 
 ### API Documentation
-After completing any turn where you touched `api.py`, `forecast.py`, or `scorer.py` in a way that changes the shape of API requests or responses (new fields, removed fields, changed error behavior, new parameters), immediately update both `API_GUIDE.md` and the inline docstring in `api.py`. Changes that only affect internal logic with no effect on the request/response contract can be omitted.
+After completing any turn where you touched `api.py`, `forecast.py`, or `scorer.py` in a way that changes the shape of API requests or responses (new fields, removed fields, changed error behavior, new parameters), immediately update both `docs/API_GUIDE.md` and the inline docstring in `api.py`. Changes that only affect internal logic with no effect on the request/response contract can be omitted.
 
-**Adding a new endpoint:** `pages/7_API.py` parses `API_GUIDE.md` by `###` headings — each `### GET /v1/your-endpoint` section automatically becomes a new tab with no code changes required. Steps:
+**Adding a new endpoint:** The Django `api_guide` view reads `docs/API_GUIDE.md` by `###` headings — each `### GET /v1/your-endpoint` section automatically becomes a new tab with no code changes required. Steps:
 1. Add the endpoint to `api.py`
-2. Add a `### GET /v1/your-endpoint` section to `API_GUIDE.md` (parameters, response example, field notes, error responses)
-3. Add a curl + Python example to the `## Examples` section of `API_GUIDE.md`
-Do not touch `pages/7_API.py` unless the page structure itself needs to change.
+2. Add a `### GET /v1/your-endpoint` section to `docs/API_GUIDE.md` (parameters, response example, field notes, error responses)
+3. Add a curl + Python example to the `## Examples` section of `docs/API_GUIDE.md`
 
 ### Release Notes
 After completing any turn where you touched any of the following, immediately update `release_notes.json` — do not wait for a commit or push:
