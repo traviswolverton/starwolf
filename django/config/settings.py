@@ -43,6 +43,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "accounts.middleware.ProxyAuthMiddleware",  # CF Access header fallback
+    "accounts.middleware.SocialAuthStatusMiddleware",  # remap allauth 401 → 200
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -57,6 +58,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.adapters.SocialAccountAdapter"
+SOCIALACCOUNT_LOGIN_ON_GET = True
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"

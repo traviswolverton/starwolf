@@ -8,6 +8,28 @@ from accounts.models import User, UserPreferences
 _log = logging.getLogger(__name__)
 
 
+class SocialAuthStatusMiddleware:
+    """Remap allauth's hardcoded 401 on the social auth error page to 200.
+
+    allauth always returns HTTP 401 for authentication_error.html, which causes
+    reverse proxies (nginx, NPM) to intercept the response and show their own
+    error page instead. Since this is a user-facing error page (not an API),
+    200 is the right status code.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if (
+            response.status_code == 401
+            and request.path.startswith("/accounts/")
+        ):
+            response.status_code = 200
+        return response
+
+
 class ProxyAuthMiddleware:
     """Authenticate users from the upstream auth proxy header.
 

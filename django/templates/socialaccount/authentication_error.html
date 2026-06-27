@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Sign In Failed — StarWolf{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">🐺</div>
+    <h2 class="auth-title">Sign In Failed</h2>
+    <p class="auth-subtitle">Something went wrong while signing in with your social account.</p>
+    <p style="color:#8090a8; font-size:0.85rem; margin: 0.75rem 0 1.5rem;">
+      This can happen if you cancelled the sign-in, your session expired, or there was a
+      temporary issue with the provider. Please try again.
+    </p>
+    <a href="{% url 'account_login' %}" class="btn-primary" style="display:inline-block; text-decoration:none; padding:0.6rem 1.4rem; border-radius:6px;">
+      Try Again
+    </a>
+  </div>
+</div>
+{% endblock %}
