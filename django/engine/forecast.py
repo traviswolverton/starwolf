@@ -78,14 +78,3 @@ def fetch_site_forecast(site: dict, forecast_days: int, timezone: str) -> dict:
     return result
 
 
-def fetch_all_forecasts() -> list:
-    """Fetch forecasts for all active sites in the database (legacy standalone use)."""
-    from sqlalchemy import text
-    from db import get_engine, get_settings
-    settings = get_settings()
-    forecast_days = int(settings.get("forecast_days", 10))
-    timezone = settings.get("timezone", "America/Chicago")
-    with get_engine().connect() as conn:
-        rows = conn.execute(text("SELECT * FROM sites WHERE active = 1")).fetchall()
-    sites = [dict(r._mapping) for r in rows]
-    return [fetch_site_forecast(site, forecast_days, timezone) for site in sites]
