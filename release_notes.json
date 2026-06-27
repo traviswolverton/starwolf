@@ -3,6 +3,7 @@
     {
       "date": "2026-06-27",
       "features": [
+        "Nav — moon phase emoji now appears in the top bar on every page with a tooltip showing the phase name and cycle day (e.g. 🌔 Waxing Gibbous, day 10.2/29.5). No new API — uses the astral library already powering the scorer.",
         "Guest access to Planner \u2014 a 'Continue as guest' option on the login page opens the planner pre-loaded with Houston, TX and default settings. A banner nudges guests to sign in to use their own location.",
         "What\u2019s New section on the homepage \u2014 shows release notes since your last visit (7-day window for first-timers). A subtle '\u2728 new' badge appears in the nav on all pages until you visit the homepage.",
         "Bortle Scorer \u2014 'My Location' option auto-submits your saved coordinates instantly.",

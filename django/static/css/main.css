@@ -83,6 +83,15 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   font-size: 1.05rem;
 }
 .nav-brand:hover { color: #6dd4b8; }
+.nav-moon {
+  font-size: 1.15rem;
+  margin-left: auto;
+  margin-right: 0.5rem;
+  cursor: default;
+  line-height: 1;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
 .nav-whats-new {
   font-size: 0.65rem;
   font-weight: 600;

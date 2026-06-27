@@ -14,6 +14,7 @@
     <div class="nav-bar">
       <a href="/" class="nav-brand">🔭 StarWolf</a>
       {% if has_new_notes %}<a href="/#whats-new" class="nav-whats-new">✨ new</a>{% endif %}
+      <span class="nav-moon" title="{{ moon.label }} (day {{ moon.phase }}/29.5)">{{ moon.emoji }}</span>
 
       <button class="nav-toggle" @click="open = !open" :aria-expanded="open.toString()" aria-label="Toggle menu">
         <span></span>
