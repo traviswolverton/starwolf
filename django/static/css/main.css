@@ -819,9 +819,11 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .type-state_park     { background: #0d1e35; border-color: #1d4d80; color: #5b9fd6; }
 .type-community      { background: #1e0d35; border-color: #5a2d90; color: #b07de0; }
 .type-observatory    { background: #0d1e2e; border-color: #1d4060; color: #4ca8d6; }
+.type-user_submitted { background: #1f1a0d; border-color: #6b5020; color: #d4a44c; }
 
 .type-legend-details {
   margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
 }
 .type-legend-summary {
   font-size: 0.8rem; color: #555; cursor: pointer; user-select: none;
@@ -998,6 +1000,7 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   .type-dot-sm.type-state_park      { background: #5b9fd6; }
   .type-dot-sm.type-community       { background: #b07de0; }
   .type-dot-sm.type-observatory     { background: #4ca8d6; }
+  .type-dot-sm.type-user_submitted  { background: #d4a44c; }
 }
 
 .bortle-badge {
@@ -1282,6 +1285,7 @@ details[open] summary::before { transform: rotate(90deg); }
 .type-dot.type-state_park      { background: #5b9fd6; }
 .type-dot.type-community       { background: #b07de0; }
 .type-dot.type-observatory     { background: #4ca8d6; }
+.type-dot.type-user_submitted  { background: #d4a44c; }
 .country-flag { font-size: 1.1rem; line-height: 1; }
 .country-name { flex: 1; }
 .country-count { font-size: 0.75rem; color: #555; }

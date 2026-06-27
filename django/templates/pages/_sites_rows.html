@@ -19,6 +19,7 @@
     <span class="stl-item"><span class="type-dot-sm type-state_park"></span>SP = State Park</span>
     <span class="stl-item"><span class="type-dot-sm type-community"></span>COM = Community</span>
     <span class="stl-item"><span class="type-dot-sm type-observatory"></span>OBS = Observatory</span>
+    <span class="stl-item"><span class="type-dot-sm type-user_submitted"></span>US = User Submitted</span>
   </div>
   {% for row in rows %}
   <div class="site-card" x-data="{ open: false, typeOpen: false, _tt: null }">
@@ -41,6 +42,7 @@
         {% elif row.site_type == 'state_park' %}SP
         {% elif row.site_type == 'community' %}CM
         {% elif row.site_type == 'observatory' %}OB
+        {% elif row.site_type == 'user_submitted' %}US
         {% else %}{{ row.type_label|slice:":2" }}{% endif %}
       </button>
       <span class="type-abbr-tooltip" x-show="typeOpen" x-cloak x-transition>{{ row.type_label }}</span>

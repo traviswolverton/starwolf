@@ -367,12 +367,13 @@ _STATE_ABBR = {
 }
 
 _SITE_TYPE_LABELS = {
-    "ida_certified":  "IDA Certified",
-    "state_park":     "State Park",
-    "national_park":  "National Park",
-    "national_forest":"National Forest",
-    "observatory":    "Observatory",
-    "community":      "Community",
+    "ida_certified":   "IDA Certified",
+    "state_park":      "State Park",
+    "national_park":   "National Park",
+    "national_forest": "National Forest",
+    "observatory":     "Observatory",
+    "community":       "Community",
+    "user_submitted":  "User Submitted",
 }
 
 def _haversine(lat1, lon1, lat2, lon2):
