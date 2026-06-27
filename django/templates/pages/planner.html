@@ -2,6 +2,12 @@
 {% block title %}Stargazing Planner — StarWolf{% endblock %}
 
 {% block content %}
+{% if is_guest %}
+<div class="guest-banner">
+  <span>👋 You're browsing as a guest — location fixed to Houston, TX.</span>
+  <a href="{% url 'account_login' %}" class="guest-banner-cta">Sign in to use your own location →</a>
+</div>
+{% endif %}
 <h1>🔭 Stargazing Trip Planner</h1>
 
 <div class="planner-setup">
@@ -15,7 +21,7 @@
         {% else %}
         <div class="setup-card-value muted">No location set</div>
         {% endif %}
-        <a href="{% url 'location' %}" class="setup-link">{% if prefs.has_location %}Change →{% else %}Set location →{% endif %}</a>
+        {% if not is_guest %}<a href="{% url 'location' %}" class="setup-link">{% if prefs.has_location %}Change →{% else %}Set location →{% endif %}</a>{% endif %}
       </div>
       <div class="setup-card-col-divider"></div>
       <div class="setup-card-col" id="site-count-display">

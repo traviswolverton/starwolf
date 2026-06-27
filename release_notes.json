@@ -3,6 +3,10 @@
     {
       "date": "2026-06-27",
       "features": [
+        "Guest access to Planner \u2014 a 'Continue as guest' option on the login page opens the planner pre-loaded with Houston, TX and default settings. A banner nudges guests to sign in to use their own location.",
+        "What\u2019s New section on the homepage \u2014 shows release notes since your last visit (7-day window for first-timers). A subtle '\u2728 new' badge appears in the nav on all pages until you visit the homepage.",
+        "Bortle Scorer \u2014 'My Location' option auto-submits your saved coordinates instantly.",
+        "Tonight\u2019s Sky Map \u2014 zoom level reduced on mobile so the full US fits the narrow viewport.",
         "Planner \u2014 Night Hours now factors into both telescope and naked-eye scores (10% weight, proportionally reduced from other factors). 3 hours of dark sky scores ~33; 9+ hours scores 100.",
         "Planner \u2014 Each result card now shows the dark sky window (e.g. '11p \u2013 2a') beneath the date \u2014 so you know at a glance when you need to be out.",
         "Planner \u2014 metric explanation tooltips no longer get clipped on mobile; they now expand inline below the tapped cell.",

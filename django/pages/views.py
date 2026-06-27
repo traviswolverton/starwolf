@@ -26,6 +26,33 @@ from engine.scorer import score_forecast, score_all
 
 _tf = TimezoneFinder()
 
+# Houston city-center coordinates used for guest planner sessions
+_GUEST_LAT  = 29.7604
+_GUEST_LON  = -95.3698
+_GUEST_DISP = "Houston, TX (guest)"
+_GUEST_TZ   = "America/Chicago"
+
+
+class _GuestPrefs:
+    """Lightweight prefs stand-in for unauthenticated planner sessions."""
+    has_location       = True
+    location_lat       = _GUEST_LAT
+    location_lon       = _GUEST_LON
+    location_display   = _GUEST_DISP
+    units              = "imperial"
+    timezone           = _GUEST_TZ
+    min_score_threshold   = 40
+    disq_max_cloud_cover  = 85
+    disq_max_precip_prob  = 40
+    disq_min_visibility_km = 10
+
+
+def _planner_key_prefix(request):
+    """Returns a stable cache key prefix for the current user or session."""
+    if request.user.is_authenticated:
+        return str(request.user.pk)
+    return f"guest:{request.session.session_key or 'anon'}"
+
 _COMMON_TIMEZONES = [
     "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
     "America/Anchorage", "Pacific/Honolulu", "America/Phoenix", "America/Toronto",
@@ -867,13 +894,13 @@ def _load_planner_sites(prefs, max_dist_km=None):
     return all_sites
 
 
-def _run_planner_thread(user_id, sites, forecast_days, tz, disq):
+def _run_planner_thread(prefix, sites, forecast_days, tz, disq):
     import logging
     import traceback
     logger = logging.getLogger(__name__)
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    state_key   = f"planner:status:{user_id}"
-    results_key = f"planner:nights:{user_id}"
+    state_key   = f"planner:status:{prefix}"
+    results_key = f"planner:nights:{prefix}"
     total = len(sites)
     cache.set(state_key, {"running": True, "done": 0, "total": total}, 600)
     forecasts = []
@@ -904,26 +931,31 @@ def _get_planner_max_sites():
     return int(row[0]) if row else 250
 
 
-@login_required
 @require_http_methods(["GET"])
 def planner(request):
-    prefs = request.prefs
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    is_guest = not request.user.is_authenticated
 
     try:
         radius_val = int(request.GET.get("radius", 300))
     except ValueError:
         radius_val = 300
 
-    is_imperial = prefs and prefs.units == "imperial"
+    is_imperial = prefs.units == "imperial"
     dist_unit_str = "mi" if is_imperial else "km"
     radius_km = radius_val / _KM_TO_MI if is_imperial else radius_val
 
-    sites = _load_planner_sites(prefs, radius_km if (prefs and prefs.has_location) else None)
+    # Ensure guest sessions have a session key
+    if is_guest and not request.session.session_key:
+        request.session.create()
+
+    sites = _load_planner_sites(prefs, radius_km if prefs.has_location else None)
     max_sites = _get_planner_max_sites()
     site_count = len(sites)
 
-    state_key   = f"planner:status:{request.user.pk}"
-    results_key = f"planner:nights:{request.user.pk}"
+    prefix = _planner_key_prefix(request)
+    state_key   = f"planner:status:{prefix}"
+    results_key = f"planner:nights:{prefix}"
     compute_state = cache.get(state_key)
     cached_nights_json = cache.get(results_key)
 
@@ -942,6 +974,7 @@ def planner(request):
 
     return render(request, "pages/planner.html", {
         "prefs":           prefs,
+        "is_guest":        is_guest,
         "site_count":      site_count,
         "effective_count": min(site_count, max_sites),
         "max_sites":       max_sites,
@@ -956,20 +989,19 @@ def planner(request):
     })
 
 
-@login_required
 @require_http_methods(["GET"])
 def planner_site_count(request):
-    prefs = request.prefs
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
     try:
         radius_val = int(request.GET.get("radius", 300))
     except ValueError:
         radius_val = 300
 
-    is_imperial = prefs and prefs.units == "imperial"
+    is_imperial = prefs.units == "imperial"
     dist_unit = "mi" if is_imperial else "km"
     radius_km = radius_val / _KM_TO_MI if is_imperial else radius_val
 
-    sites = _load_planner_sites(prefs, radius_km if (prefs and prefs.has_location) else None)
+    sites = _load_planner_sites(prefs, radius_km if prefs.has_location else None)
     max_sites = _get_planner_max_sites()
     site_count = len(sites)
     capped = site_count > max_sites
@@ -982,35 +1014,37 @@ def planner_site_count(request):
         "capped": capped,
         "radius_val": radius_val,
         "dist_unit": dist_unit,
-        "has_location": bool(prefs and prefs.has_location),
+        "has_location": bool(prefs.has_location),
     })
 
 
-@login_required
 @require_http_methods(["POST"])
 def planner_run(request):
-    prefs = request.prefs
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    if not request.user.is_authenticated and not request.session.session_key:
+        request.session.create()
 
-    state_key = f"planner:status:{request.user.pk}"
+    prefix = _planner_key_prefix(request)
+    state_key = f"planner:status:{prefix}"
     state = cache.get(state_key)
     if state and state.get("running"):
         return render(request, "pages/_planner_progress.html", {"compute_state": state})
 
-    is_imperial = prefs and prefs.units == "imperial"
+    is_imperial = prefs.units == "imperial"
     try:
         radius_val = int(request.POST.get("radius", 300))
     except ValueError:
         radius_val = 300
     radius_km = radius_val / _KM_TO_MI if is_imperial else radius_val
 
-    sites = _load_planner_sites(prefs, radius_km if (prefs and prefs.has_location) else None)
+    sites = _load_planner_sites(prefs, radius_km if prefs.has_location else None)
     if not sites:
         return HttpResponse('<div class="alert error">No sites found in range. Try increasing your search radius.</div>')
 
     # Enforce site cap — sort closest-first so the user gets their nearest sites
     max_sites = _get_planner_max_sites()
     if len(sites) > max_sites:
-        if prefs and prefs.has_location:
+        if prefs.has_location:
             sites.sort(key=lambda s: _haversine(prefs.location_lat, prefs.location_lon, s["lat"], s["lon"]))
         sites = sites[:max_sites]
 
@@ -1019,16 +1053,17 @@ def planner_run(request):
         row = cur.fetchone()
     forecast_days = int(row[0]) if row else 10
 
-    tz = prefs.timezone if prefs else "America/Chicago"
+    tz = prefs.timezone
     disq = {
-        "max_cloud_cover":   prefs.disq_max_cloud_cover   if prefs else 85,
-        "max_precip_prob":   prefs.disq_max_precip_prob   if prefs else 40,
-        "min_visibility_km": prefs.disq_min_visibility_km if prefs else 10,
+        "max_cloud_cover":   prefs.disq_max_cloud_cover,
+        "max_precip_prob":   prefs.disq_max_precip_prob,
+        "min_visibility_km": prefs.disq_min_visibility_km,
     }
 
+    results_key = f"planner:nights:{prefix}"
     threading.Thread(
         target=_run_planner_thread,
-        args=(request.user.pk, sites, forecast_days, tz, disq),
+        args=(prefix, sites, forecast_days, tz, disq),
         daemon=True,
     ).start()
 
@@ -1037,11 +1072,11 @@ def planner_run(request):
     })
 
 
-@login_required
 @require_http_methods(["GET"])
 def planner_poll(request):
-    state_key   = f"planner:status:{request.user.pk}"
-    results_key = f"planner:nights:{request.user.pk}"
+    prefix = _planner_key_prefix(request)
+    state_key   = f"planner:status:{prefix}"
+    results_key = f"planner:nights:{prefix}"
     state = cache.get(state_key) or {}
 
     if state.get("running"):

@@ -1094,6 +1094,40 @@ details[open] summary::before { transform: rotate(90deg); }
   content: ''; flex: 1; border-top: 1px solid #2a2d3e;
 }
 
+.guest-continue {
+  display: block;
+  text-align: center;
+  color: #7080a0;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+.guest-continue:hover { color: #c0c8d8; }
+
+.guest-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: #1a1d27;
+  border: 1px solid #3a4060;
+  border-left: 3px solid #4caf96;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  color: #8090a8;
+  margin-bottom: 1rem;
+}
+.guest-banner-cta {
+  color: #4caf96;
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.guest-banner-cta:hover { color: #6dd4b8; }
+
 .nav-signin {
   font-size: 0.85rem; color: #4caf96; border: 1px solid #4caf9660;
   border-radius: 5px; padding: 0.3rem 0.75rem; text-decoration: none; white-space: nowrap;
