@@ -17,6 +17,7 @@
         {% if has_loc %}<th>Dist</th>{% endif %}
         <th>Name</th>
         <th>Type</th>
+        <th>Location</th>
         <th>Bortle</th>
         <th>Notes</th>
         <th></th>
@@ -27,11 +28,17 @@
       <tr>
         {% if has_loc %}<td class="col-dist">{{ row.dist_display }}</td>{% endif %}
         <td class="col-name">{{ row.name }}</td>
-        <td class="col-type">{{ row.type_label }}</td>
+        <td class="col-type">
+          <span class="type-badge type-{{ row.site_type }}">{{ row.type_label }}</span>
+        </td>
+        <td class="col-location">
+          {% if row.flag %}<span class="site-flag" title="{{ row.country }}">{{ row.flag }}</span>{% endif %}
+          {% if row.state_province %}<span class="site-state">{{ row.state_province }}</span>{% endif %}
+        </td>
         <td class="col-bortle">
           <span class="bortle-badge" style="background:{{ row.bortle_color }};">{{ row.bortle_class }}</span>
         </td>
-        <td class="col-notes">{{ row.notes|default:""|truncatechars:60 }}</td>
+        <td class="col-notes">{{ row.notes|default:"" }}</td>
         <td class="col-map"><a href="{{ row.map_url }}" target="_blank" rel="noopener" title="Open in OSM">🗺️</a></td>
       </tr>
       {% endfor %}
@@ -45,19 +52,22 @@
   <div class="pag-btns">
     {% if page > 1 %}
     <button class="pag-btn"
-      hx-get="{% url 'sites' %}?page={{ page|add:"-1" }}&type={{ type_filter }}&bortle_max={{ bortle_max }}&max_dist={{ max_dist }}&sort={{ sort }}"
+      hx-get="{% url 'sites' %}?page={{ page|add:"-1" }}"
+      hx-include="#filter-form"
       hx-target="#sites-results" hx-swap="innerHTML" hx-push-url="true">← Prev</button>
     {% endif %}
 
     {% for p in page_range %}
     <button class="pag-btn {% if p == page %}active{% endif %}"
-      hx-get="{% url 'sites' %}?page={{ p }}&type={{ type_filter }}&bortle_max={{ bortle_max }}&max_dist={{ max_dist }}&sort={{ sort }}"
+      hx-get="{% url 'sites' %}?page={{ p }}"
+      hx-include="#filter-form"
       hx-target="#sites-results" hx-swap="innerHTML" hx-push-url="true">{{ p }}</button>
     {% endfor %}
 
     {% if page < total_pages %}
     <button class="pag-btn"
-      hx-get="{% url 'sites' %}?page={{ page|add:"1" }}&type={{ type_filter }}&bortle_max={{ bortle_max }}&max_dist={{ max_dist }}&sort={{ sort }}"
+      hx-get="{% url 'sites' %}?page={{ page|add:"1" }}"
+      hx-include="#filter-form"
       hx-target="#sites-results" hx-swap="innerHTML" hx-push-url="true">Next →</button>
     {% endif %}
   </div>

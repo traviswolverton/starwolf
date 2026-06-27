@@ -20,13 +20,16 @@ Source: [github.com/traviswolverton/starwolf](https://github.com/traviswolverton
 - Color-coded expandable result cards with per-metric breakdowns
 - Calendar heatmap for comparing all sites across all nights at a glance
 - Per-user settings (timezone, thresholds, unit system) stored in the database — persist across devices and sessions
-- User location: geocode a home base to see distances to sites in results
-- Proximity filter: score only sites within a configurable radius
+- User location: geocode a home base with address autocomplete (OpenStreetMap/Photon) — drives distance display and proximity filter
+- Proximity filter: score only sites within a configurable radius; slider auto-adjusts to furthest result
 - Imperial/metric toggle: distances and visibility threshold throughout the UI
-- Role-based access control (guest / user / admin) via Cloudflare Access header auth
+- Sign-in with Google or GitHub (OAuth2), or email/password; optional TOTP two-factor auth
+- Cloudflare Access retained as a sign-in fallback for zero-friction access on managed devices
+- Role-based access control (guest / user / admin)
 - Admin page for scoring weights and app-wide settings (requires admin role)
 - Dual composite scores — telescope and naked eye — with Bortle class modifier
-- Tonight's Forecast Map — color-coded heatmap of all 2,285+ sites scored for tonight
+- Tonight's Forecast Map — color-coded heatmap of all 2,385+ sites scored for tonight
+- 2,385+ site catalog with colored type badges (IDA Certified, National Park, National Forest, State Park, Community, Observatory), country/state columns, and multi-select filters
 - REST API on port 8000 for programmatic access to the same forecast and scoring pipeline
 
 ---
@@ -39,8 +42,10 @@ stargazing-app/
 │   ├── config/                     # Django settings, URLs
 │   ├── accounts/                   # User model, RBAC, auth middleware, management commands
 │   │   └── management/commands/
-│   │       ├── create_local_admin.py   # Create local admin (bypasses Cloudflare)
-│   │       └── offboard_user.py        # Deactivate/reactivate users
+│   │       ├── create_local_admin.py       # Create local admin (bypasses Cloudflare)
+│   │       ├── offboard_user.py            # Deactivate/reactivate users
+│   │       ├── populate_site_locations.py  # Reverse-geocode sites → country + state/province
+│   │       └── enrich_notes.py             # Rewrite site notes via Ollama + Wikipedia
 │   ├── pages/                      # All page views
 │   ├── templates/                  # Jinja2-style Django templates
 │   └── static/css/main.css         # Single dark-theme stylesheet
@@ -64,7 +69,7 @@ stargazing-app/
 | Page | URL | Purpose |
 |------|-----|---------|
 | **Planner** | `/planner` | Run forecast for nearby sites, ranked night cards, heatmap |
-| **Sites** | `/sites` | Browse the 2,285+ site catalog with filters and distance sort |
+| **Sites** | `/sites` | Browse the 2,385+ site catalog with type badges, country/state columns, and multi-select filters |
 | **Forecast Map** | `/heatmap` | Tonight's score for all sites as a Leaflet color-coded map |
 | **Bortle** | `/bortle` | Look up Bortle class for any address or coordinates |
 | **Location** | `/location` | Geocode a home base; drives distance display and proximity filter |
@@ -96,7 +101,10 @@ All settings are stored per-user in the `starwolf_user_preferences` table and lo
 | Cloud cover, humidity, visibility, precipitation | [Open-Meteo](https://open-meteo.com) | Up to 16 days, hourly, free, no API key |
 | Astronomical seeing + sky transparency | [7timer!](http://7timer.info) | ~3 days (72-hour limit of the free tier) |
 | Moon phase / rise / set | `astral` Python library | Fully offline |
-| Geocoding | [Nominatim/OSM](https://nominatim.org) + [Natural Resources Canada](https://geogratis.gc.ca) | Address → lat/lon |
+| Address autocomplete | [Photon by Komoot](https://photon.komoot.io) | Free, no API key, OSM-based address search |
+| Geocoding (address → coords) | [Nominatim/OSM](https://nominatim.org) + [Natural Resources Canada](https://geogratis.gc.ca) | Address → lat/lon |
+| Reverse geocoding (coords → country/state) | [Nominatim/OSM](https://nominatim.org) | Populates `country` and `state_province` on site records |
+| Site note enrichment | [Wikipedia REST API](https://en.wikipedia.org/api/rest_v1/) + local [Ollama](https://ollama.com) | Generates stargazer-friendly notes per site |
 | Dark-sky site catalog | [IDA / DarkSky International](https://darksky.org) | Importable via OSM Overpass API |
 
 > **7timer note:** Seeing and transparency use a 1–8 scale where **1 is best**. Coverage is limited to approximately 3 days; nights beyond that will show `—` for these two fields — that's a hard limit of the data source.
@@ -162,7 +170,10 @@ All persistent state is stored in a PostgreSQL 16 database running as a Docker s
 | `lat` / `lon` | REAL | WGS84 coordinates |
 | `bortle_class` | INTEGER | 1 (darkest) – 9 (inner city) |
 | `elevation_m` | REAL | Elevation in metres |
-| `notes` | TEXT | Free-form notes |
+| `notes` | TEXT | Free-form notes (can be enriched via `enrich_notes` management command) |
+| `site_type` | TEXT | Category: `ida_certified`, `national_park`, `national_forest`, `state_park`, `community`, `observatory` |
+| `country` | TEXT | ISO 3166-1 alpha-2 country code (e.g. `US`, `CA`) — populated by `populate_site_locations` |
+| `state_province` | TEXT | State or province name — populated by `populate_site_locations` |
 | `active` | INTEGER | Default active state for new sessions (1 = on, 0 = off) |
 
 ### `scoring_weights`
@@ -326,6 +337,23 @@ admin_password = "your-admin-password"
 github_token   = "your-github-token"   # fine-grained PAT, Issues: Read & Write
 ```
 
+Create `.env` (git-ignored) for Django secrets and OAuth credentials:
+```env
+POSTGRES_PASSWORD=your-db-password
+DJANGO_SECRET_KEY=your-django-secret-key
+
+# OAuth2 — create apps at console.cloud.google.com and github.com/settings/developers
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+
+# Optional
+GITHUB_TOKEN=your-pat          # Issues API for the feedback form
+GITHUB_REPO=owner/repo
+IP_HASH_SALT=random-string     # salts visitor IP hashes
+```
+
 ### 2. Start the stack
 
 ```bash
@@ -368,6 +396,31 @@ docker compose exec django python manage.py offboard_user someone@example.com
 docker compose exec django python manage.py offboard_user someone@example.com --reactivate
 ```
 
+### Site data enrichment
+
+After first run (or after adding new sites), populate country and state/province via reverse geocoding:
+
+```bash
+# Runs in background — 1.1s per site to respect Nominatim rate limits
+docker compose exec -d django python manage.py populate_site_locations
+
+# Check progress
+docker compose exec django python manage.py shell -c \
+  "from django.db import connection; c=connection.cursor(); c.execute('SELECT COUNT(*) FROM sites WHERE country IS NOT NULL'); print(c.fetchone()[0])"
+```
+
+Rewrite site notes using Ollama (local) + Wikipedia summaries:
+
+```bash
+# Requires Ollama running on the host; skips sites with notes > 200 chars by default
+docker compose exec -d django python manage.py enrich_notes
+
+# Options
+docker compose exec django python manage.py enrich_notes --limit 50           # batch of 50
+docker compose exec django python manage.py enrich_notes --force              # redo all
+docker compose exec django python manage.py enrich_notes --model phi4         # different model
+```
+
 ### Updating
 
 ```bash
@@ -381,7 +434,16 @@ docker compose up -d --build   # rebuilds the app image, leaves db/redis untouch
 |----------|--------|-------------|
 | `DATABASE_URL` | `docker-compose.yml` | PostgreSQL connection string |
 | `REDIS_URL` | `docker-compose.yml` | Redis connection string |
-| `ADMIN_PASSWORD` | `.streamlit/secrets.toml` | Admin page password (fallback to env var) |
+| `POSTGRES_PASSWORD` | `.env` | Database password (required) |
+| `DJANGO_SECRET_KEY` | `.env` | Django secret key (required) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | `.env` | Google OAuth2 app credentials |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | `.env` | GitHub OAuth2 app credentials |
+| `GITHUB_TOKEN` | `.env` | Fine-grained PAT for the feedback → GitHub Issues integration |
+| `GITHUB_REPO` | `.env` | `owner/repo` for GitHub Issues (e.g. `traviswolverton/starwolf`) |
+| `IP_HASH_SALT` | `.env` | Random string to salt visitor IP hashes |
+| `AUTH_EMAIL_HEADER` | `.env` | Header name for Cloudflare Access auth (default: `Cf-Access-Authenticated-User-Email`) |
+| `AUTH_BYPASS` | `.env` | Set `true` in local dev to skip auth entirely |
+| `ADMIN_PASSWORD` | `.streamlit/secrets.toml` | Legacy Streamlit admin page password |
 
 ### Caching
 

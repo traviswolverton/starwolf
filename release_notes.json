@@ -3,6 +3,27 @@
     {
       "date": "2026-06-26",
       "features": [
+        "Address autocomplete on the Set Location page — as you type, suggested addresses appear powered by OpenStreetMap data; click one to fill in your coordinates automatically.",
+        "Planner distance slider now auto-adjusts after results load — if your furthest result is 347 miles away, the slider max snaps to 350 so the control stays useful.",
+        "Renamed the catalog page from \"Dark Sky Sites\" to \"Stargazing Sites\".",
+        "Colored type badges on the Stargazing Sites page — IDA Certified, National Park, National Forest, State Park, Community, and Observatory each have a distinct color.",
+        "Collapsible \"Site Types\" legend — click to expand a plain-English description of each site category.",
+        "Site type filter is now a multi-select dropdown — check multiple types to show only those; the old single-select is gone.",
+        "Country filter added to the Stargazing Sites page — filter by one or more countries using a multi-select dropdown with flag icons.",
+        "Country and state/province now appear in the sites table — each row shows a flag and state name once location data is populated.",
+        "Sign-in success banners are now closable with an × and auto-fade after 10 seconds.",
+        "Site descriptions rewritten — each site in the catalog now has a concise, stargazer-focused 1–2 sentence description drawn from Wikipedia and written by a local AI model, replacing the old inconsistent admin text.",
+        "Night quality heatmap now shows distance to each site and can be sorted alphabetically or by distance from your location.",
+        "Fixed two Alaska sites (Alaska Maritime NWR and Aleutian Islands Wilderness) that had incorrect coordinates placing them in Europe — coordinates, country, and state now correctly show Alaska, US."
+      ],
+      "fixes": [
+        "Fixed 95 IDA Certified sites that were incorrectly marked inactive — they now appear in the catalog and planner.",
+        "Removed \"Private\" from the site type filter — no sites use that label."
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "features": [
         "Social sign-in — users can now sign in with Google or GitHub (OAuth2) instead of relying solely on Cloudflare Access. A dark-themed login page shows both social buttons plus an email/password fallback for local accounts.",
         "Two-factor authentication (TOTP) — users can enroll an authenticator app (Google Authenticator, Authy, etc.) from the user menu → Two-factor auth. Uses django-allauth MFA module; QR code shown on setup.",
         "\"Sign in\" button — navigation bar now shows a Sign in link for unauthenticated visitors and a Sign out option in the user dropdown for signed-in users.",

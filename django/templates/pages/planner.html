@@ -36,9 +36,11 @@
 <form hx-post="{% url 'planner_run' %}" hx-target="#planner-output" hx-swap="innerHTML" class="planner-run-form">
   {% csrf_token %}
   {% if prefs.has_location %}
-  <div class="radius-row" x-data="{ val: {{ radius_val }} }">
+  <div class="radius-row"
+       x-data="{ val: {{ radius_val }}, sliderMax: {% if prefs.units == 'imperial' %}1500{% else %}2500{% endif %} }"
+       @slider-max-update.window="sliderMax = $event.detail.max; if (val > sliderMax) val = sliderMax">
     <label class="field-label">Radius</label>
-    <input type="range" name="radius" min="50" max="{% if prefs.units == 'imperial' %}1500{% else %}2500{% endif %}"
+    <input type="range" name="radius" min="50" :max="sliderMax"
            step="25" x-model="val" class="slider">
     <span class="slider-val" x-text="val + ' {{ dist_unit }}'">{{ radius_val }} {{ dist_unit }}</span>
   </div>

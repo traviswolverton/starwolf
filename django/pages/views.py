@@ -108,30 +108,35 @@ def location(request):
         lat = request.POST.get("lat")
         lon = request.POST.get("lon")
         address = request.POST.get("address", "").strip()
+        display_override = request.POST.get("display", "").strip()
 
         if lat and lon:
-            # Browser geolocation or direct coords — reverse geocode for display
+            # Browser geolocation, direct coords, or autocomplete selection
             try:
                 lat, lon = float(lat), float(lon)
             except ValueError:
                 return HttpResponse('<div class="alert error">Invalid coordinates.</div>')
-            try:
-                resp = http.get(
-                    "https://nominatim.openstreetmap.org/reverse",
-                    params={"lat": lat, "lon": lon, "format": "json"},
-                    headers={"User-Agent": "StarWolf-App/1.0"},
-                    timeout=8,
-                )
-                data = resp.json()
-                addr = data.get("address", {})
-                parts = [
-                    addr.get("city") or addr.get("town") or addr.get("village"),
-                    addr.get("state"),
-                    addr.get("country_code", "").upper(),
-                ]
-                display = ", ".join(p for p in parts if p) or f"{lat:.4f}, {lon:.4f}"
-            except Exception:
-                display = f"{lat:.4f}, {lon:.4f}"
+            if display_override:
+                # Photon already gave us a good label — skip reverse geocode
+                display = display_override
+            else:
+                try:
+                    resp = http.get(
+                        "https://nominatim.openstreetmap.org/reverse",
+                        params={"lat": lat, "lon": lon, "format": "json"},
+                        headers={"User-Agent": "StarWolf-App/1.0"},
+                        timeout=8,
+                    )
+                    data = resp.json()
+                    addr = data.get("address", {})
+                    parts = [
+                        addr.get("city") or addr.get("town") or addr.get("village"),
+                        addr.get("state"),
+                        addr.get("country_code", "").upper(),
+                    ]
+                    display = ", ".join(p for p in parts if p) or f"{lat:.4f}, {lon:.4f}"
+                except Exception:
+                    display = f"{lat:.4f}, {lon:.4f}"
             text = display
         elif address:
             # Geocode the address
@@ -254,7 +259,6 @@ _SITE_TYPE_LABELS = {
     "national_park":  "National Park",
     "national_forest":"National Forest",
     "observatory":    "Observatory",
-    "private":        "Private",
     "community":      "Community",
 }
 
@@ -275,7 +279,8 @@ def sites(request):
     dist_unit = "mi" if is_imperial else "km"
 
     # ── Filters from query string ─────────────────────────────────────────────
-    type_filter  = request.GET.get("type", "")
+    type_filters    = request.GET.getlist("type")
+    country_filters = request.GET.getlist("country")
     try:
         bortle_max = min(9, max(1, int(request.GET.get("bortle_max", 9))))
     except ValueError:
@@ -291,11 +296,16 @@ def sites(request):
         page = 1
 
     # ── DB query ──────────────────────────────────────────────────────────────
-    sql = "SELECT id, name, lat, lon, bortle_class, elevation_m, notes, site_type FROM sites WHERE active=1"
+    sql = "SELECT id, name, lat, lon, bortle_class, elevation_m, notes, site_type, country, state_province FROM sites WHERE active=1"
     params = []
-    if type_filter:
-        sql += " AND site_type = %s"
-        params.append(type_filter)
+    if type_filters:
+        placeholders = ",".join(["%s"] * len(type_filters))
+        sql += f" AND site_type IN ({placeholders})"
+        params.extend(type_filters)
+    if country_filters:
+        placeholders = ",".join(["%s"] * len(country_filters))
+        sql += f" AND country IN ({placeholders})"
+        params.extend(country_filters)
     if bortle_max < 9:
         sql += " AND bortle_class <= %s"
         params.append(bortle_max)
@@ -310,6 +320,11 @@ def sites(request):
     for row in rows:
         row["type_label"] = _SITE_TYPE_LABELS.get(row["site_type"] or "", row["site_type"] or "—")
         row["bortle_color"] = _BORTLE_COLOR.get(row["bortle_class"] or 5, "#555")
+        code = (row.get("country") or "").upper()
+        row["flag"] = (
+            chr(0x1F1E6 + ord(code[0]) - 65) + chr(0x1F1E6 + ord(code[1]) - 65)
+            if len(code) == 2 else ""
+        )
         row["map_url"] = (
             f"https://www.openstreetmap.org/?mlat={row['lat']}&mlon={row['lon']}"
             f"#map=12/{row['lat']}/{row['lon']}"
@@ -337,12 +352,44 @@ def sites(request):
     page = min(page, total_pages)
     page_rows = rows[(page - 1) * per_page : page * per_page]
 
+    _COUNTRY_NAMES = {
+        "US": "United States", "CA": "Canada", "MX": "Mexico",
+        "GB": "United Kingdom", "AU": "Australia", "NZ": "New Zealand",
+        "FR": "France", "DE": "Germany", "IT": "Italy", "ES": "Spain",
+        "PT": "Portugal", "NO": "Norway", "SE": "Sweden", "FI": "Finland",
+        "IS": "Iceland", "CH": "Switzerland", "AT": "Austria",
+        "CZ": "Czech Republic", "PL": "Poland", "HU": "Hungary",
+        "SK": "Slovakia", "HR": "Croatia", "SI": "Slovenia",
+        "CL": "Chile", "AR": "Argentina", "BR": "Brazil", "PE": "Peru",
+        "ZA": "South Africa", "NA": "Namibia", "KE": "Kenya",
+        "JO": "Jordan", "IL": "Israel", "IN": "India", "JP": "Japan",
+    }
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT country, COUNT(*) FROM sites WHERE active=1 AND country IS NOT NULL "
+            "GROUP BY country ORDER BY COUNT(*) DESC"
+        )
+        countries = [
+            {
+                "code": row[0],
+                "name": _COUNTRY_NAMES.get(row[0], row[0]),
+                "flag": (
+                    chr(0x1F1E6 + ord(row[0][0]) - 65) + chr(0x1F1E6 + ord(row[0][1]) - 65)
+                    if len(row[0]) == 2 else ""
+                ),
+                "count": row[1],
+            }
+            for row in cur.fetchall()
+        ]
+
     ctx = {
         "rows": page_rows,
         "total": total,
         "page": page,
         "total_pages": total_pages,
-        "type_filter": type_filter,
+        "type_filters": type_filters,
+        "country_filters": country_filters,
+        "countries": countries,
         "bortle_max": bortle_max,
         "max_dist": max_dist or "",
         "sort": sort,
@@ -682,9 +729,11 @@ def _enrich_night(night, prefs, site_coords):
     factors = night.get("factors", {})
     lat, lon = site_coords.get(night["site"], (None, None))
     dist_str = ""
+    dist_km = None
     if prefs and prefs.has_location and lat is not None:
         km = _haversine(prefs.location_lat, prefs.location_lon, lat, lon)
         dist_str = f"{km * _KM_TO_MI:.0f} mi" if prefs.units == "imperial" else f"{km:.0f} km"
+        dist_km = km
     bortle = stats.get("bortle_class")
     metrics = [
         {"label": "Cloud Cover", "value": _fmt_val(stats.get("avg_cloud_cover"), suffix="%"),  "color": _metric_color(_norm(stats.get("avg_cloud_cover"),      0, 100, False))},
@@ -707,6 +756,7 @@ def _enrich_night(night, prefs, site_coords):
         **night,
         "date_str":    date_obj.strftime("%a %-d %b"),
         "dist_str":    dist_str,
+        "dist_km":     dist_km,
         "metrics":     metrics,
         "tel_score":   round(composite),
         "eye_score":   round(naked_eye) if naked_eye is not None else None,
@@ -716,7 +766,7 @@ def _enrich_night(night, prefs, site_coords):
     }
 
 
-def _build_heatmap(nights, threshold, score_key="composite"):
+def _build_heatmap(nights, threshold, score_key="composite", dist_lookup=None, hm_sort="alpha"):
     scored = [n for n in nights if not n.get("disqualified")]
     sites = sorted(set(n["site"] for n in scored))
     dates = sorted(set(n["date"] for n in scored))
@@ -730,7 +780,15 @@ def _build_heatmap(nights, threshold, score_key="composite"):
                 "score": round(score) if score is not None else None,
                 "bg": _heatmap_bg(score, threshold),
             })
-        rows.append({"site": site, "cells": cells})
+        info = dist_lookup.get(site) if dist_lookup else None
+        rows.append({
+            "site":     site,
+            "cells":    cells,
+            "dist_str": info["str"] if info else "",
+            "dist_km":  info["km"]  if info else None,
+        })
+    if hm_sort == "dist" and dist_lookup:
+        rows.sort(key=lambda r: r["dist_km"] if r["dist_km"] is not None else float("inf"))
     date_labels = [datetime.fromisoformat(d).strftime("%-d %b") for d in dates]
     return {"rows": rows, "dates": date_labels}
 
@@ -887,6 +945,7 @@ def _render_results(request, nights):
     prefs = request.prefs
     threshold = prefs.min_score_threshold if prefs else 40
     sort = request.GET.get("sort", "score")
+    hm_sort = request.GET.get("hm_sort", "alpha")
     score_key = "naked_eye" if request.GET.get("view") == "eye" else "composite"
     today = datetime.now(ZoneInfo(prefs.timezone if prefs else "America/Chicago")).date()
 
@@ -920,9 +979,18 @@ def _render_results(request, nights):
 
     enriched = [_enrich_night(n, prefs, site_coords) for n in scored]
 
+    # Distance lookup for heatmap rows
+    is_imperial = prefs and prefs.units == "imperial"
+    dist_lookup = {}
+    if prefs and prefs.has_location:
+        for site_name, (lat, lon) in site_coords.items():
+            km = _haversine(prefs.location_lat, prefs.location_lon, lat, lon)
+            dist_str = f"{km * _KM_TO_MI:.0f} mi" if is_imperial else f"{km:.0f} km"
+            dist_lookup[site_name] = {"km": km, "str": dist_str}
+
     # Heatmap — use only future nights so past dates don't appear
     future_nights = [n for n in nights if datetime.fromisoformat(n["date"]).date() >= today]
-    heatmap = _build_heatmap(future_nights, threshold, score_key)
+    heatmap = _build_heatmap(future_nights, threshold, score_key, dist_lookup=dist_lookup, hm_sort=hm_sort)
 
     # AI summary
     ai_summary = None
@@ -932,16 +1000,27 @@ def _render_results(request, nights):
     except Exception:
         pass
 
+    # Furthest result distance → rounded up to nearest 10, for dynamic slider max
+    dist_kms = [n["dist_km"] for n in enriched if n.get("dist_km")]
+    max_dist_rounded = None
+    if dist_kms:
+        max_km = max(dist_kms)
+        max_val = max_km * _KM_TO_MI if is_imperial else max_km
+        max_dist_rounded = math.ceil(max_val / 10) * 10
+
     return render(request, "pages/_planner_results.html", {
         "nights":      enriched,
         "disq":        disq,
         "heatmap":     heatmap,
         "threshold":   threshold,
         "sort":        sort,
+        "hm_sort":     hm_sort,
+        "has_location": bool(dist_lookup),
         "score_key":   score_key,
         "ai_summary":  ai_summary,
         "total_scored":  len(scored),
         "total_disq":    len(disq),
+        "max_dist_rounded": max_dist_rounded,
     })
 
 

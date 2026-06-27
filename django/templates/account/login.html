@@ -6,7 +6,13 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <h2 class="auth-title">🔭 Sign in to StarWolf</h2>
-    <p class="auth-sub">Save your location, preferences, and forecast results across devices.</p>
+    <p class="auth-sub">
+      Sign in to access the <strong>Planner</strong> and save your location — or
+      <a href="{% url 'heatmap' %}">check tonight's forecast map →</a>
+    </p>
+    <p class="auth-sub" style="margin-top:-0.5rem;font-size:0.8rem;color:#555;">
+      No account needed to browse the map, sites, and Bortle scorer.
+    </p>
 
     {% get_providers as socialaccount_providers %}
     {% if socialaccount_providers %}
@@ -46,9 +52,6 @@
       <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;">Sign in</button>
     </form>
 
-    <p class="auth-footer">
-      Once signed in, enable one-time passwords (TOTP) under your account for extra security.
-    </p>
   </div>
 </div>
 {% endblock %}

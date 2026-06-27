@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Dark-Sky Sites — StarWolf{% endblock %}
+{% block title %}Stargazing Sites — StarWolf{% endblock %}
 
 {% block content %}
-<h1>Dark-Sky Sites</h1>
+<h1>Stargazing Sites</h1>
 
 {% if not has_loc %}
 <div class="alert warning" style="margin-bottom:1.5rem;">
@@ -20,16 +20,45 @@
   hx-trigger="change, submit"
   class="filter-bar"
 >
-  <select name="type" class="filter-select">
-    <option value="" {% if not type_filter %}selected{% endif %}>All types</option>
-    {% for code, label in site_types.items %}
-    <option value="{{ code }}" {% if type_filter == code %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
+  <div class="multi-filter" x-data="{ open: false }" @click.outside="open = false">
+    <button type="button" class="filter-btn" @click.prevent="open = !open">
+      Site Types
+    </button>
+    <div class="multi-dropdown" x-show="open" x-cloak @click.stop>
+      {% for code, label in site_types.items %}
+      <label class="multi-option">
+        <input type="checkbox" name="type" value="{{ code }}"
+               {% if code in type_filters %}checked{% endif %}>
+        <span class="type-dot type-{{ code }}"></span>
+        <span class="multi-option-label">{{ label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if countries %}
+  <div class="multi-filter" x-data="{ open: false }" @click.outside="open = false">
+    <button type="button" class="filter-btn" @click.prevent="open = !open">
+      {% if country_filters %}{{ country_filters|length }} countr{% if country_filters|length == 1 %}y{% else %}ies{% endif %}{% else %}Country{% endif %}
+    </button>
+    <div class="multi-dropdown" x-show="open" x-cloak @click.stop>
+      {% for c in countries %}
+      <label class="multi-option">
+        <input type="checkbox" name="country" value="{{ c.code }}"
+               {% if c.code in country_filters %}checked{% endif %}>
+        <span class="country-flag">{{ c.flag }}</span>
+        <span class="country-name">{{ c.name }}</span>
+        <span class="country-count">{{ c.count }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <select name="bortle_max" class="filter-select">
-    {% for b in "123456789" %}
-    <option value="{{ b }}" {% if bortle_max == b|add:0 %}selected{% endif %}>Bortle ≤ {{ b }}</option>
+    <option value="9" {% if bortle_max == 9 %}selected{% endif %}>Max Bortle (any)</option>
+    {% for b in "12345678" %}
+    <option value="{{ b }}" {% if bortle_max == b|add:0 %}selected{% endif %}>Max Bortle ≤ {{ b }}</option>
     {% endfor %}
   </select>
 
@@ -54,6 +83,19 @@
   </select>
   {% endif %}
 </form>
+
+<!-- Site type legend -->
+<details class="type-legend-details">
+  <summary class="type-legend-summary">Site Types</summary>
+  <div class="type-legend">
+    <div><span class="type-badge type-ida_certified">IDA Certified</span> Internationally recognized by the Dark-Sky Association for exceptional darkness</div>
+    <div><span class="type-badge type-national_park">National Park</span> Federal lands with protected, regulated skies</div>
+    <div><span class="type-badge type-national_forest">National Forest</span> Remote multi-use federal lands, typically very dark</div>
+    <div><span class="type-badge type-state_park">State Park</span> State-managed parks, many with active stargazing programs</div>
+    <div><span class="type-badge type-community">Community</span> Public dark-sky preserves and community observing sites</div>
+    <div><span class="type-badge type-observatory">Observatory</span> Dedicated astronomy facilities open to the public</div>
+  </div>
+</details>
 
 <!-- Results -->
 <div id="sites-results">

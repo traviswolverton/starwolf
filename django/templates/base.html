@@ -56,7 +56,12 @@
   {% if messages %}
     <ul class="messages">
       {% for message in messages %}
-        <li class="{{ message.tags }}">{{ message }}</li>
+        <li class="{{ message.tags }}" x-data="{ show: true }" x-show="show" x-cloak
+            x-init="setTimeout(() => show = false, 10000)"
+            x-transition:leave="msg-fade-out">
+          {{ message }}
+          <button class="msg-close" @click="show = false" aria-label="Dismiss">×</button>
+        </li>
       {% endfor %}
     </ul>
   {% endif %}

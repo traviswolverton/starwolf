@@ -46,7 +46,7 @@
 
 <hr>
 
-<h2>Or enter manually</h2>
+<h2>Or search by address</h2>
 <form
   method="post"
   hx-post="{% url 'location' %}"
@@ -54,22 +54,82 @@
   hx-swap="innerHTML"
   hx-indicator="#addr-spinner"
   class="bortle-form"
+  x-data="addrSearch()"
+  @click.outside="results = []"
 >
   {% csrf_token %}
-  <div class="input-row">
-    <input
-      type="text"
-      name="address"
-      class="text-input"
-      placeholder="e.g. Houston, TX  or  77001  or  Calgary, AB"
-      required
-    >
+  <div class="input-row" style="align-items:flex-start;">
+    <div style="position:relative;flex:1;">
+      <input
+        type="text"
+        name="address"
+        class="text-input"
+        placeholder="e.g. Houston, TX  or  77001  or  Big Bend, TX"
+        autocomplete="off"
+        x-model="query"
+        @input.debounce.300ms="search()"
+        @keydown.escape="results = []"
+        @keydown.arrow-down.prevent="focusItem(0)"
+      >
+      <ul class="autocomplete-dropdown" x-show="results.length > 0" x-cloak>
+        <template x-for="(r, i) in results" :key="i">
+          <li
+            class="autocomplete-item"
+            :id="'ac-' + i"
+            tabindex="-1"
+            @click="select(r)"
+            @keydown.enter.prevent="select(r)"
+            @keydown.arrow-down.prevent="focusItem(i + 1)"
+            @keydown.arrow-up.prevent="focusItem(i - 1)"
+            x-text="label(r)"
+          ></li>
+        </template>
+      </ul>
+    </div>
     <button type="submit" class="btn-primary">Set Location</button>
   </div>
+  <input type="hidden" name="lat"     :value="lat">
+  <input type="hidden" name="lon"     :value="lon">
+  <input type="hidden" name="display" :value="display">
   <div id="addr-spinner" class="htmx-indicator">Looking up…</div>
 </form>
 
 <script>
+function addrSearch() {
+  return {
+    query: '', results: [], lat: '', lon: '', display: '',
+    async search() {
+      this.lat = ''; this.lon = ''; this.display = '';
+      if (this.query.length < 3) { this.results = []; return; }
+      try {
+        const r = await fetch(
+          'https://photon.komoot.io/api/?q=' + encodeURIComponent(this.query) + '&limit=5'
+        );
+        const d = await r.json();
+        this.results = d.features || [];
+      } catch { this.results = []; }
+    },
+    select(r) {
+      this.lat     = r.geometry.coordinates[1];
+      this.lon     = r.geometry.coordinates[0];
+      this.display = this.label(r);
+      this.query   = this.display;
+      this.results = [];
+    },
+    label(r) {
+      const p = r.properties;
+      return [p.name, p.city, p.county, p.state, p.country]
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .join(', ');
+    },
+    focusItem(i) {
+      const el = document.getElementById('ac-' + Math.max(0, i));
+      if (el) el.focus();
+    },
+  };
+}
+
 function getDeviceLocation() {
   if (!navigator.geolocation) {
     document.getElementById('geo-status').textContent = 'Geolocation is not supported by your browser.';
