@@ -37,7 +37,7 @@
       type="text"
       name="submitter"
       class="text-input"
-      placeholder="e.g. Seth"
+      value="{{ user.first_name|default:user.email }}"
     >
   </div>
 

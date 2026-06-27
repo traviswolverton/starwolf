@@ -12,12 +12,17 @@
         "Scoring weights moved to the Planner page — a collapsed 'How scores are calculated' section at the bottom, referenced by a subtle link just below the results area.",
         "Feedback page now requires login (IP rate limit retained). API Guide remains public.",
         "Two-factor authentication (TOTP) fully wired — the 2FA menu link now works end-to-end. Includes: TOTP setup with QR code, reauthentication confirmation, disable flow, recovery code generation and download, and a styled authenticate prompt at login. TOTP challenge only fires for password-based (local admin) logins; OAuth users are unaffected.",
-        "COMMANDS.md added — full reference for all six management commands with flags, examples, progress checks, and the cron setup for the daily heatmap auto-refresh."
+        "COMMANDS.md added — full reference for all six management commands with flags, examples, progress checks, and the cron setup for the daily heatmap auto-refresh.",
+        "Nav modernized — slimmed to a 50px bar, two-tier visual hierarchy (primary: Planner/Sites/Tonight's Sky Map; secondary/dimmed: Bortle Scorer, About, Developers), active-page teal underline indicator, and an initials avatar replacing the text user button.",
+        "Nav labels updated — 'Bortle' renamed to 'Bortle Scorer'; 'Feedback' moved out of the nav to a persistent footer link; 'API' replaced by a 'Developers' dropdown containing the API Guide.",
+        "Display Name preference — users can set a short name (e.g. 'Travis') that appears in the nav avatar tooltip and pre-fills the feedback form name field.",
+        "Homepage step cards and planner setup cards have softer borders and a subtle drop shadow; homepage steps now show a teal left accent at decreasing opacity to signal visual priority."
       ],
       "fixes": [
         "MFA index page was rendering unstyled allauth default templates — all MFA and reauthenticate pages now extend base.html with the dark theme.",
         "TOTP setup URL wrapping — the manual-entry otpauth:// URL on the QR code page now wraps correctly inside a styled code block instead of overflowing the card.",
-        "Recovery Codes page heading capitalization corrected."
+        "Recovery Codes page heading capitalization corrected.",
+        "Developers nav dropdown trigger now matches primary nav link font size, weight, and color exactly."
       ]
     },
     {

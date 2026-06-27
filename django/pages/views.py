@@ -190,6 +190,10 @@ def preferences(request):
 
     if request.method == "POST":
         try:
+            display_name = request.POST.get("display_name", "").strip()
+            if request.user.first_name != display_name:
+                request.user.first_name = display_name
+                request.user.save(update_fields=["first_name"])
             prefs.units = request.POST.get("units", "metric")
             tz = request.POST.get("timezone", "America/Chicago")
             if tz != prefs.timezone:

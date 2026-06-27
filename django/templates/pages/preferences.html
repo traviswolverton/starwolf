@@ -18,6 +18,19 @@
     <tbody>
 
       <tr>
+        <td class="pref-label">
+          <span title="Shown in the navigation bar instead of your email address. Leave blank to show your email.">
+            Display Name <span class="pref-hint-icon">?</span>
+          </span>
+        </td>
+        <td class="pref-control">
+          <input type="text" name="display_name" value="{{ user.first_name }}"
+                 placeholder="e.g. Travis"
+                 class="pref-text-input">
+        </td>
+      </tr>
+
+      <tr>
         <td class="pref-label">Units</td>
         <td class="pref-control">
           <div class="unit-toggle">
@@ -52,7 +65,11 @@
       </tr>
 
       <tr>
-        <td class="pref-label">Min Score</td>
+        <td class="pref-label">
+          <span title="Nights scoring below this threshold are hidden from Planner results. Set to 0 to see all nights.">
+            Min Score <span class="pref-hint-icon">?</span>
+          </span>
+        </td>
         <td class="pref-control" x-data="{ val: {{ prefs.min_score_threshold }} }">
           <div class="pref-spinner">
             <button type="button" class="spin-btn" @click="val = Math.max(0, val - 5)">−</button>

@@ -22,18 +22,25 @@
     </div>
 
     <nav class="nav-links" :class="{ 'is-open': open }">
-      <a href="{% url 'planner' %}" @click="open = false">Planner</a>
-      <a href="{% url 'sites' %}" @click="open = false">Sites</a>
-      <a href="{% url 'heatmap' %}" @click="open = false">Forecast Map</a>
-      <a href="{% url 'bortle_scorer' %}" @click="open = false">Bortle</a>
-      <a href="{% url 'api_guide' %}" @click="open = false">API</a>
-      <a href="{% url 'feedback' %}" @click="open = false">Feedback</a>
-      <a href="{% url 'about' %}" @click="open = false">About</a>
+      <a href="{% url 'planner' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'planner' %}nav-active{% endif %}">Planner</a>
+      <a href="{% url 'sites' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'sites' %}nav-active{% endif %}">Sites</a>
+      <a href="{% url 'heatmap' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'heatmap' %}nav-active{% endif %}">Tonight's Sky Map</a>
+      <a href="{% url 'bortle_scorer' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'bortle_scorer' %}nav-active{% endif %}">Bortle Scorer</a>
+      <a href="{% url 'about' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'about' %}nav-active{% endif %}">About</a>
+      <div class="nav-dropdown-wrap nav-secondary" x-data="{ devOpen: false }" @click.outside="devOpen = false">
+        <button class="nav-dropdown-trigger" @click="devOpen = !devOpen; open = true">
+          Developers <span x-text="devOpen ? '▴' : '▾'" style="font-size:0.65rem;"></span>
+        </button>
+        <div class="nav-dropdown-panel" x-show="devOpen" x-cloak @click="devOpen = false; open = false">
+          <a href="{% url 'api_guide' %}">📡 API Guide</a>
+        </div>
+      </div>
 
       {% if user.is_authenticated %}
       <div class="user-menu" x-data="{ userOpen: false }" @click.outside="userOpen = false">
         <button class="user-trigger" @click="userOpen = !userOpen" :aria-expanded="userOpen.toString()">
-          👤 {{ user.email }} <span x-text="userOpen ? '▴' : '▾'"></span>
+          <span class="nav-avatar">{{ user.first_name|default:user.email|first|upper }}</span>
+          <span class="nav-avatar-caret" x-text="userOpen ? '▴' : '▾'"></span>
         </button>
         <div class="user-dropdown" x-show="userOpen" x-cloak>
           <a href="{% url 'location' %}" @click="userOpen = false; open = false">
@@ -78,6 +85,9 @@
       Light pollution: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001" target="_blank" rel="noopener">Falchi et al. 2016</a> (CC BY 4.0) ·
       Maps &amp; geocoding: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> ·
       <a href="{% url 'about' %}">Full credits →</a>
+    </div>
+    <div class="footer-links">
+      <a href="{% url 'feedback' %}">Submit feedback</a>
     </div>
   </footer>
 </body>
