@@ -832,7 +832,7 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   display: flex; flex-direction: column; gap: 0.6rem;
 }
 .type-legend .type-badge { margin-right: 0.4rem; }
-.col-notes  { color: #5a6a80; font-size: 0.82rem; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-notes  { color: #5a6a80; font-size: 0.82rem; }
 .col-map    { text-align: center; font-size: 1rem; width: 2rem; }
 .col-map a  { text-decoration: none; opacity: 0.7; transition: opacity 0.1s; }
 .col-map a:hover { opacity: 1; }
