@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.github",
-    "allauth.socialaccount.providers.microsoft",
+    "allauth.socialaccount.providers.discord",
     "allauth.mfa",
     "accounts",
     "pages",
@@ -79,13 +79,12 @@ SOCIALACCOUNT_PROVIDERS = {
         }],
         "SCOPE": ["user:email"],
     },
-    "microsoft": {
+    "discord": {
         "APPS": [{
-            "client_id": os.environ.get("MICROSOFT_CLIENT_ID", ""),
-            "secret":    os.environ.get("MICROSOFT_CLIENT_SECRET", ""),
+            "client_id": os.environ.get("DISCORD_CLIENT_ID", ""),
+            "secret":    os.environ.get("DISCORD_CLIENT_SECRET", ""),
         }],
-        "SCOPE": ["User.Read"],
-        "AUTH_PARAMS": {"prompt": "select_account"},
+        "SCOPE": ["identify", "email"],
     },
 }
 
