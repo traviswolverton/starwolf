@@ -204,29 +204,12 @@ def preferences(request):
         except Exception as e:
             return HttpResponse(f'<div class="alert error">Save failed: {e}</div>')
 
-    # Load scoring weights for display
-    with connection.cursor() as cur:
-        cur.execute("SELECT factor, weight, description FROM scoring_weights ORDER BY weight DESC")
-        tel_weights = cur.fetchall()
-        cur.execute("SELECT factor, weight FROM naked_eye_weights ORDER BY weight DESC")
-        eye_weights = cur.fetchall()
-
-    _factor_labels = {
-        "cloud_cover": "Cloud Cover", "high_cloud": "High Cloud",
-        "moon": "Moon", "lifted_index": "Stability (LI)", "humidity": "Humidity",
-    }
-    tel_rows = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": r[2]} for r in tel_weights]
-    eye_desc  = {r[0]: r[2] for r in tel_weights}
-    eye_rows  = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": eye_desc.get(r[0], "")} for r in eye_weights]
-
     tz_options = list(_COMMON_TIMEZONES)
     if prefs.timezone not in tz_options:
         tz_options.insert(0, prefs.timezone)
 
     return render(request, "pages/preferences.html", {
         "tz_options": tz_options,
-        "tel_rows": tel_rows,
-        "eye_rows": eye_rows,
     })
 
 
@@ -537,6 +520,26 @@ def heatmap(request):
         if hasattr(ts, "astimezone"):
             ts_str = ts.astimezone(_CDT).strftime("%-I:%M %p CDT")
 
+    top10 = []
+    if sites:
+        with connection.cursor() as cur:
+            cur.execute("""
+                SELECT sd.name, sd.score, s.bortle_class, s.state_province, s.country
+                FROM site_daily_scores sd
+                JOIN sites s ON s.id = sd.site_id
+                WHERE sd.score_date = %s AND sd.score IS NOT NULL
+                ORDER BY sd.score DESC
+                LIMIT 10
+            """, [today])
+            top10 = [
+                {"name": n, "score": round(sc), "bortle": b,
+                 "state": sp, "country": c,
+                 "color": _score_to_color(sc)}
+                for n, sc, b, sp, c in cur.fetchall()
+            ]
+        for i, site in enumerate(sites[:10]):
+            site["rank"] = i + 1
+
     return render(request, "pages/heatmap.html", {
         "sites_json": json.dumps(sites or []),
         "meta": meta,
@@ -545,6 +548,8 @@ def heatmap(request):
         "has_data": bool(sites),
         "is_admin": is_admin,
         "compute_state": compute_state,
+        "missing_count": (meta["total"] - meta["scored"]) if meta else 0,
+        "top10": top10,
     })
 
 
@@ -620,6 +625,7 @@ def bortle_scorer(request):
     })
 
 
+@login_required
 @require_http_methods(["GET", "POST"])
 def feedback(request):
     if request.method == "GET":
@@ -859,6 +865,19 @@ def planner(request):
     compute_state = cache.get(state_key)
     cached_nights_json = cache.get(results_key)
 
+    _factor_labels = {
+        "cloud_cover": "Cloud Cover", "high_cloud": "High Cloud",
+        "moon": "Moon", "lifted_index": "Stability (LI)", "humidity": "Humidity",
+    }
+    with connection.cursor() as cur:
+        cur.execute("SELECT factor, weight, description FROM scoring_weights ORDER BY weight DESC")
+        tel_weights = cur.fetchall()
+        cur.execute("SELECT factor, weight FROM naked_eye_weights ORDER BY weight DESC")
+        eye_weights = cur.fetchall()
+    tel_rows = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": r[2]} for r in tel_weights]
+    eye_desc  = {r[0]: r[2] for r in tel_weights}
+    eye_rows  = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": eye_desc.get(r[0], "")} for r in eye_weights]
+
     return render(request, "pages/planner.html", {
         "prefs":           prefs,
         "site_count":      site_count,
@@ -870,6 +889,38 @@ def planner(request):
         "is_running":      bool(compute_state and compute_state.get("running")),
         "has_results":     bool(cached_nights_json),
         "compute_state":   compute_state,
+        "tel_rows":        tel_rows,
+        "eye_rows":        eye_rows,
+    })
+
+
+@login_required
+@require_http_methods(["GET"])
+def planner_site_count(request):
+    prefs = request.prefs
+    try:
+        radius_val = int(request.GET.get("radius", 300))
+    except ValueError:
+        radius_val = 300
+
+    is_imperial = prefs and prefs.units == "imperial"
+    dist_unit = "mi" if is_imperial else "km"
+    radius_km = radius_val / _KM_TO_MI if is_imperial else radius_val
+
+    sites = _load_planner_sites(prefs, radius_km if (prefs and prefs.has_location) else None)
+    max_sites = _get_planner_max_sites()
+    site_count = len(sites)
+    capped = site_count > max_sites
+    effective_count = min(site_count, max_sites)
+
+    return render(request, "pages/_site_count.html", {
+        "site_count": site_count,
+        "effective_count": effective_count,
+        "max_sites": max_sites,
+        "capped": capped,
+        "radius_val": radius_val,
+        "dist_unit": dist_unit,
+        "has_location": bool(prefs and prefs.has_location),
     })
 
 

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Two-factor authentication — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card" style="max-width:460px;">
+    <h2 class="auth-title">🔐 Two-factor authentication</h2>
+
+    <div class="mfa-section">
+      <div class="mfa-row">
+        <div class="mfa-row-info">
+          <div class="mfa-method-label">Authenticator app (TOTP)</div>
+          <div class="mfa-method-sub">Google Authenticator, Authy, 1Password, etc.</div>
+        </div>
+        <div class="mfa-row-action">
+          {% if authenticators.totp %}
+            <span class="badge badge-ok">Enabled</span>
+            <a href="{% url 'mfa_deactivate_totp' %}" class="mfa-link danger">Disable</a>
+          {% else %}
+            <span class="badge badge-off">Off</span>
+            <a href="{% url 'mfa_activate_totp' %}" class="mfa-link">Set up</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if authenticators.totp %}
+    <div class="mfa-section" style="margin-top:0.75rem;">
+      <div class="mfa-row">
+        <div class="mfa-row-info">
+          <div class="mfa-method-label">Recovery codes</div>
+          <div class="mfa-method-sub">
+            {% if authenticators.recovery_codes %}
+              {{ authenticators.recovery_codes.get_unused_codes|length }} remaining
+            {% else %}
+              Not generated yet
+            {% endif %}
+          </div>
+        </div>
+        <div class="mfa-row-action">
+          {% if authenticators.recovery_codes %}
+            <span class="badge badge-ok">Generated</span>
+          {% else %}
+            <span class="badge badge-off">None</span>
+          {% endif %}
+          <a href="{% url 'mfa_view_recovery_codes' %}" class="mfa-link">
+            {% if authenticators.recovery_codes %}View{% else %}Generate{% endif %}
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

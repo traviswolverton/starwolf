@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Recovery codes — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card" style="max-width:480px;">
+    <h2 class="auth-title">Recovery Codes</h2>
+    <p class="auth-sub">
+      Each code can be used once to sign in if you lose access to your authenticator app.
+      Store them somewhere safe.
+    </p>
+
+    {% if can_view_codes and unused_codes %}
+    <div class="recovery-codes-grid">
+      {% for code in unused_codes %}
+      <code class="recovery-code">{{ code }}</code>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert warning">Codes are hidden. Regenerate to get a new set.</div>
+    {% endif %}
+
+    <div class="mfa-actions">
+      {% if can_download_codes %}
+      <a href="{% url 'mfa_download_recovery_codes' %}" class="btn-secondary">Download</a>
+      {% endif %}
+      {% if can_generate_codes %}
+      <a href="{% url 'mfa_generate_recovery_codes' %}" class="btn-secondary">Regenerate</a>
+      {% endif %}
+      <a href="{% url 'mfa_index' %}" class="btn-secondary">Back</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

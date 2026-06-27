@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Disable authenticator — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">Disable authenticator app</h2>
+    <p class="auth-sub">You will no longer be required to enter a code when signing in.</p>
+    {% if form.errors %}
+    <div class="alert error">{{ form.non_field_errors|join:", " }}</div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn-primary" style="width:100%;background:#c0392b;border-color:#c0392b;">
+        Disable two-factor authentication
+      </button>
+    </form>
+    <a href="{% url 'mfa_index' %}" class="setup-link" style="text-align:center;display:block;margin-top:1rem;">Cancel</a>
+  </div>
+</div>
+{% endblock %}

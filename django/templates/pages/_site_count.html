@@ -1,0 +1,10 @@
+{% if capped %}
+<div class="setup-card-value">{{ effective_count }} <span style="color:#e6a817;">of {{ site_count }}</span></div>
+<div class="setup-card-value muted" style="font-size:0.8rem;">capped at {{ max_sites }} (closest first)</div>
+{% else %}
+<div class="setup-card-value">{{ effective_count }} in range</div>
+{% if has_location %}
+<div class="setup-card-value muted" style="font-size:0.8rem;">within {{ radius_val }} {{ dist_unit }}</div>
+{% endif %}
+{% endif %}
+<a href="{% url 'sites' %}" class="setup-link">Browse →</a>

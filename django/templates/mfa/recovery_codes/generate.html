@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Generate recovery codes — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">Generate recovery codes</h2>
+    {% if unused_code_count %}
+    <div class="alert warning">
+      You have {{ unused_code_count }} existing code{{ unused_code_count|pluralize }} —
+      generating a new set will invalidate them all.
+    </div>
+    {% else %}
+    <p class="auth-sub">Generate a set of one-time backup codes you can use if you lose your authenticator.</p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn-primary" style="width:100%;">Generate recovery codes</button>
+    </form>
+    <a href="{% url 'mfa_index' %}" class="setup-link" style="text-align:center;display:block;margin-top:1rem;">Cancel</a>
+  </div>
+</div>
+{% endblock %}

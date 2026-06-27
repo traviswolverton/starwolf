@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Confirm access — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">🔒 Confirm access</h2>
+    <p class="auth-sub">Enter your password to continue.</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="field-group">
+        <label class="field-label" for="id_password">Password</label>
+        <input class="field-input" type="password" name="password" id="id_password" autofocus>
+      </div>
+      {% if form.errors %}
+      <div class="alert error">Incorrect password.</div>
+      {% endif %}
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:0.75rem;">Confirm</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

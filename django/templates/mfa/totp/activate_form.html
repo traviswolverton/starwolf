@@ -11,7 +11,8 @@
       {% endif %}
     </div>
     {% if totp_url %}
-    <p class="field-hint" style="text-align:center;">Or enter manually: <code>{{ totp_url }}</code></p>
+    <p class="field-hint" style="text-align:center;">Or enter manually:</p>
+    <code style="display:block;word-break:break-all;font-size:0.75rem;background:#13151f;border:1px solid #2a2d3e;border-radius:6px;padding:0.6rem 0.75rem;margin-bottom:1rem;">{{ totp_url }}</code>
     {% endif %}
     <form method="post">
       {% csrf_token %}

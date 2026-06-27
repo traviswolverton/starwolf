@@ -1,6 +1,26 @@
 {
   "releases": [
     {
+      "date": "2026-06-27",
+      "features": [
+        "Tonight's Forecast Map now shows a Top 10 Sites Tonight table below the map — ranked by composite score, with Bortle class and location. Top 10 sites are rendered as colored stars on the map (with rank number) instead of dots, and always appear on top of other markers.",
+        "Tonight's Forecast Map now shows a 'Data last gathered' stat bar with site count and timestamp, visible to all users.",
+        "Heatmap auto-refresh — a cron job now recomputes tonight's forecast at noon CDT (17:00 UTC) daily via a new compute_heatmap management command. Admins can still trigger manual recomputes from the page.",
+        "Heatmap admin controls improved — the 'Retry N missing' count was showing incorrect math; fixed. The 'All sites scored' button is now active ('Recompute all') so admins can refresh data mid-day.",
+        "Planner page — Location and Sites setup cards merged into a single card with a two-column layout. The site count updates live as you drag the radius slider (HTMX, 300ms debounce).",
+        "Preferences page redesigned as a compact table — Units as a pill toggle, Timezone as a dropdown with an auto-detected tooltip, Min Score and all Hard Disqualifiers as +/− spinners. Scoring weights removed from this page.",
+        "Scoring weights moved to the Planner page — a collapsed 'How scores are calculated' section at the bottom, referenced by a subtle link just below the results area.",
+        "Feedback page now requires login (IP rate limit retained). API Guide remains public.",
+        "Two-factor authentication (TOTP) fully wired — the 2FA menu link now works end-to-end. Includes: TOTP setup with QR code, reauthentication confirmation, disable flow, recovery code generation and download, and a styled authenticate prompt at login. TOTP challenge only fires for password-based (local admin) logins; OAuth users are unaffected.",
+        "COMMANDS.md added — full reference for all six management commands with flags, examples, progress checks, and the cron setup for the daily heatmap auto-refresh."
+      ],
+      "fixes": [
+        "MFA index page was rendering unstyled allauth default templates — all MFA and reauthenticate pages now extend base.html with the dark theme.",
+        "TOTP setup URL wrapping — the manual-entry otpauth:// URL on the QR code page now wraps correctly inside a styled code block instead of overflowing the card.",
+        "Recovery Codes page heading capitalization corrected."
+      ]
+    },
+    {
       "date": "2026-06-26",
       "features": [
         "Address autocomplete on the Set Location page — as you type, suggested addresses appear powered by OpenStreetMap data; click one to fill in your coordinates automatically.",

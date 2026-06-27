@@ -28,6 +28,7 @@
       <a href="{% url 'bortle_scorer' %}" @click="open = false">Bortle</a>
       <a href="{% url 'api_guide' %}" @click="open = false">API</a>
       <a href="{% url 'feedback' %}" @click="open = false">Feedback</a>
+      <a href="{% url 'about' %}" @click="open = false">About</a>
 
       {% if user.is_authenticated %}
       <div class="user-menu" x-data="{ userOpen: false }" @click.outside="userOpen = false">
@@ -69,5 +70,15 @@
   <main>
     {% block content %}{% endblock %}
   </main>
+
+  <footer class="site-footer">
+    <div class="footer-credits">
+      Weather: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) ·
+      Seeing: <a href="http://7timer.info" target="_blank" rel="noopener">7timer!</a> ·
+      Light pollution: <a href="https://doi.org/10.5880/GFZ.1.4.2016.001" target="_blank" rel="noopener">Falchi et al. 2016</a> (CC BY 4.0) ·
+      Maps &amp; geocoding: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a> ·
+      <a href="{% url 'about' %}">Full credits →</a>
+    </div>
+  </footer>
 </body>
 </html>

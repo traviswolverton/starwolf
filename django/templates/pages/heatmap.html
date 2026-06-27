@@ -11,30 +11,32 @@
 <div class="heatmap-header">
   <div>
     <h1>🗺️ Tonight's Forecast Map</h1>
-    <p class="subtitle">
-      {% if meta %}
-        {{ meta.scored }}/{{ meta.total }} sites scored
-        {% if ts_str %}· last updated {{ ts_str }}{% endif %}
-      {% else %}
-        No forecast data for today yet.
-      {% endif %}
-    </p>
+    <p class="subtitle">Composite darkness + weather score for every site, tonight.</p>
   </div>
 
   {% if is_admin %}
   <div class="heatmap-controls" id="heatmap-controls">
     {% if not has_data %}
     <button class="btn-primary" onclick="startCompute(false)">🔄 Compute tonight's forecast</button>
-    {% elif meta.scored < meta.total %}
-    <button class="btn-secondary" onclick="startCompute(true)">🔄 Retry {{ meta.total|add:meta.scored|add:"-"|add:meta.scored }} missing</button>
+    {% elif missing_count > 0 %}
+    <button class="btn-secondary" onclick="startCompute(true)">🔄 Retry {{ missing_count }} missing</button>
     <button class="btn-secondary" onclick="startCompute(false)" style="margin-left:0.5rem;">↺ Recompute all</button>
     {% else %}
-    <button class="btn-secondary" disabled title="All sites scored for today">✅ All sites scored</button>
+    <button class="btn-secondary" onclick="startCompute(false)">↺ Recompute all</button>
     {% endif %}
     <div id="compute-status" class="compute-status" style="display:none;"></div>
   </div>
   {% endif %}
 </div>
+
+{% if has_data %}
+<div class="heatmap-stat-bar">
+  <span>{{ meta.scored }}/{{ meta.total }} sites scored</span>
+  {% if ts_str %}
+  <span class="heatmap-timestamp">Data last gathered: <strong>{{ ts_str }}</strong></span>
+  {% endif %}
+</div>
+{% endif %}
 
 {% if not has_data %}
 <div class="alert warning">
@@ -55,6 +57,41 @@
   <span class="legend-dot" style="background:#969696;"></span> No data
 </div>
 
+{% if top10 %}
+<div class="top10-section">
+  <h3>Top 10 Sites Tonight</h3>
+  <table class="top10-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Site</th>
+        <th>Score</th>
+        <th>Bortle</th>
+        <th>Location</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for site in top10 %}
+      <tr>
+        <td class="top10-rank">{{ forloop.counter }}</td>
+        <td class="top10-name">{{ site.name }}</td>
+        <td class="top10-score">
+          <span class="legend-dot" style="background:{{ site.color }};"></span>
+          {{ site.score }}
+        </td>
+        <td class="top10-bortle">{% if site.bortle %}{{ site.bortle }}{% else %}—{% endif %}</td>
+        <td class="top10-location">
+          {% if site.state %}{{ site.state }}{% if site.country %}, {{ site.country }}{% endif %}
+          {% elif site.country %}{{ site.country }}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -68,18 +105,32 @@
   }).addTo(map);
 
   sites.forEach(function (s) {
-    L.circleMarker([s.lat, s.lon], {
-      radius: 6,
-      fillColor: s.color,
-      color: 'rgba(0,0,0,0.3)',
-      weight: 1,
-      fillOpacity: 0.85,
-    })
-    .bindPopup(
-      '<strong>' + s.name + '</strong><br>Score: <strong>' +
-      (s.score !== null ? s.score : 'n/a') + '</strong>'
-    )
-    .addTo(map);
+    var popup = '<strong>' + s.name + '</strong><br>Score: <strong>' +
+      (s.score !== null ? s.score : 'n/a') + '</strong>' +
+      (s.rank ? '<br><span style="color:#aaa">#' + s.rank + ' tonight</span>' : '');
+
+    if (s.rank) {
+      L.marker([s.lat, s.lon], {
+        icon: L.divIcon({
+          className: '',
+          html: '<div style="position:relative;width:22px;height:22px;">' +
+            '<span style="position:absolute;top:0;left:0;font-size:22px;line-height:1;color:' + s.color + ';text-shadow:0 0 6px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.9);">★</span>' +
+            '<span style="position:absolute;top:0;left:0;width:22px;text-align:center;font-size:8px;font-weight:700;color:#fff;line-height:22px;">' + s.rank + '</span>' +
+            '</div>',
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        }),
+        zIndexOffset: 1000,
+      }).bindPopup(popup).addTo(map);
+    } else {
+      L.circleMarker([s.lat, s.lon], {
+        radius: 6,
+        fillColor: s.color,
+        color: 'rgba(0,0,0,0.3)',
+        weight: 1,
+        fillOpacity: 0.85,
+      }).bindPopup(popup).addTo(map);
+    }
   });
 })();
 </script>

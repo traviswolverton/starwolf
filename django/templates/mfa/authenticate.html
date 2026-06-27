@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Two-factor authentication — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">🔐 Enter your code</h2>
+    <p class="auth-sub">Open your authenticator app and enter the 6-digit code for StarWolf.</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="field-group">
+        <label class="field-label" for="id_code">Verification code</label>
+        <input class="field-input" type="text" name="code" id="id_code"
+               autocomplete="one-time-code" inputmode="numeric"
+               pattern="[0-9]*" placeholder="000000" autofocus>
+      </div>
+      {% if form.errors %}
+      <div class="alert error">Invalid code — try again.</div>
+      {% endif %}
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;">Verify</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

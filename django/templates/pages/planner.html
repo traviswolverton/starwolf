@@ -7,29 +7,22 @@
 <div class="planner-setup">
 
   <div class="setup-card {% if prefs.has_location %}ok{% else %}warn{% endif %}">
-    <div class="setup-card-title">📍 Location</div>
-    {% if prefs.has_location %}
-    <div class="setup-card-value">{{ prefs.location_display }}</div>
-    {% else %}
-    <div class="setup-card-value muted">Not set</div>
-    <a href="{% url 'location' %}" class="setup-link">Set location →</a>
-    {% endif %}
+    <div class="setup-card-title">📍 Location &amp; Sites</div>
+    <div class="setup-card-cols">
+      <div class="setup-card-col">
+        {% if prefs.has_location %}
+        <div class="setup-card-value">{{ prefs.location_display }}</div>
+        {% else %}
+        <div class="setup-card-value muted">No location set</div>
+        {% endif %}
+        <a href="{% url 'location' %}" class="setup-link">{% if prefs.has_location %}Change →{% else %}Set location →{% endif %}</a>
+      </div>
+      <div class="setup-card-col-divider"></div>
+      <div class="setup-card-col" id="site-count-display">
+        {% include "pages/_site_count.html" with site_count=site_count effective_count=effective_count max_sites=max_sites capped=capped radius_val=radius_val dist_unit=dist_unit has_location=prefs.has_location %}
+      </div>
+    </div>
   </div>
-
-  <div class="setup-card ok">
-    <div class="setup-card-title">🌑 Sites</div>
-    {% if capped %}
-    <div class="setup-card-value">{{ effective_count }} <span style="color:#e6a817;">of {{ site_count }}</span></div>
-    <div class="setup-card-value muted" style="font-size:0.8rem;">capped at {{ max_sites }} (closest first)</div>
-    {% else %}
-    <div class="setup-card-value">{{ effective_count }} in range</div>
-    {% if prefs.has_location %}
-    <div class="setup-card-value muted" style="font-size:0.8rem;">within {{ radius_val }} {{ dist_unit }}</div>
-    {% endif %}
-    {% endif %}
-    <a href="{% url 'sites' %}" class="setup-link">Browse →</a>
-  </div>
-
 
 </div>
 
@@ -41,7 +34,11 @@
        @slider-max-update.window="sliderMax = $event.detail.max; if (val > sliderMax) val = sliderMax">
     <label class="field-label">Radius</label>
     <input type="range" name="radius" min="50" :max="sliderMax"
-           step="25" x-model="val" class="slider">
+           step="25" x-model="val" class="slider"
+           hx-get="{% url 'planner_site_count' %}"
+           hx-trigger="input changed delay:300ms"
+           hx-target="#site-count-display"
+           hx-include="[name='radius']">
     <span class="slider-val" x-text="val + ' {{ dist_unit }}'">{{ radius_val }} {{ dist_unit }}</span>
   </div>
   {% else %}
@@ -72,4 +69,40 @@
     </div>
   {% endif %}
 </div>
+
+<p class="field-hint" style="margin-top:1.5rem;">
+  Curious how nights are ranked? <a href="#scoring" class="subtle-link">How scores are calculated ↓</a>
+</p>
+
+<details class="scoring-explainer" id="scoring">
+  <summary>How scores are calculated</summary>
+  <div class="scoring-body">
+    <p>Each site/night is scored 0–100 by averaging hourly values across the astronomical darkness window using two separate models. Weights are configurable in the Admin panel.</p>
+    <div class="arch-grid">
+      <div>
+        <h4>🔭 Telescope</h4>
+        <table class="weights-table">
+          <thead><tr><th>Factor</th><th>Weight</th><th>Notes</th></tr></thead>
+          <tbody>
+            {% for row in tel_rows %}
+            <tr><td>{{ row.factor }}</td><td>{{ row.weight }}</td><td class="notes-col">{{ row.notes }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h4>👁 Naked Eye</h4>
+        <table class="weights-table">
+          <thead><tr><th>Factor</th><th>Weight</th><th>Notes</th></tr></thead>
+          <tbody>
+            {% for row in eye_rows %}
+            <tr><td>{{ row.factor }}</td><td>{{ row.weight }}</td><td class="notes-col">{{ row.notes }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="field-hint" style="margin-top:0.5rem;">Plus Bortle modifier (0.55–1.0×) applied to total.</p>
+      </div>
+    </div>
+  </div>
+</details>
 {% endblock %}

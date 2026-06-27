@@ -64,4 +64,4 @@ tests/test_scorer.py::TestScoreForecast::test_no_disqualifier_when_within_limits
 tests/test_scorer.py::TestScoreForecast::test_scores_in_valid_range PASSED [ 98%]
 tests/test_scorer.py::TestScoreForecast::test_empty_open_meteo_returns_empty PASSED [100%]
 
-============================== 58 passed in 0.15s ==============================
+============================== 58 passed in 0.14s ==============================

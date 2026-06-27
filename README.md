@@ -23,8 +23,8 @@ Source: [github.com/traviswolverton/starwolf](https://github.com/traviswolverton
 - User location: geocode a home base with address autocomplete (OpenStreetMap/Photon) — drives distance display and proximity filter
 - Proximity filter: score only sites within a configurable radius; slider auto-adjusts to furthest result
 - Imperial/metric toggle: distances and visibility threshold throughout the UI
-- Sign-in with Google or GitHub (OAuth2), or email/password; optional TOTP two-factor auth
-- Cloudflare Access retained as a sign-in fallback for zero-friction access on managed devices
+- Sign-in with Google or GitHub (OAuth2), or email/password; TOTP two-factor authentication for local admin accounts
+- Tonight's Forecast Map auto-refreshes at noon CDT via a cron-triggered management command; top 10 sites displayed as stars on the map
 - Role-based access control (guest / user / admin)
 - Admin page for scoring weights and app-wide settings (requires admin role)
 - Dual composite scores — telescope and naked eye — with Bortle class modifier
@@ -44,6 +44,7 @@ stargazing-app/
 │   │   └── management/commands/
 │   │       ├── create_local_admin.py       # Create local admin (bypasses Cloudflare)
 │   │       ├── offboard_user.py            # Deactivate/reactivate users
+│   │       ├── compute_heatmap.py          # Score all sites for tonight (run via cron at noon CDT)
 │   │       ├── populate_site_locations.py  # Reverse-geocode sites → country + state/province
 │   │       └── enrich_notes.py             # Rewrite site notes via Ollama + Wikipedia
 │   ├── pages/                      # All page views
@@ -204,7 +205,9 @@ Key/value pairs for admin-configurable application settings.
 
 ## REST API
 
-The app exposes a scored forecast API on port 8000. See **[API_GUIDE.md](API_GUIDE.md)** for full documentation including parameters, response schema, curl/Python examples, and caching details.
+The app exposes a scored forecast API on port 8000. See **[COMMANDS.md](COMMANDS.md)** for full management command reference including all flags, progress checks, and the cron setup for the daily heatmap auto-refresh.
+
+See **[API_GUIDE.md](API_GUIDE.md)** for full API documentation including parameters, response schema, curl/Python examples, and caching details.
 
 ```bash
 # Quick example
@@ -374,7 +377,7 @@ cd /opt/stargazing-app
 docker compose exec django python manage.py create_local_admin admin@example.com yourpassword
 ```
 
-This creates an admin user that can log in at `/accounts/login/` without going through Cloudflare Access — useful for local dev and emergency access.
+This creates an admin user that can log in at `/accounts/login/` with email + password — useful for local dev and emergency access.
 
 ### 4. Verify
 
@@ -389,10 +392,10 @@ Opens at `http://localhost:8080`.
 ### User management
 
 ```bash
-# Deactivate a user removed from Cloudflare Access (preserves their preferences)
+# Deactivate a user (preserves their preferences for re-activation later)
 docker compose exec django python manage.py offboard_user someone@example.com
 
-# Re-activate them if re-added to Cloudflare
+# Re-activate them
 docker compose exec django python manage.py offboard_user someone@example.com --reactivate
 ```
 
