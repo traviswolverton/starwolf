@@ -1089,12 +1089,13 @@ details[open] summary::before { transform: rotate(90deg); }
 
 .email-login-expander {
   margin-top: 1.25rem;
-  border-top: 1px solid #2a2d3e;
-  padding-top: 1rem;
+  border: none;
+  outline: none;
+  background: none;
 }
 .email-login-expander summary {
-  color: #556070;
-  font-size: 0.82rem;
+  color: #445060;
+  font-size: 0.8rem;
   cursor: pointer;
   text-align: center;
   list-style: none;
@@ -1102,7 +1103,7 @@ details[open] summary::before { transform: rotate(90deg); }
 }
 .email-login-expander summary:hover { color: #7080a0; }
 .email-login-expander summary::-webkit-details-marker { display: none; }
-.email-login-expander[open] summary { margin-bottom: 0.9rem; color: #7080a0; }
+.email-login-expander[open] summary { margin-bottom: 0.9rem; color: #556070; }
 
 /* ── Callout / info box ──────────────────────────────────────────────────── */
 .callout {
