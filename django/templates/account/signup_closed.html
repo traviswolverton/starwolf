@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Sign Up Closed — StarWolf{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <div class="auth-logo">🐺</div>
+  <h1 class="auth-title">Sign Up Closed</h1>
+  <p class="auth-subtitle">Email registration is not available.</p>
+  <p style="color:#8090a8; font-size:0.9rem; margin: 1rem 0 1.5rem;">
+    Sign in with Google, GitHub, or Discord to create an account instantly.
+  </p>
+  <a href="{% url 'account_login' %}" class="btn-primary" style="display:inline-block; text-decoration:none; padding:0.6rem 1.4rem; border-radius:6px;">
+    ← Back to Sign In
+  </a>
+</div>
+{% endblock %}
