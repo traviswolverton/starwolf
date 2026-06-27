@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Sign In Cancelled — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">🐺</div>
+    <h2 class="auth-title">Sign In Cancelled</h2>
+    <p class="auth-subtitle">You cancelled the sign-in. No worries — head back whenever you're ready.</p>
+    <a href="{% url 'account_login' %}" class="btn-primary" style="display:inline-block;text-decoration:none;padding:0.6rem 1.4rem;border-radius:6px;margin-top:1rem;">← Back to Sign In</a>
+  </div>
+</div>
+{% endblock %}

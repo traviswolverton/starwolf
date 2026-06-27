@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Confirm Email — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">🐺</div>
+    <h2 class="auth-title">Confirm Email Address</h2>
+    {% if confirmation %}
+    <p class="auth-subtitle" style="margin-bottom:1.25rem;">Confirm that <strong style="color:#c0c8d8;">{{ confirmation.email_address.email }}</strong> is your email address.</p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn-primary" style="width:100%;">Confirm</button>
+    </form>
+    {% else %}
+    <p class="auth-subtitle" style="color:#e05c5c;">This confirmation link is invalid or has expired.</p>
+    {% endif %}
+    <p style="text-align:center;margin-top:1rem;"><a href="{% url 'account_login' %}" style="color:#556070;font-size:0.85rem;">← Back to Sign In</a></p>
+  </div>
+</div>
+{% endblock %}

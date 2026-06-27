@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Connected Accounts — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">Connected Accounts</h2>
+
+    {% if form.accounts %}
+    <p class="auth-subtitle" style="margin-bottom:1rem;">You can sign in with any of these:</p>
+    <form method="post">
+      {% csrf_token %}
+      <ul style="list-style:none;padding:0;margin:0 0 1.25rem;">
+        {% for base_account, is_connected in form.accounts %}
+        <li style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #1e2235;">
+          <span style="color:#c0c8d8;">{{ base_account.get_provider_display }} &mdash; {{ base_account }}</span>
+          {% if is_connected %}
+          <button type="submit" name="account" value="{{ base_account.id }}" class="btn-secondary" style="font-size:0.8rem;padding:0.25rem 0.75rem;">Disconnect</button>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </form>
+    {% else %}
+    <p class="auth-subtitle">No social accounts connected yet.</p>
+    {% endif %}
+
+    <a href="{% url 'account_login' %}" style="color:#556070;font-size:0.85rem;text-decoration:none;">← Back to Sign In</a>
+  </div>
+</div>
+{% endblock %}

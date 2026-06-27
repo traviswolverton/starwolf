@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Account Inactive — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">🐺</div>
+    <h2 class="auth-title">Account Inactive</h2>
+    <p class="auth-subtitle">Your account has been disabled. Contact the site admin if you think this is a mistake.</p>
+    <a href="{% url 'account_login' %}" class="btn-primary" style="display:inline-block;text-decoration:none;padding:0.6rem 1.4rem;border-radius:6px;margin-top:1rem;">← Back to Sign In</a>
+  </div>
+</div>
+{% endblock %}
