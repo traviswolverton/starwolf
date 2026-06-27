@@ -16,7 +16,9 @@
         "Nav modernized — slimmed to a 50px bar, two-tier visual hierarchy (primary: Planner/Sites/Tonight's Sky Map; secondary/dimmed: Bortle Scorer, About, Developers), active-page teal underline indicator, and an initials avatar replacing the text user button.",
         "Nav labels updated — 'Bortle' renamed to 'Bortle Scorer'; 'Feedback' moved out of the nav to a persistent footer link; 'API' replaced by a 'Developers' dropdown containing the API Guide.",
         "Display Name preference — users can set a short name (e.g. 'Travis') that appears in the nav avatar tooltip and pre-fills the feedback form name field.",
-        "Homepage step cards and planner setup cards have softer borders and a subtle drop shadow; homepage steps now show a teal left accent at decreasing opacity to signal visual priority."
+        "Homepage step cards and planner setup cards have softer borders and a subtle drop shadow; homepage steps now show a teal left accent at decreasing opacity to signal visual priority.",
+        "Documentation consolidated into docs/ — API_GUIDE.md and COMMANDS.md moved from root into a docs/ folder; all internal references updated.",
+        "Streamlit fully decommissioned — legacy frontend, API service, and all Streamlit-specific Python files removed from the repo and moved to an on-disk archive/. Docker stack is now django + db + redis only."
       ],
       "fixes": [
         "MFA index page was rendering unstyled allauth default templates — all MFA and reauthenticate pages now extend base.html with the dark theme.",
