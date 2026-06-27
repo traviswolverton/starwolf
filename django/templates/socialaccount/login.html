@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Sign In Via {{ provider.name }} — StarWolf{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">
+      {% if process == "connect" %}
+        Connect {{ provider.name }}
+      {% else %}
+        Sign In Via {{ provider.name }}
+      {% endif %}
+    </h2>
+    <p class="auth-sub">
+      {% if process == "connect" %}
+        You are about to connect a new third-party account from {{ provider.name }}.
+      {% else %}
+        You are about to sign in using a third-party account from {{ provider.name }}.
+      {% endif %}
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;">Continue</button>
+    </form>
+    <p style="text-align:center;margin-top:1rem;"><a href="{% url 'account_login' %}" style="color:#556070;font-size:0.85rem;">← Back to sign in</a></p>
+  </div>
+</div>
+{% endblock %}
