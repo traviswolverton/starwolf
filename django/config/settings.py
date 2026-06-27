@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.github",
+    "allauth.socialaccount.providers.apple",
     "allauth.mfa",
     "accounts",
     "pages",
@@ -77,6 +78,17 @@ SOCIALACCOUNT_PROVIDERS = {
             "secret":    os.environ.get("GITHUB_CLIENT_SECRET", ""),
         }],
         "SCOPE": ["user:email"],
+    },
+    "apple": {
+        "APPS": [{
+            "client_id": os.environ.get("APPLE_CLIENT_ID", ""),
+            "secret":    os.environ.get("APPLE_CLIENT_SECRET", ""),
+            "key":       os.environ.get("APPLE_KEY_ID", ""),
+            "settings": {
+                "certificate_key": os.environ.get("APPLE_CERTIFICATE_KEY", ""),
+                "team_id":         os.environ.get("APPLE_TEAM_ID", ""),
+            },
+        }],
     },
 }
 

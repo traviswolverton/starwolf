@@ -2,6 +2,10 @@ from allauth.account.adapter import DefaultAccountAdapter
 
 
 class AccountAdapter(DefaultAccountAdapter):
+    def is_open_for_signup(self, request):
+        # Social auth only — block email/password registration
+        return False
+
     def populate_username(self, request, user):
         user.username = user.email
 
