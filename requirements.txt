@@ -1,6 +1,0 @@
-requests
-astral
-rasterio>=1.3
-redis
-psycopg2-binary
-timezonefinder

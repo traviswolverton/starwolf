@@ -149,6 +149,7 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
     border-left: none;
   }
   .nav-secondary { opacity: 1; }
+  .nav-divider { display: none; }
 }
 
 /* ── User dropdown ───────────────────────────────────────────────────────── */
@@ -213,20 +214,32 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .user-dropdown a:last-child { border-bottom: none; }
 .user-dropdown a:hover { background: #1a1d27; color: #4caf96; }
 
-.nav-dropdown-wrap { position: relative; }
+.nav-dropdown-wrap { position: relative; display: flex; align-items: center; }
 .nav-dropdown-trigger {
   background: none;
   border: none;
+  border-bottom: 2px solid transparent;
   color: #c0c8d8;
   font-size: 0.875rem;
   font-weight: 500;
   letter-spacing: 0.01em;
   cursor: pointer;
-  padding: 0;
+  padding: 0 0 2px 0;
+  margin: 0;
   font-family: inherit;
+  line-height: inherit;
   transition: color 0.15s;
 }
+.nav-dropdown-trigger span { vertical-align: middle; }
 .nav-dropdown-trigger:hover { color: #4caf96; }
+.nav-dropdown-trigger--accent { color: #4caf96; }
+.nav-dropdown-trigger--accent:hover { color: #6dd4b8; }
+.nav-divider {
+  width: 1px;
+  height: 18px;
+  background: #2a2d3e;
+  flex-shrink: 0;
+}
 .nav-dropdown-panel {
   position: absolute;
   left: 0;
@@ -1175,6 +1188,12 @@ textarea.auto-resize { resize: none; overflow: hidden; }
   flex: 1;
   accent-color: #4caf96;
   max-width: 360px;
+}
+@media (max-width: 640px) {
+  .radius-row { flex-wrap: wrap; width: 100%; }
+  .radius-row .field-label { flex: 1; }
+  .slider { max-width: none; width: 100%; flex-basis: 100%; order: 3; margin-top: -0.25rem; }
+  .slider-val { order: 2; }
 }
 .slider-val {
   min-width: 3.5rem;

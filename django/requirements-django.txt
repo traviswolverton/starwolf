@@ -1,8 +1,0 @@
-django>=5.1,<6
-gunicorn
-whitenoise
-django-redis
-dj-database-url
-markdown
-django-allauth[socialaccount,mfa]
-qrcode[pil]

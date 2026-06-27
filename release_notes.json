@@ -3,6 +3,15 @@
     {
       "date": "2026-06-27",
       "features": [
+        "Nav — 'Developers' dropdown now appears in teal with a subtle vertical separator, distinguishing it from primary and secondary nav links.",
+        "Nav — 'Developers' button now aligns correctly with other nav items on desktop.",
+        "Planner — radius slider on mobile now spans full width with 'Radius' and the distance value on one line above it.",
+        "Login — removed autofocus from the email field to fix intermittent keyboard-not-appearing bug on iOS Safari."
+      ]
+    },
+    {
+      "date": "2026-06-27",
+      "features": [
         "Tonight's Forecast Map now shows a Top 10 Sites Tonight table below the map — ranked by composite score, with Bortle class and location. Top 10 sites are rendered as colored stars on the map (with rank number) instead of dots, and always appear on top of other markers.",
         "Tonight's Forecast Map now shows a 'Data last gathered' stat bar with site count and timestamp, visible to all users.",
         "Heatmap auto-refresh — a cron job now recomputes tonight's forecast at noon CDT (17:00 UTC) daily via a new compute_heatmap management command. Admins can still trigger manual recomputes from the page.",

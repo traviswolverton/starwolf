@@ -27,8 +27,9 @@
       <a href="{% url 'heatmap' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'heatmap' %}nav-active{% endif %}">Tonight's Sky Map</a>
       <a href="{% url 'bortle_scorer' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'bortle_scorer' %}nav-active{% endif %}">Bortle Scorer</a>
       <a href="{% url 'about' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'about' %}nav-active{% endif %}">About</a>
-      <div class="nav-dropdown-wrap nav-secondary" x-data="{ devOpen: false }" @click.outside="devOpen = false">
-        <button class="nav-dropdown-trigger" @click="devOpen = !devOpen; open = true">
+      <div class="nav-divider"></div>
+      <div class="nav-dropdown-wrap" x-data="{ devOpen: false }" @click.outside="devOpen = false">
+        <button class="nav-dropdown-trigger nav-dropdown-trigger--accent" @click="devOpen = !devOpen; open = true">
           Developers <span x-text="devOpen ? '▴' : '▾'" style="font-size:0.65rem;"></span>
         </button>
         <div class="nav-dropdown-panel" x-show="devOpen" x-cloak @click="devOpen = false; open = false">
