@@ -61,6 +61,7 @@ def home(request):
 urlpatterns = [
     path("", home, name="home"),
     path("about", page_views.about, name="about"),
+    path("moon", page_views.moon_phase_page, name="moon_phase"),
     path("sites", page_views.sites, name="sites"),
     path("location", page_views.location, name="location"),
     path("preferences", page_views.preferences, name="preferences"),

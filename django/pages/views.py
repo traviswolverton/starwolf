@@ -111,6 +111,81 @@ def about(request):
     return render(request, "pages/about.html")
 
 
+_MOON_PHASES = [
+    {
+        "emoji": "🌑", "name": "New Moon",
+        "day_range": (0, 1.84),
+        "desc": "The Moon sits between Earth and the Sun. Its illuminated side faces away from us — the sky is as dark as it gets. Perfect for deep-sky observing.",
+        "visibility": "Not visible",
+    },
+    {
+        "emoji": "🌒", "name": "Waxing Crescent",
+        "day_range": (1.84, 7.38),
+        "desc": "A thin sliver of light grows on the right side (in the northern hemisphere). Sets a few hours after the Sun — early evenings are still dark.",
+        "visibility": "Shortly after sunset",
+    },
+    {
+        "emoji": "🌓", "name": "First Quarter",
+        "day_range": (7.38, 9.22),
+        "desc": "Half the Moon is lit. It rises around noon and sets around midnight — the second half of the night is still good for stargazing.",
+        "visibility": "Afternoon to midnight",
+    },
+    {
+        "emoji": "🌔", "name": "Waxing Gibbous",
+        "day_range": (9.22, 14.77),
+        "desc": "More than half illuminated and brightening. Moonlight begins to wash out fainter objects. Wait for it to set before pointing at nebulae.",
+        "visibility": "Afternoon through early morning",
+    },
+    {
+        "emoji": "🌕", "name": "Full Moon",
+        "day_range": (14.77, 16.61),
+        "desc": "Maximum brightness — the worst night for dark-sky observing. The Moon rises at sunset and is up all night. Great for lunar viewing though.",
+        "visibility": "All night",
+    },
+    {
+        "emoji": "🌖", "name": "Waning Gibbous",
+        "day_range": (16.61, 22.15),
+        "desc": "Still very bright but now rising after sunset. The first half of the night stays dark enough for serious observing before moonrise.",
+        "visibility": "Midnight to mid-morning",
+    },
+    {
+        "emoji": "🌗", "name": "Last Quarter",
+        "day_range": (22.15, 23.99),
+        "desc": "Half lit again, now on the left side. Rises around midnight — evenings are dark and usable until then.",
+        "visibility": "Midnight to noon",
+    },
+    {
+        "emoji": "🌘", "name": "Waning Crescent",
+        "day_range": (23.99, 29.5),
+        "desc": "A thinning sliver rises just before the Sun. Evenings and most of the night are beautifully dark — conditions nearly as good as New Moon.",
+        "visibility": "Pre-dawn only",
+    },
+]
+
+
+def moon_phase_page(request):
+    from astral.moon import phase as _astral_phase
+    from datetime import date
+
+    p = _astral_phase(date.today())
+    # Find index of current phase
+    current_idx = 0
+    for i, ph in enumerate(_MOON_PHASES):
+        lo, hi = ph["day_range"]
+        if lo <= p < hi:
+            current_idx = i
+            break
+
+    # Reorder: current phase first, then the rest in cycle order
+    ordered = _MOON_PHASES[current_idx:] + _MOON_PHASES[:current_idx]
+
+    return render(request, "pages/moon_phase.html", {
+        "phases": ordered,
+        "current_name": _MOON_PHASES[current_idx]["name"],
+        "cycle_day": round(p, 1),
+    })
+
+
 @login_required
 @require_http_methods(["GET", "POST"])
 def location(request):

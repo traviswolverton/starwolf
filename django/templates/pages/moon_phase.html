@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Moon Phases — StarWolf{% endblock %}
+
+{% block content %}
+<div class="moon-page-header">
+  <h1>Moon Phases</h1>
+  <p class="moon-page-sub">Tonight is a <strong>{{ current_name }}</strong> (day {{ cycle_day }} of 29.5). Phases below are ordered from now through the full lunar cycle.</p>
+</div>
+
+<div class="moon-phase-list">
+  {% for phase in phases %}
+  <div class="moon-phase-card {% if forloop.first %}moon-phase-card--current{% endif %}">
+    <div class="moon-phase-emoji">{{ phase.emoji }}</div>
+    <div class="moon-phase-body">
+      <div class="moon-phase-name">
+        {{ phase.name }}
+        {% if forloop.first %}<span class="moon-phase-now">← now</span>{% endif %}
+      </div>
+      <div class="moon-phase-desc">{{ phase.desc }}</div>
+      <div class="moon-phase-visibility">🌃 {{ phase.visibility }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<p class="moon-learn-more">
+  Learn more about lunar cycles on
+  <a href="https://en.wikipedia.org/wiki/Lunar_phase" target="_blank" rel="noopener">Wikipedia: Lunar phase ↗</a>
+  or
+  <a href="https://moon.nasa.gov/moon-in-motion/phases-eclipses-supermoons/moon-phases/" target="_blank" rel="noopener">NASA: Moon Phases ↗</a>.
+</p>
+{% endblock %}
