@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Complete Sign Up — StarWolf{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">🐺</div>
+    <h2 class="auth-title">Almost there</h2>
+    <p class="auth-subtitle">Confirm your email to complete sign-in with {{ account.get_provider.name }}.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+        <p class="field-error">{{ field.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;">Complete Sign Up</button>
+    </form>
+    <p style="text-align:center;margin-top:1rem;">
+      <a href="{% url 'account_login' %}" style="color:#556070;font-size:0.85rem;">← Back to sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
