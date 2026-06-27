@@ -18,6 +18,12 @@
 
   <!-- Stat pills row -->
   <div class="site-stat-row">
+    {% if site.flag or site.state_abbr %}
+    <span class="site-stat">
+      {% if site.flag %}<span>{{ site.flag }}</span>{% endif %}
+      {% if site.state_abbr %}<span class="site-stat-val">{{ site.state_abbr }}</span>{% endif %}
+    </span>
+    {% endif %}
     <span class="site-stat">
       <span class="site-stat-label">Bortle</span>
       <span class="bortle-badge" style="background:{{ site.bortle_color }};">{{ site.bortle_class }}</span>

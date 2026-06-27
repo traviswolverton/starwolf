@@ -555,6 +555,12 @@ def site_detail(request, site_id):
 
     site["type_label"] = _SITE_TYPE_LABELS.get(site["site_type"] or "", site["site_type"] or "—")
     site["bortle_color"] = _BORTLE_COLOR.get(site["bortle_class"] or 5, "#555")
+    site["state_abbr"] = _STATE_ABBR.get(site.get("state_province") or "", site.get("state_province") or "")
+    code = (site.get("country") or "").upper()
+    site["flag"] = (
+        chr(0x1F1E6 + ord(code[0]) - 65) + chr(0x1F1E6 + ord(code[1]) - 65)
+        if len(code) == 2 else ""
+    )
 
     elev = site["elevation_m"]
     if elev is not None:
