@@ -146,3 +146,50 @@ with connection.cursor() as cur:
 ```
 
 > **Note:** A container rebuild kills this process mid-run. Re-run after rebuilding — already-enriched sites are skipped automatically.
+
+---
+
+## `enrich_site_details`
+
+Populates the `site_details` table with a hero image (Wikimedia Commons), Wikipedia summary, Ollama-generated narrative, and a Google Maps URL for each site. Skips already-enriched sites by default.
+
+Requires Ollama running on the host machine at `host.docker.internal:11434`. Use `--no-ollama` to skip narrative generation (images and Wikipedia are still fetched).
+
+**Wikipedia API note:** Requests are sent with a `StarWolf/1.0` User-Agent header to comply with Wikipedia's bot policy and avoid 403s.
+
+```bash
+docker compose exec -d django python manage.py enrich_site_details [options]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--force` | false | Re-enrich all sites, including already-enriched ones |
+| `--limit N` | none | Stop after N sites |
+| `--offset N` | 0 | Skip the first N matching sites (for parallel batches) |
+| `--site-id N` | none | Enrich a single site by ID |
+| `--near-houston` | false | Test mode: only the 20 sites closest to Houston, TX |
+| `--no-ollama` | false | Skip Ollama narrative (still fetches Wikipedia + image) |
+| `--model NAME` | `llama3.1:8b` | Ollama model to use |
+| `--ollama URL` | `http://host.docker.internal:11434` | Ollama base URL |
+
+**Running parallel non-overlapping batches (recommended for full catalog):**
+```bash
+docker compose exec -d django python manage.py enrich_site_details --offset 0    --limit 800
+docker compose exec -d django python manage.py enrich_site_details --offset 800  --limit 800
+docker compose exec -d django python manage.py enrich_site_details --offset 1600
+```
+
+**Check progress:**
+```bash
+docker compose exec django python manage.py shell -c "
+from django.db import connection
+with connection.cursor() as cur:
+    cur.execute('SELECT COUNT(*) FROM site_details')
+    done = cur.fetchone()[0]
+    cur.execute('SELECT COUNT(*) FROM sites')
+    total = cur.fetchone()[0]
+print(f'{done}/{total} enriched')
+"
+```
+
+> **Note:** A container rebuild kills this process mid-run. Re-run after rebuilding — already-enriched sites are skipped automatically.

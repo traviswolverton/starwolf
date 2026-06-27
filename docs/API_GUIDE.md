@@ -1,16 +1,13 @@
 # Stargazing Forecast API Guide
 
-The app exposes a REST API on port **8000** that runs the same scoring pipeline as the Streamlit UI. You can query any lat/lon with any date range and get back telescope and naked eye scores for every upcoming night.
-
-Interactive docs (OpenAPI / Swagger UI): `/api/docs`
+The app exposes a REST API that runs the same scoring pipeline as the web UI. You can query any lat/lon with any date range and get back telescope and naked eye scores for every upcoming night.
 
 ---
 
 ## Base URL
 
 ```
-http://localhost:8000        # direct (local dev)
-https://starwolf.wolvertons.net/api   # production (proxied via nginx)
+https://starwolf.wolvertons.net/api   # production
 ```
 
 ---
@@ -190,14 +187,14 @@ Health check. Returns `{"status": "ok"}` when the API is running.
 
 ## Caching
 
-API responses share the same Redis cache as the Streamlit app:
+API responses share the same Redis cache as the web app:
 
 | Source | TTL | Cache key |
 |---|---|---|
 | Open-Meteo | 1 hour | `openmeteo:{lat}:{lon}:{days}:{tz}` |
 | 7timer | 3 hours | `7timer:{lat}:{lon}` |
 
-If you call the API for the same coordinates within the TTL window, the response is served from cache and returns immediately. The Streamlit app and API share the cache, so a forecast run in the UI warms the cache for subsequent API calls at the same coordinates.
+If you call the API for the same coordinates within the TTL window, the response is served from cache and returns immediately. A forecast run in the web UI warms the cache for subsequent API calls at the same coordinates.
 
 ---
 
@@ -298,22 +295,17 @@ good_nights = [n for n in data["nights"] if n["composite"] >= 70]
 
 ---
 
-## Running the API
+## Running the stack
 
-The API runs as a separate Docker service using the same image as the Streamlit app:
+The API is served by the Django container alongside the web app:
 
 ```bash
 # Start everything
 docker compose up -d
 
-# API only (if app + db + redis are already running)
-docker compose up -d api
-
 # Rebuild after code changes
-docker compose up -d --build api
+docker compose build django && docker compose up -d
 
 # Logs
-docker compose logs -f api
+docker compose logs -f django
 ```
-
-The API and the Streamlit app share the same Docker image — `api.py` simply overrides the container command to run `uvicorn` instead of `streamlit`.
