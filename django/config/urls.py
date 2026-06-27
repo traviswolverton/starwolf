@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import include, path
 
+from pages import api_views
 from pages import views as page_views
 
 _NOTES_PATH = Path(__file__).resolve().parent.parent.parent / "release_notes.json"
@@ -81,6 +82,10 @@ urlpatterns = [
     path("bortle", page_views.bortle_scorer, name="bortle_scorer"),
     path("api-guide", page_views.api_guide, name="api_guide"),
     path("feedback", page_views.feedback, name="feedback"),
+    path("api/v1/bortle", api_views.bortle, name="api_bortle"),
+    path("api/v1/sites", api_views.sites, name="api_sites"),
+    path("api/v1/forecast", api_views.forecast, name="api_forecast"),
+    path("api/healthz", lambda r: JsonResponse({"status": "ok"}), name="api_health"),
     path("django-health", health),
     path("accounts/", include("allauth.urls")),
 ]
