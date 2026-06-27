@@ -4,7 +4,7 @@ from pathlib import Path
 import rasterio
 from rasterio.transform import rowcol
 
-WORLD_ATLAS_PATH = str(Path(__file__).parent / "data" / "World_Atlas_2015.tif")
+WORLD_ATLAS_PATH = str(Path(__file__).parent.parent.parent / "data" / "World_Atlas_2015.tif")
 
 # Natural sky background brightness per Falchi et al. 2016
 _NATURAL_SKY_MCD = 0.171168465

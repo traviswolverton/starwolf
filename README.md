@@ -47,15 +47,17 @@ stargazing-app/
 │   │       ├── compute_heatmap.py          # Score all sites for tonight (cron at noon CDT)
 │   │       ├── populate_site_locations.py  # Reverse-geocode sites → country + state/province
 │   │       └── enrich_notes.py             # Rewrite site notes via Ollama + Wikipedia
+│   ├── engine/                     # Core domain logic (forecast, scoring, Bortle, AI)
+│   │   ├── forecast.py             # Open-Meteo + 7timer API client (Redis-cached)
+│   │   ├── scorer.py               # Composite night quality scorer
+│   │   ├── bortle_lookup.py        # World Atlas GeoTIFF Bortle class lookup
+│   │   ├── ai_summary.py           # Ollama AI narrative summary generator
+│   │   ├── cache.py                # Redis wrapper with silent fallback
+│   │   └── ai_config.py            # Ollama configuration constants
 │   ├── pages/                      # All page views
 │   ├── templates/                  # Django templates
 │   └── static/css/main.css         # Single dark-theme stylesheet
-├── forecast.py                     # Open-Meteo + 7timer API client (Redis-cached)
-├── scorer.py                       # Composite night quality scorer
-├── bortle_lookup.py                # World Atlas GeoTIFF Bortle class lookup
-├── ai_summary.py                   # Ollama AI narrative summary generator
-├── cache.py                        # Redis wrapper with silent fallback
-├── requirements.txt                # Shared Python dependencies
+├── requirements.txt                # Shared Python dependencies (rasterio, astral, etc.)
 ├── docker-compose.yml              # django + db + redis
 ├── docs/
 │   ├── API_GUIDE.md                # REST API documentation
@@ -258,12 +260,12 @@ No API key required. Free service. Coverage: ~72 hours (24 × 3-hour slots).
 
 ## Code Reference
 
-### `forecast.py`
+### `django/engine/forecast.py`
 
 - `fetch_site_forecast(site: dict, forecast_days: int, timezone: str) -> dict` — fetches Open-Meteo + 7timer for one site
 - `fetch_all_forecasts() -> list[dict]` — fetches all active sites from the DB (used for standalone runs)
 
-### `scorer.py`
+### `django/engine/scorer.py`
 
 - `score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None) -> list` — scores all nights in one site's forecast
 - `score_all(forecasts: list, tz_str: str, disqualifiers: dict | None) -> list` — scores all sites, sorted by date then score (desc)

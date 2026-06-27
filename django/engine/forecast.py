@@ -1,8 +1,6 @@
 import requests
-from sqlalchemy import text
 
-from cache import cache_get, cache_set
-from db import get_engine, get_settings
+from .cache import cache_get, cache_set
 
 OPEN_METEO_URL  = "https://api.open-meteo.com/v1/forecast"
 SEVEN_TIMER_URL = "http://www.7timer.info/bin/api.pl"
@@ -81,7 +79,9 @@ def fetch_site_forecast(site: dict, forecast_days: int, timezone: str) -> dict:
 
 
 def fetch_all_forecasts() -> list:
-    """Fetch forecasts for all active sites in the database (used by __main__)."""
+    """Fetch forecasts for all active sites in the database (legacy standalone use)."""
+    from sqlalchemy import text
+    from db import get_engine, get_settings
     settings = get_settings()
     forecast_days = int(settings.get("forecast_days", 10))
     timezone = settings.get("timezone", "America/Chicago")
@@ -89,23 +89,3 @@ def fetch_all_forecasts() -> list:
         rows = conn.execute(text("SELECT * FROM sites WHERE active = 1")).fetchall()
     sites = [dict(r._mapping) for r in rows]
     return [fetch_site_forecast(site, forecast_days, timezone) for site in sites]
-
-
-if __name__ == "__main__":
-    from db import init_db
-    init_db()
-
-    results = fetch_all_forecasts()
-    for r in results:
-        site = r["site"]
-        print(f"\n{site['name']} ({site['lat']}, {site['lon']})")
-        if r["errors"]:
-            for err in r["errors"]:
-                print(f"  ERROR: {err}")
-        if r["open_meteo"]:
-            h = r["open_meteo"]["hourly"]
-            night_hours = sum(1 for d in h["is_day"] if d == 0)
-            print(f"  Open-Meteo: {len(h['time'])} hourly slots, {night_hours} nighttime hours")
-        if r["seven_timer"]:
-            slots = len(r["seven_timer"]["dataseries"])
-            print(f"  7timer:     {slots} 3-hour slots")

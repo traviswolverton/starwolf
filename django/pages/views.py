@@ -19,10 +19,10 @@ from django.views.decorators.http import require_http_methods
 from timezonefinder import TimezoneFinder
 
 from accounts.models import UserPreferences
-from ai_summary import get_cached_summary, is_ollama_available
-from bortle_lookup import lookup_bortle
-from forecast import _fetch_open_meteo, fetch_site_forecast
-from scorer import score_forecast, score_all
+from engine.ai_summary import get_cached_summary, is_ollama_available
+from engine.bortle_lookup import lookup_bortle
+from engine.forecast import _fetch_open_meteo, fetch_site_forecast
+from engine.scorer import score_forecast, score_all
 
 _tf = TimezoneFinder()
 

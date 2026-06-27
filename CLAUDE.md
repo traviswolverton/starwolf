@@ -78,10 +78,10 @@ If you catch yourself reading something "just to be safe," stop. Read it when th
 ## Stargazing App Context
 
 ### API Documentation
-After completing any turn where you touched `api.py`, `forecast.py`, or `scorer.py` in a way that changes the shape of API requests or responses (new fields, removed fields, changed error behavior, new parameters), immediately update both `docs/API_GUIDE.md` and the inline docstring in `api.py`. Changes that only affect internal logic with no effect on the request/response contract can be omitted.
+After completing any turn where you touched `django/engine/forecast.py`, `django/engine/scorer.py`, or any Django view in a way that changes the shape of API requests or responses (new fields, removed fields, changed error behavior, new parameters), immediately update `docs/API_GUIDE.md`. Changes that only affect internal logic with no effect on the request/response contract can be omitted.
 
 **Adding a new endpoint:** The Django `api_guide` view reads `docs/API_GUIDE.md` by `###` headings — each `### GET /v1/your-endpoint` section automatically becomes a new tab with no code changes required. Steps:
-1. Add the endpoint to `api.py`
+1. Add the endpoint to the relevant Django view
 2. Add a `### GET /v1/your-endpoint` section to `docs/API_GUIDE.md` (parameters, response example, field notes, error responses)
 3. Add a curl + Python example to the `## Examples` section of `docs/API_GUIDE.md`
 

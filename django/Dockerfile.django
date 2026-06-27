@@ -7,20 +7,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install shared deps (scorer, forecast, bortle, etc.)
+# Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Django-specific deps
 COPY django/requirements-django.txt .
 RUN pip install --no-cache-dir -r requirements-django.txt
 
-# Copy shared Python modules and markdown docs
-COPY *.py *.md ./
-
-# Copy Django project
+# Copy Django project (engine package is inside django/)
 COPY django/ ./django/
 
-# Shared modules live at /app; Django project at /app/django
-ENV PYTHONPATH=/app
 WORKDIR /app/django

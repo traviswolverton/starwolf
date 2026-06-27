@@ -6,9 +6,17 @@ from urllib.parse import urlparse
 
 import requests
 
-import ai_config
-from cache import cache_get, cache_set
-from db import get_settings
+from django.db import connection
+
+from . import ai_config
+from .cache import cache_get, cache_set
+
+
+def _get_app_settings() -> dict:
+    with connection.cursor() as cur:
+        cur.execute("SELECT key, value FROM app_settings")
+        return dict(cur.fetchall())
+
 
 _PRIVATE_NETWORKS = [
     ipaddress.ip_network("127.0.0.0/8"),    # loopback
@@ -61,7 +69,7 @@ If conditions are generally poor across the board, say so honestly but encouragi
 
 def build_context_table(nights: list) -> str:
     """Return a markdown table of the top-scored nights for use as LLM context."""
-    settings = get_settings()
+    settings = _get_app_settings()
     max_rows = int(settings.get("ollama_summary_max_rows", ai_config.OLLAMA_SUMMARY_MAX_ROWS))
     top = sorted(nights, key=lambda n: -n["composite"])[:max_rows]
 
@@ -92,7 +100,7 @@ def build_context_table(nights: list) -> str:
 
 def is_ollama_available() -> bool:
     """Return True if Ollama is reachable. Uses a 3-second connect timeout for fast-fail."""
-    settings = get_settings()
+    settings = _get_app_settings()
     url = settings.get("ollama_url", ai_config.OLLAMA_URL)
     try:
         _assert_private_url(url)
@@ -106,7 +114,7 @@ def is_ollama_available() -> bool:
 
 def generate_forecast_summary(context_table: str) -> str | None:
     """Call Ollama and return a plain-language summary, or None on any failure."""
-    settings = get_settings()
+    settings = _get_app_settings()
     url     = settings.get("ollama_url",     ai_config.OLLAMA_URL)
     model   = settings.get("ollama_model",   ai_config.OLLAMA_MODEL)
     timeout = int(settings.get("ollama_timeout", ai_config.OLLAMA_TIMEOUT))

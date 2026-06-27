@@ -6,8 +6,7 @@ from astral import LocationInfo
 from astral.moon import phase as moon_phase, moonrise
 from astral.sun import night as astral_night
 
-from sqlalchemy import text
-from db import get_engine
+from django.db import connection
 
 
 # ── per-factor scorers (each returns 0–100) ────────────────────────────────────
@@ -103,15 +102,15 @@ def _7timer_by_night(seven_timer_data: dict, tz_str: str) -> dict:
 
 
 def _load_weights() -> dict:
-    with get_engine().connect() as conn:
-        rows = conn.execute(text("SELECT factor, weight FROM scoring_weights")).fetchall()
-    return dict(rows)
+    with connection.cursor() as cur:
+        cur.execute("SELECT factor, weight FROM scoring_weights")
+        return dict(cur.fetchall())
 
 
 def _load_naked_eye_weights() -> dict:
-    with get_engine().connect() as conn:
-        rows = conn.execute(text("SELECT factor, weight FROM naked_eye_weights")).fetchall()
-    return dict(rows)
+    with connection.cursor() as cur:
+        cur.execute("SELECT factor, weight FROM naked_eye_weights")
+        return dict(cur.fetchall())
 
 
 def _avg(values: list) -> float | None:
@@ -249,19 +248,6 @@ def score_all(forecasts: list, tz_str: str, disqualifiers: dict | None = None) -
     return sorted(all_nights, key=lambda r: (r["date"], -r["composite"]))
 
 
-if __name__ == "__main__":
-    from db import init_db
-    from forecast import fetch_all_forecasts
-    from db import get_settings
-
-    init_db()
-    print("Fetching forecasts...")
-    forecasts = fetch_all_forecasts()
-
-    settings = get_settings()
-    tz_str = settings.get("timezone", "America/Chicago")
-    print("Scoring...")
-    nights = score_all(forecasts, tz_str)
 
     # Print top 5 nights across all sites
     top = sorted(nights, key=lambda r: -r["composite"])[:5]
