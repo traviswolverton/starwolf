@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Sign out — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">Sign out?</h2>
+    <p class="auth-sub">You'll need to sign in again to access your location and forecast history.</p>
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn-primary" style="width:100%;">Sign out</button>
+    </form>
+    <a href="/" class="auth-footer" style="display:block;text-align:center;margin-top:1rem;">Cancel</a>
+  </div>
+</div>
+{% endblock %}

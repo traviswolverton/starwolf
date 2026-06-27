@@ -14,6 +14,7 @@ from django.core.cache import cache
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from timezonefinder import TimezoneFinder
 
@@ -83,6 +84,7 @@ def about(request):
     return render(request, "pages/about.html")
 
 
+@login_required
 @require_http_methods(["GET", "POST"])
 def location(request):
     if not request.user.is_authenticated:
@@ -173,6 +175,7 @@ def location(request):
     return render(request, "pages/location.html")
 
 
+@login_required
 @require_http_methods(["GET", "POST"])
 def preferences(request):
     if not request.user.is_authenticated:
@@ -222,6 +225,7 @@ def preferences(request):
     })
 
 
+@login_required
 @require_http_methods(["POST"])
 def preferences_reset(request):
     if not request.user.is_authenticated:
@@ -774,6 +778,7 @@ def _get_planner_max_sites():
     return int(row[0]) if row else 250
 
 
+@login_required
 @require_http_methods(["GET"])
 def planner(request):
     prefs = request.prefs
@@ -810,11 +815,10 @@ def planner(request):
     })
 
 
+@login_required
 @require_http_methods(["POST"])
 def planner_run(request):
     prefs = request.prefs
-    if not request.user.is_authenticated:
-        return HttpResponse('<div class="alert error">Login required.</div>', status=401)
 
     state_key = f"planner:status:{request.user.pk}"
     state = cache.get(state_key)
@@ -862,6 +866,7 @@ def planner_run(request):
     })
 
 
+@login_required
 @require_http_methods(["GET"])
 def planner_poll(request):
     state_key   = f"planner:status:{request.user.pk}"

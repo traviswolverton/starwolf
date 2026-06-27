@@ -3,6 +3,18 @@
     {
       "date": "2026-06-26",
       "features": [
+        "Social sign-in — users can now sign in with Google or GitHub (OAuth2) instead of relying solely on Cloudflare Access. A dark-themed login page shows both social buttons plus an email/password fallback for local accounts.",
+        "Two-factor authentication (TOTP) — users can enroll an authenticator app (Google Authenticator, Authy, etc.) from the user menu → Two-factor auth. Uses django-allauth MFA module; QR code shown on setup.",
+        "\"Sign in\" button — navigation bar now shows a Sign in link for unauthenticated visitors and a Sign out option in the user dropdown for signed-in users.",
+        "Guest access to public pages — heatmap, sites, bortle scorer, and API guide are accessible without signing in. Planner, location, and preferences require a login and redirect to the sign-in page.",
+        "Guest nudge banner — unauthenticated visitors on the Forecast Map see a subtle banner inviting them to sign in and access the Planner.",
+        "Cloudflare Access retained as a fallback — if CF passes the auth email header, ProxyAuthMiddleware still auto-logs the user in, so existing access patterns keep working alongside the new social login."
+      ],
+      "fixes": []
+    },
+    {
+      "date": "2026-06-26",
+      "features": [
         "New Planner page (Django) — enter a search radius, run a multi-site forecast in the background, and get a ranked list of the best nights at nearby dark-sky sites. Night cards expand to show 9 color-coded metrics (cloud cover, moon score, humidity, night hours, stability, seeing, transparency, Bortle class). A collapsible heatmap shows every site × night at a glance, color-coded from red (poor) to green (excellent). Disqualified nights (exceeding cloud, precipitation, or visibility hard limits from Preferences) are listed separately. AI narrative summary shown when Ollama is available.",
         "Planner results sort by composite telescope score, naked-eye score, date, or location — HTMX re-fetch with no page reload.",
         "Planner progress bar — long-running forecast runs in a background thread and polls for status every 3 seconds; cached results are reloaded on revisit without re-running.",

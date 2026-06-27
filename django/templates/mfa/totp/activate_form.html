@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Set up one-time passwords — StarWolf{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">🔐 Set up Authenticator</h2>
+    <p class="auth-sub">Scan this QR code with Google Authenticator, Authy, or any TOTP app.</p>
+    <div style="text-align:center;margin:1.25rem 0;">
+      {% if totp_svg %}
+        <div style="background:#fff;display:inline-block;padding:1rem;border-radius:8px;">{{ totp_svg|safe }}</div>
+      {% endif %}
+    </div>
+    {% if totp_url %}
+    <p class="field-hint" style="text-align:center;">Or enter manually: <code>{{ totp_url }}</code></p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="field-group">
+        <label class="field-label" for="id_code">Verification code</label>
+        <input class="field-input" type="text" name="code" id="id_code" autocomplete="one-time-code"
+               inputmode="numeric" pattern="[0-9]*" placeholder="6-digit code" autofocus>
+      </div>
+      {% if form.errors %}
+      <div class="alert error">{{ form.code.errors|join:", " }}</div>
+      {% endif %}
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;">Activate</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

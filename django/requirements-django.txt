@@ -4,3 +4,5 @@ whitenoise
 django-redis
 dj-database-url
 markdown
+django-allauth[socialaccount,mfa]
+qrcode[pil]

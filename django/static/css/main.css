@@ -625,6 +625,56 @@ details[open] summary::before { transform: rotate(90deg); }
 .footer-caption a { color: #555; }
 .footer-caption a:hover { color: #888; }
 
+/* ── Auth / Login ────────────────────────────────────────────────────────── */
+.auth-wrap { display: flex; justify-content: center; padding: 2rem 0; }
+.auth-card {
+  width: 100%; max-width: 400px;
+  background: #1a1d27; border: 1px solid #2a2d3e; border-radius: 10px;
+  padding: 2rem;
+}
+.auth-title { margin-top: 0; font-size: 1.3rem; text-align: center; }
+.auth-sub { color: #777; font-size: 0.88rem; text-align: center; margin-bottom: 1.5rem; }
+.auth-footer { color: #555; font-size: 0.78rem; margin-top: 1.25rem; text-align: center; }
+
+.social-buttons { display: flex; flex-direction: column; gap: 0.6rem; }
+.social-btn {
+  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+  padding: 0.6rem 1rem; border-radius: 7px; font-size: 0.9rem; font-weight: 500;
+  text-decoration: none; border: 1px solid #3a3d50; background: #22253a;
+  color: #e0e0e0; transition: background 0.15s, border-color 0.15s;
+}
+.social-btn:hover { background: #2a2d45; border-color: #4a4d65; color: #fff; }
+.social-btn--github svg { opacity: 0.85; }
+
+.auth-divider {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin: 1.25rem 0; color: #444; font-size: 0.8rem;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; border-top: 1px solid #2a2d3e;
+}
+
+.nav-signin {
+  font-size: 0.85rem; color: #4caf96; border: 1px solid #4caf9660;
+  border-radius: 5px; padding: 0.3rem 0.75rem; text-decoration: none; white-space: nowrap;
+}
+.nav-signin:hover { background: #4caf9615; color: #6dd4b8; }
+
+.user-dropdown-signout {
+  width: 100%; text-align: left; background: none; border: none;
+  color: #c0c8d8; font-size: 0.9rem; padding: 0.55rem 0.85rem;
+  cursor: pointer; font-family: inherit; border-top: 1px solid #2a2d3e;
+  margin-top: 0.25rem;
+}
+.user-dropdown-signout:hover { background: #2a2d3e; color: #fff; }
+
+.guest-nudge {
+  background: #1a1d27; border: 1px solid #2a2d3e; border-left: 3px solid #4caf96;
+  border-radius: 6px; padding: 0.65rem 1rem; margin-bottom: 1rem;
+  font-size: 0.88rem; color: #888;
+}
+.guest-nudge a { color: #4caf96; }
+
 /* ── Flash messages ──────────────────────────────────────────────────────── */
 ul.messages {
   list-style: none;

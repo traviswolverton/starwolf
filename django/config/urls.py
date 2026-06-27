@@ -1,8 +1,7 @@
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.urls import path
+from django.urls import include, path
 
-from accounts import views as account_views
 from pages import views as page_views
 
 
@@ -35,6 +34,5 @@ urlpatterns = [
     path("api-guide", page_views.api_guide, name="api_guide"),
     path("feedback", page_views.feedback, name="feedback"),
     path("django-health", health),
-    path("accounts/login/", account_views.login_view, name="login"),
-    path("accounts/logout/", account_views.logout_view, name="logout"),
+    path("accounts/", include("allauth.urls")),
 ]

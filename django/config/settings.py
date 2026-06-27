@@ -21,6 +21,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.github",
+    "allauth.mfa",
     "accounts",
     "pages",
 ]
@@ -33,12 +40,47 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "accounts.middleware.ProxyAuthMiddleware",  # reads auth header after session is loaded
+    "allauth.account.middleware.AccountMiddleware",
+    "accounts.middleware.ProxyAuthMiddleware",  # CF Access header fallback
 ]
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 AUTH_USER_MODEL = "accounts.User"
+SITE_ID = 1
+
+# ── django-allauth ────────────────────────────────────────────────────────────
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",       # local password login
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "none"
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APPS": [{
+            "client_id": os.environ.get("GOOGLE_CLIENT_ID", ""),
+            "secret":    os.environ.get("GOOGLE_CLIENT_SECRET", ""),
+        }],
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    },
+    "github": {
+        "APPS": [{
+            "client_id": os.environ.get("GITHUB_CLIENT_ID", ""),
+            "secret":    os.environ.get("GITHUB_CLIENT_SECRET", ""),
+        }],
+        "SCOPE": ["user:email"],
+    },
+}
+
+MFA_TOTP_ISSUER = "StarWolf"
 
 TEMPLATES = [
     {

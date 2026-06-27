@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+{% block title %}Sign in — StarWolf{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">🔭 Sign in to StarWolf</h2>
+    <p class="auth-sub">Save your location, preferences, and forecast results across devices.</p>
+
+    {% get_providers as socialaccount_providers %}
+    {% if socialaccount_providers %}
+    <div class="social-buttons">
+      {% for provider in socialaccount_providers %}
+      <a href="{% provider_login_url provider.id process='login' %}" class="social-btn social-btn--{{ provider.id }}">
+        {% if provider.id == 'google' %}
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="#EA4335" d="M5.27 9.76A7.08 7.08 0 0 1 12 4.9c1.76 0 3.35.64 4.59 1.69l3.43-3.43A11.97 11.97 0 0 0 12 1C8.13 1 4.77 3.02 2.95 6.04l2.32 3.72z"/><path fill="#34A853" d="M16.04 18.01A7.08 7.08 0 0 1 12 19.1c-2.93 0-5.44-1.77-6.65-4.34l-3.47 2.68A11.97 11.97 0 0 0 12 23c3.18 0 6.07-1.17 8.25-3.08l-4.21-1.91z"/><path fill="#FBBC05" d="M19.1 12c0-.66-.07-1.3-.18-1.91H12v3.63h3.96A3.38 3.38 0 0 1 14.48 16l4.21 1.91A11.95 11.95 0 0 0 19.1 12z"/><path fill="#4285F4" d="M5.35 14.76A7.14 7.14 0 0 1 4.9 12c0-.96.18-1.88.45-2.76L3.03 5.52A11.97 11.97 0 0 0 1 12c0 1.97.48 3.82 1.32 5.46l3.03-2.7z"/><path fill="#4285F4" d="M12 4.9c1.76 0 3.35.64 4.59 1.69l3.43-3.43A11.97 11.97 0 0 0 12 1v3.9z"/></svg>
+        Continue with Google
+        {% elif provider.id == 'github' %}
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        Continue with GitHub
+        {% else %}
+        Continue with {{ provider.name }}
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+
+    <div class="auth-divider"><span>or</span></div>
+    {% endif %}
+
+    <form method="post" action="{% url 'account_login' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.GET.next }}">
+      <div class="field-group">
+        <label class="field-label" for="id_login">Email</label>
+        <input class="field-input" type="email" name="login" id="id_login" autocomplete="email" autofocus>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="id_password">Password</label>
+        <input class="field-input" type="password" name="password" id="id_password" autocomplete="current-password">
+      </div>
+      {% if form.errors %}
+      <div class="alert error">{{ form.non_field_errors|join:", " }}</div>
+      {% endif %}
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;">Sign in</button>
+    </form>
+
+    <p class="auth-footer">
+      Once signed in, enable one-time passwords (TOTP) under your account for extra security.
+    </p>
+  </div>
+</div>
+{% endblock %}

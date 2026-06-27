@@ -2,6 +2,12 @@
 {% block title %}Tonight's Forecast Map — StarWolf{% endblock %}
 
 {% block content %}
+{% if not user.is_authenticated %}
+<div class="guest-nudge">
+  🔭 <strong>Sign in</strong> to run the Planner and get ranked forecasts for sites near you. —
+  <a href="{% url 'account_login' %}?next=/planner">Sign in →</a>
+</div>
+{% endif %}
 <div class="heatmap-header">
   <div>
     <h1>🗺️ Tonight's Forecast Map</h1>
