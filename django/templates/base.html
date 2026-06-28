@@ -50,7 +50,7 @@
             📍 {% if prefs.has_location %}{{ prefs.location_display|truncatechars:28 }}{% else %}Set Location{% endif %}
           </a>
           <a href="{% url 'preferences' %}" @click="userOpen = false; open = false">⚙️ Preferences</a>
-          <a href="{% url 'mfa_index' %}" @click="userOpen = false; open = false">🔐 Two-factor auth</a>
+          {% if not user.socialaccount_set.exists %}<a href="{% url 'mfa_index' %}" @click="userOpen = false; open = false">🔐 Two-factor auth</a>{% endif %}
           {% if user.is_admin %}<a href="{% url 'admin_panel' %}" @click="userOpen = false; open = false">🔧 Admin</a>{% endif %}
           <form method="post" action="{% url 'account_logout' %}" @click.stop>
             {% csrf_token %}
