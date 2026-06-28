@@ -11,6 +11,9 @@ WORKDIR /app
 COPY django/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download DE421 ephemeris (~17MB) at build time so runtime has no cold-start delay
+RUN python -c "from skyfield.api import Loader; Loader('/app/ephemeris')('de421.bsp')"
+
 # Copy Django project (engine package is inside django/)
 COPY django/ ./django/
 

@@ -3,7 +3,7 @@ import json
 import math
 import re
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -46,6 +46,7 @@ class _GuestPrefs:
     disq_max_precip_prob  = 40
     disq_min_visibility_km = 10
     best_metric           = "combined"
+    equipment             = None
 
 
 def _planner_key_prefix(request):
@@ -309,6 +310,9 @@ def preferences(request):
             bm = request.POST.get("best_metric", "combined")
             if bm in ("telescope", "naked_eye", "combined"):
                 prefs.best_metric = bm
+            eq = request.POST.get("equipment", "")
+            if eq in ("naked_eye", "binoculars", "small_scope", "large_scope", ""):
+                prefs.equipment = eq or None
             prefs.save()
             return HttpResponse('<div class="alert success">Preferences saved.</div>')
         except Exception as e:
@@ -828,6 +832,144 @@ def bortle_scorer(request):
     return render(request, "pages/_bortle_result.html", {
         "bortle": bortle, "sqm": sqm, "label": label,
         "desc": desc, "color": color, "lat": lat, "lon": lon,
+    })
+
+
+@require_http_methods(["GET"])
+def sky_objects(request, site_id):
+    """HTMX endpoint: return the _sky_objects.html partial for a site + date."""
+    from datetime import date as date_type
+    from engine.sky_objects import compute_sky
+    from engine.cache import cache_get, cache_set
+
+    with connection.cursor() as cur:
+        cur.execute(
+            "SELECT id, name, lat, lon, bortle_class FROM sites WHERE id = %s AND active = 1",
+            [site_id],
+        )
+        row = cur.fetchone()
+    if not row:
+        return HttpResponse('<p class="field-hint">Site not found.</p>', status=404)
+
+    site_id, site_name, lat, lon, bortle = row
+    bortle = bortle or 5
+
+    # Date: default to today, clamped to next 10 days
+    today = date_type.today()
+    raw_date = request.GET.get("date", today.isoformat())
+    try:
+        target_date = date_type.fromisoformat(raw_date)
+    except ValueError:
+        target_date = today
+    max_date = today + timedelta(days=10)
+    target_date = max(today, min(target_date, max_date))
+
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    equipment = getattr(prefs, "equipment", None) or "large_scope"
+    tz_name = getattr(prefs, "timezone", "America/Chicago")
+
+    # Weather: pull cloud score from planner cache if available
+    cloud_score = None
+    try:
+        from engine.cache import cache_get as cg
+        forecast_cache_key = f"forecast:{site_id}:{target_date.isoformat()}"
+        fc = cg(forecast_cache_key)
+        if fc and "composite" in fc:
+            cloud_score = int(fc["composite"])
+    except Exception:
+        pass
+
+    cache_key = f"sky:{site_id}:{target_date.isoformat()}:{equipment}:{bortle}"
+    result = cache_get(cache_key)
+    if result is None:
+        try:
+            result = compute_sky(lat, lon, target_date, bortle, equipment, cloud_score, tz_name)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error("sky_objects compute error: %s", e, exc_info=True)
+            return HttpResponse('<p class="field-hint">Could not compute sky visibility. Please try again.</p>')
+        cache_set(cache_key, result, 3600)
+
+    date_options = [(today + timedelta(days=i)) for i in range(11)]
+    return render(request, "pages/_sky_objects.html", {
+        "sky":          result,
+        "site_id":      site_id,
+        "site_name":    site_name,
+        "target_date":  target_date,
+        "date_options": date_options,
+        "has_equipment": getattr(prefs, "equipment", None) is not None,
+        "equipment_label": dict([
+            ("naked_eye",   "Naked Eye"),
+            ("binoculars",  "Binoculars"),
+            ("small_scope", "Small Telescope"),
+            ("large_scope", "Large Telescope"),
+        ]).get(equipment, "Large Telescope"),
+    })
+
+
+@require_http_methods(["GET"])
+def tonight(request):
+    """Standalone Tonight's Sky page (Spec 2)."""
+    from datetime import date as date_type
+    from engine.sky_objects import compute_sky, BORTLE_LIMITING_MAG
+    from engine.cache import cache_get, cache_set
+
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    has_location = prefs.has_location
+    equipment = getattr(prefs, "equipment", None) or "large_scope"
+    tz_name = getattr(prefs, "timezone", "America/Chicago")
+
+    today = date_type.today()
+    raw_date = request.GET.get("date", today.isoformat())
+    try:
+        target_date = date_type.fromisoformat(raw_date)
+    except ValueError:
+        target_date = today
+    max_date = today + timedelta(days=10)
+    target_date = max(today, min(target_date, max_date))
+
+    sky = None
+    bortle = None
+    bortle_source = None
+
+    if has_location:
+        lat = prefs.location_lat
+        lon = prefs.location_lon
+        # Look up Bortle from World Atlas
+        try:
+            from engine.bortle_lookup import lookup_bortle
+            bortle = lookup_bortle(lat, lon) or 5
+            bortle_source = "World Atlas of Artificial Sky Brightness"
+        except Exception:
+            bortle = 5
+            bortle_source = "estimated"
+
+        cache_key = f"sky:tonight:{lat:.4f}:{lon:.4f}:{target_date.isoformat()}:{equipment}:{bortle}"
+        sky = cache_get(cache_key)
+        if sky is None:
+            try:
+                sky = compute_sky(lat, lon, target_date, bortle, equipment, None, tz_name)
+                cache_set(cache_key, sky, 3600)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error("tonight compute error: %s", e, exc_info=True)
+
+    date_options = [(today + timedelta(days=i)) for i in range(11)]
+    return render(request, "pages/tonight.html", {
+        "sky":           sky,
+        "has_location":  has_location,
+        "location_name": getattr(prefs, "location_display", "") or getattr(prefs, "location_text", ""),
+        "bortle":        bortle,
+        "bortle_source": bortle_source,
+        "target_date":   target_date,
+        "date_options":  date_options,
+        "has_equipment": getattr(prefs, "equipment", None) is not None,
+        "equipment_label": dict([
+            ("naked_eye",   "Naked Eye"),
+            ("binoculars",  "Binoculars"),
+            ("small_scope", "Small Telescope"),
+            ("large_scope", "Large Telescope"),
+        ]).get(equipment, "Large Telescope"),
     })
 
 

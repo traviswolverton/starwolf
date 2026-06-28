@@ -1,0 +1,150 @@
+{# Shared partial: renders the "What's Up" sky object list for a given site/date/equipment. #}
+{# Consumed by site_detail (via HTMX) and tonight.html (directly). #}
+
+{# Date nav — only rendered when site_id is present (site detail HTMX context) #}
+{% if site_id %}
+<div class="date-nav-scroll sky-date-nav">
+  <div class="date-nav">
+    {% for d in date_options %}
+    <button class="date-nav-btn {% if d == target_date %}active{% endif %} {% if forloop.first %}date-nav-best{% endif %}"
+            hx-get="{% url 'sky_objects' site_id %}?date={{ d|date:'Y-m-d' }}"
+            hx-target="#sky-content"
+            hx-swap="innerHTML">
+      {% if forloop.first %}Tonight{% else %}{{ d|date:"D j" }}{% endif %}
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if not sky %}
+<p class="field-hint">Could not compute sky data. Please try again.</p>
+{% else %}
+
+{# ── Equipment nudge ────────────────────────────────────────────────── #}
+{% if not has_equipment %}
+<div class="sky-nudge">
+  🔭 Set your <a href="{% url 'preferences' %}">equipment preference</a> to personalise visibility tiers — results below assume a large telescope.
+</div>
+{% endif %}
+
+{# ── Weather banner ─────────────────────────────────────────────────── #}
+{% if sky.weather_note %}
+<div class="sky-weather-note sky-weather-{{ sky.weather_note.level }}">
+  {% if sky.weather_note.level == "good" %}☀️{% elif sky.weather_note.level == "marginal" %}⛅{% else %}☁️{% endif %}
+  {{ sky.weather_note.text }}
+</div>
+{% endif %}
+
+{# ── Night window ───────────────────────────────────────────────────── #}
+<p class="sky-night-window">
+  🌃 Astronomical night: <strong>{{ sky.night_start }} – {{ sky.night_end }}</strong>
+  &nbsp;·&nbsp; Bortle {{ sky.bortle }} site &nbsp;·&nbsp; {{ equipment_label }}
+</p>
+
+{# ── Moon ───────────────────────────────────────────────────────────── #}
+<div class="sky-section">
+  <div class="sky-section-header">🌙 Moon</div>
+  <div class="sky-moon-row">
+    <span class="sky-moon-phase">{{ sky.moon.phase_name }} &mdash; {{ sky.moon.illumination }}% illuminated</span>
+    <span class="sky-moon-details">
+      {% if sky.moon.rise_str %}Rises {{ sky.moon.rise_str }}{% endif %}
+      {% if sky.moon.set_str %} · Sets {{ sky.moon.set_str }}{% endif %}
+      {% if sky.moon.above_horizon %} · Peak {{ sky.moon.peak_alt }}° at {{ sky.moon.peak_str }}{% endif %}
+    </span>
+  </div>
+  {% if sky.moon.bright %}
+  <p class="sky-moon-warning">⚠️ Bright moon may wash out faint DSOs tonight</p>
+  {% endif %}
+</div>
+
+{# ── Planets ─────────────────────────────────────────────────────────── #}
+{% with visible_planets=sky.planets %}
+{% if visible_planets %}
+<div class="sky-section">
+  <div class="sky-section-header">🪐 Planets visible tonight</div>
+  <div class="sky-object-list">
+    {% for p in sky.planets %}
+    <div class="sky-object-row {% if not p.visible %}sky-object-dim{% endif %}">
+      <span class="sky-obj-name">{{ p.name }}</span>
+      {% if p.visible %}
+        <span class="sky-tier sky-tier-{{ p.tier }}">{{ p.tier_emoji }} {{ p.tier_label }}</span>
+        <span class="sky-obj-mag">mag {{ p.magnitude }}</span>
+        <span class="sky-obj-detail">
+          {% if p.rise_str %}Rises {{ p.rise_str }}{% endif %}
+          {% if p.rise_str and p.peak_alt %} · {% endif %}
+          {% if p.peak_alt %}Peak {{ p.peak_alt }}° at {{ p.peak_str }}{% endif %}
+        </span>
+      {% else %}
+        <span class="sky-tier sky-tier-4">⛔ {{ p.note }}</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endwith %}
+
+{# ── Deep Sky Objects ────────────────────────────────────────────────── #}
+{% if sky.dsos %}
+<div class="sky-section" x-data="{ showAll: false }">
+  <div class="sky-section-header">
+    🌌 Deep Sky Objects
+    <span class="sky-section-count">({{ sky.dsos|length }} tonight)</span>
+  </div>
+  <div class="sky-object-list">
+    {% for d in sky.dsos %}
+    <div class="sky-object-row" x-show="showAll || {{ forloop.counter }} <= 8">
+      <span class="sky-obj-name">
+        {{ d.name }}
+        {% if d.common_name %}<span class="sky-obj-common">{{ d.common_name }}</span>{% endif %}
+      </span>
+      <span class="sky-tier sky-tier-{{ d.tier }}">{{ d.tier_emoji }} {{ d.tier_label }}</span>
+      <span class="sky-obj-type">{{ d.obj_type }}</span>
+      <span class="sky-obj-mag">mag {{ d.magnitude }}</span>
+      <span class="sky-obj-detail">{{ d.vis_start }}–{{ d.vis_end }} · Peak {{ d.peak_alt }}°</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% if sky.dsos|length > 8 %}
+  <button class="sky-show-more" @click="showAll = !showAll" x-text="showAll ? 'Show fewer' : 'Show all {{ sky.dsos|length }} objects'">Show all</button>
+  {% endif %}
+</div>
+{% endif %}
+
+{# ── Meteor Showers ──────────────────────────────────────────────────── #}
+{% if sky.showers %}
+<div class="sky-section">
+  <div class="sky-section-header">☄️ Meteor Showers</div>
+  <div class="sky-object-list">
+    {% for s in sky.showers %}
+    <div class="sky-object-row {% if not s.active %}sky-object-dim{% endif %}">
+      <span class="sky-obj-name">{{ s.name }}</span>
+      <span class="sky-obj-detail">
+        {{ s.timing|capfirst }} · ~{{ s.zhr }}/hr ZHR
+        {% if s.radiant_up %} · Radiant peaks at {{ s.radiant_alt }}°{% else %} · Radiant below horizon{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── ISS Passes ──────────────────────────────────────────────────────── #}
+{% if sky.iss_passes %}
+<div class="sky-section">
+  <div class="sky-section-header">🛸 ISS Passes</div>
+  <div class="sky-object-list">
+    {% for pass in sky.iss_passes %}
+    <div class="sky-object-row">
+      <span class="sky-obj-name">{{ pass.rise_str }}</span>
+      <span class="sky-obj-detail">
+        Duration {{ pass.duration_m }} min · Max elevation {{ pass.peak_alt }}° · {{ pass.direction }}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}{# end if sky #}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Tonight's Sky — StarWolf{% endblock %}
+
+{% block content %}
+<h1>🌠 Tonight's Sky</h1>
+
+{% if not has_location %}
+<div class="alert warning">
+  Set your <a href="{% url 'location' %}">location</a> to see what's visible tonight near you.
+</div>
+{% else %}
+
+<div class="tonight-header">
+  <div class="tonight-location">
+    <span class="tonight-location-label">Near</span>
+    <strong>{{ location_name }}</strong>
+    {% if bortle %}<span class="sky-bortle-badge">Bortle {{ bortle }}</span>{% endif %}
+    {% if bortle_source %}<span class="field-hint" style="font-size:0.75rem;">({{ bortle_source }})</span>{% endif %}
+  </div>
+
+  {# Date picker #}
+  <div class="tonight-date-picker">
+    {% for d in date_options %}
+    <a href="?date={{ d|date:'Y-m-d' }}"
+       class="date-nav-btn {% if d == target_date %}active{% endif %} {% if d == date_options.0 %}date-nav-best{% endif %}">
+      {% if d == date_options.0 %}Tonight{% else %}{{ d|date:"D j M" }}{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if sky %}
+{% include "pages/_sky_objects.html" %}
+
+{# ── Drive to dark site nudge ────────────────────────────────────────── #}
+{% if sky.dsos_drive and bortle >= 4 %}
+<div class="sky-section sky-drive-section">
+  <div class="sky-section-header">🚗 Worth the drive tonight</div>
+  <p class="field-hint" style="margin-bottom:0.75rem;">
+    These objects are above the horizon but washed out by light pollution from your location (Bortle {{ bortle }}).
+    Head to a dark site (Bortle ≤ 3) to unlock them:
+  </p>
+  <div class="sky-object-list">
+    {% for d in sky.dsos_drive|slice:":10" %}
+    <div class="sky-object-row sky-object-dim">
+      <span class="sky-obj-name">
+        {{ d.name }}
+        {% if d.common_name %}<span class="sky-obj-common">{{ d.common_name }}</span>{% endif %}
+      </span>
+      <span class="sky-obj-type">{{ d.obj_type }}</span>
+      <span class="sky-obj-mag">mag {{ d.magnitude }}</span>
+      <span class="sky-obj-detail">Visible {{ d.vis_start }}–{{ d.vis_end }} · Peak {{ d.peak_alt }}°</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p style="margin-top:0.75rem;">
+    <a href="{% url 'planner' %}" class="btn-primary" style="display:inline-block;text-decoration:none;">Find a dark site nearby →</a>
+  </p>
+</div>
+{% endif %}
+
+{% else %}
+<p class="field-hint">Could not compute sky data for this date. Please try again.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}

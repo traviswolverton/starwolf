@@ -6,4 +6,5 @@ stargazing.db
 .gitignore
 .streamlit/secrets.toml
 data/
+!django/engine/data/
 archive/

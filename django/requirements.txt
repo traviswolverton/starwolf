@@ -19,6 +19,7 @@ whitenoise
 rasterio>=1.3
 timezonefinder
 astral
+skyfield
 
 # Misc
 requests

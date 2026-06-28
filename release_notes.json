@@ -3,6 +3,16 @@
     {
       "date": "2026-06-27",
       "features": [
+        "Tonight's Sky — new page (top nav) shows everything visible tonight from your saved location: Moon phase and rise/set, all planets with visibility tier and peak altitude, top Messier deep-sky objects filtered by Bortle class, active meteor showers, and ISS passes. Includes a 10-day date picker.",
+        "What's Up on site detail pages — each site detail page now has a 'What's Up?' section with the same sky visibility data for that specific site, with a 10-day date nav powered by HTMX.",
+        "Visibility tiers — objects are labelled 🟢 Naked Eye, 🔵 Binoculars, 🔭 Small Scope, 🔭🔭 Large Scope, or ⛔ Not Tonight based on the site's Bortle class and your equipment setting.",
+        "Equipment preference — new setting in Preferences lets you choose your equipment (naked eye through large telescope); visibility tiers adjust accordingly. A nudge appears on Tonight's Sky if not set.",
+        "Drive to dark site nudge — Tonight's Sky shows objects above the horizon but invisible from light-polluted locations, with a link to the Planner to find a darker site."
+      ]
+    },
+    {
+      "date": "2026-06-27",
+      "features": [
         "Planner results redesigned — one card per site instead of one per night. Each card shows telescope and naked eye score ranges (min–max), the best night date, and map links (OpenStreetMap, Google Maps, Apple Maps). Expanding a card shows a scrollable date navigator; clicking a date updates the metrics. Disqualified and below-threshold nights appear in the date nav dimmed, with an explanation when selected.",
         "Planner card detail — expanded view now shows telescope and naked eye scores with emojis at the top, with the dark window hours (e.g. 9p – 7a) right-justified. Seeing and transparency metrics are hidden when not available; the 7timer footnote only appears when those values are present.",
         "Planner preference — new 'Best Night Metric' setting lets you choose whether the best night highlight and default sort are driven by telescope score, naked eye score, or a combined average.",

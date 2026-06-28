@@ -52,6 +52,17 @@ class UserPreferences(models.Model):
         choices=[("telescope", "Telescope"), ("naked_eye", "Naked Eye"), ("combined", "Combined")],
     )
 
+    # Equipment preference (for What's Up / Tonight's Sky)
+    equipment = models.CharField(
+        max_length=16, null=True, blank=True,
+        choices=[
+            ("naked_eye",   "Naked Eye"),
+            ("binoculars",  "Binoculars (7×50)"),
+            ("small_scope", "Small Telescope (4–6\")"),
+            ("large_scope", "Large Telescope (10\"+)"),
+        ],
+    )
+
     class Meta:
         db_table = "starwolf_user_preferences"
 

@@ -75,6 +75,18 @@
 
 </div>
 
+{# ── What's Up ────────────────────────────────────────────────────────── #}
+<div class="sky-whatsup-section">
+  <h2 class="sky-whatsup-heading">🌠 What's Up?</h2>
+  <div id="sky-content"
+       hx-get="{% url 'sky_objects' site.id %}"
+       hx-trigger="load"
+       hx-swap="innerHTML"
+       hx-indicator="#sky-spinner">
+    <span id="sky-spinner" class="htmx-indicator field-hint">Computing sky visibility…</span>
+  </div>
+</div>
+
 <p style="margin-top:1.5rem;">
   {% if came_from == "planner" %}
   <a href="{% url 'planner' %}" class="back-link">← Back to Planner</a>
