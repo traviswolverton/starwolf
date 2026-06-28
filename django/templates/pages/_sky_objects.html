@@ -87,6 +87,33 @@
 {% endif %}
 {% endwith %}
 
+{# ── Bright Stars ────────────────────────────────────────────────────── #}
+{% if sky.stars %}
+<div class="sky-section" x-data="{ showAll: false }">
+  <div class="sky-section-header">
+    ⭐ Bright Stars
+    <span class="sky-section-count">({{ sky.stars|length }} visible)</span>
+  </div>
+  <div class="sky-object-list">
+    {% for s in sky.stars %}
+    <div class="sky-object-row" x-show="showAll || {{ forloop.counter }} <= 8">
+      <span class="sky-obj-name">
+        {{ s.name }}
+        {% if s.common_name %}<span class="sky-obj-common">{{ s.common_name }}</span>{% endif %}
+      </span>
+      <span class="sky-tier sky-tier-{{ s.tier }}">{{ s.tier_emoji }} {{ s.tier_label }}</span>
+      <span class="sky-obj-mag">mag {{ s.magnitude }}</span>
+      <span class="sky-obj-detail">{{ s.vis_start }}–{{ s.vis_end }} · Peak {{ s.peak_alt }}° {{ s.peak_az }}</span>
+      {% if s.peak_alt <= 15 %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ s.peak_alt }}° above the horizon — atmospheric haze will reduce visibility.</span></span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if sky.stars|length > 8 %}
+  <button class="sky-show-more" @click="showAll = !showAll" x-text="showAll ? 'Show fewer' : 'Show all {{ sky.stars|length }} stars'">Show all</button>
+  {% endif %}
+</div>
+{% endif %}
+
 {# ── Deep Sky Objects ────────────────────────────────────────────────── #}
 {% if sky.dsos %}
 <div class="sky-section" x-data="{ showAll: false }">

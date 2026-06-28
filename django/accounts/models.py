@@ -69,3 +69,38 @@ class UserPreferences(models.Model):
     @property
     def has_location(self):
         return self.location_lat is not None and self.location_lon is not None
+
+
+class SkyObject(models.Model):
+    CATEGORY_PLANET   = "planet"
+    CATEGORY_STAR     = "star"
+    CATEGORY_DSO      = "dso"
+    CATEGORY_SHOWER   = "meteor_shower"
+    CATEGORY_SATELLITE = "satellite"
+    CATEGORIES = [
+        (CATEGORY_PLANET,    "Planet"),
+        (CATEGORY_STAR,      "Star"),
+        (CATEGORY_DSO,       "Deep Sky Object"),
+        (CATEGORY_SHOWER,    "Meteor Shower"),
+        (CATEGORY_SATELLITE, "Satellite"),
+    ]
+
+    name        = models.CharField(max_length=100)
+    common_name = models.CharField(max_length=100, blank=True)
+    category    = models.CharField(max_length=20, choices=CATEGORIES, db_index=True)
+    obj_type    = models.CharField(max_length=50, blank=True)  # galaxy, nebula, planet, star…
+    magnitude   = models.FloatField(null=True, blank=True)     # null → computed at runtime
+    ra_h        = models.FloatField(null=True, blank=True)     # null → computed (planets, ISS, showers)
+    dec_d       = models.FloatField(null=True, blank=True)
+    source      = models.CharField(max_length=50, blank=True)  # messier_csv, yale_bsc, de421…
+    active      = models.BooleanField(default=True, db_index=True)
+    sort_order  = models.IntegerField(default=0)
+    notes       = models.TextField(blank=True)
+    extra_data  = models.JSONField(default=dict, blank=True)   # category-specific fields
+
+    class Meta:
+        db_table = "sky_catalog"
+        ordering = ["category", "sort_order", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.category})"

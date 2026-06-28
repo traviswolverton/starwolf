@@ -1,0 +1,26 @@
+name,common_name,ra_h,dec_d,magnitude,obj_type,notes
+Sirius,Dog Star,6.7525,-16.7161,-1.46,star,Brightest star in the night sky; in Canis Major
+Canopus,,6.3992,-52.6957,-0.74,star,Second brightest; southern sky; in Carina
+Rigil Kentaurus,Alpha Centauri,-1.0,1.0,-0.27,star,Nearest star system to Sun; southern; in Centaurus
+Arcturus,,14.2612,19.1822,-0.05,star,Brightest star in northern hemisphere; in Boötes
+Vega,,18.6157,38.7837,0.03,star,Keystone of Summer Triangle; in Lyra
+Capella,,5.2781,45.9980,0.08,star,Bright yellow giant; in Auriga
+Rigel,,5.2422,-8.2016,0.13,star,Blue supergiant; lower-right of Orion
+Procyon,Little Dog Star,7.6550,5.2250,0.34,star,Brightest in Canis Minor; Winter Triangle
+Achernar,,1.6286,-57.2367,0.46,star,Bright blue star; far southern; end of Eridanus
+Betelgeuse,,5.9194,7.4069,0.50,star,Red supergiant; upper-left of Orion; variable
+Hadar,Beta Centauri,14.0637,-60.3730,0.61,star,Southern; near Alpha Centauri
+Acrux,Alpha Crucis,12.4433,-63.0991,0.77,star,Southern Cross; far southern sky
+Altair,,19.8464,8.8683,0.77,star,Summer Triangle; spins very fast; in Aquila
+Aldebaran,Eye of Taurus,4.5987,16.5093,0.85,star,Red giant; eye of Taurus; V-shaped Hyades cluster
+Antares,Heart of the Scorpion,16.4901,-26.4320,1.09,star,Red supergiant; heart of Scorpius; summer sky
+Spica,,13.4199,-11.1613,1.04,star,Brightest in Virgo; blue-white binary
+Pollux,,7.7553,28.0262,1.14,star,Brighter twin of Gemini; orange giant
+Fomalhaut,Autumn Star,22.9608,-29.6222,1.16,star,Bright isolated star in southern Piscis Austrinus
+Deneb,,20.6905,45.2803,1.25,star,Summer Triangle; tail of Cygnus; distant supergiant
+Mimosa,Beta Crucis,12.7953,-59.6888,1.25,star,Southern Cross; second brightest in Crux
+Regulus,Heart of Leo,10.1395,11.9672,1.35,star,Brightest in Leo; almost on the ecliptic
+Adhara,,6.9771,-28.9722,1.50,star,Brightest in Canis Major after Sirius
+Castor,,7.5767,31.8883,1.58,star,Twin of Gemini; actually a sextuple star system
+Shaula,Lambda Scorpii,17.5602,-37.1038,1.62,star,Near tip of Scorpius tail; summer sky
+Bellatrix,Female Warrior,5.4189,6.3497,1.64,star,Upper-right shoulder of Orion
