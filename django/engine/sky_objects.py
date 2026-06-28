@@ -189,7 +189,7 @@ def _rise_set(eph, obj, observer, t0, t1):
 
 # ── ISS ──────────────────────────────────────────────────────────────────────
 
-_ISS_TLE_URL = "https://celestrak.org/SATCAT/tle.php?CATNR=25544"
+_ISS_TLE_URL = "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=tle"
 _ISS_TLE_CACHE: dict = {}   # simple in-process cache (rebuilt per worker restart)
 
 
