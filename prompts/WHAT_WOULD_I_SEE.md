@@ -1,6 +1,6 @@
 # "What Would I See?" — Feature Spec
 
-**Status:** Scoped, not yet implemented  
+**Status:** ✅ Implemented 2026-06-27 (Spec 1 + Spec 2 shipped together)  
 **Preceded by:** Site Detail pages (`site_details` table, `enrich_site_details` management command)  
 **Depends on:** `skyfield`, Messier catalog CSV, existing Bortle lookup pipeline  
 **Session context:** Scoped 2026-06-27 while `enrich_site_details` full-catalog run was in progress

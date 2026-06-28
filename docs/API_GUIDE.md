@@ -179,6 +179,30 @@ Score upcoming nights at a given location.
 
 ---
 
+### `GET /sites/<id>/sky` — Sky Object Visibility (What's Up?)
+
+Returns everything visible in the sky for a specific site on a given date. Requires authentication (session cookie). Used by the site detail page "What's Up?" section via HTMX.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|------|------|---------|-------------|
+| `date` | string | today | `YYYY-MM-DD`. Clamped to today + 10 days. |
+
+**Response** — HTML partial (`_sky_objects.html`), not JSON. Intended for HTMX consumption.
+
+**Cache** — `sky:{site_id}:{date}:{equipment}:{bortle}` → 1 hour TTL in Redis.
+
+---
+
+### `GET /tonight` — Tonight's Sky (Location-Based)
+
+Standalone page showing sky visibility for the authenticated user's saved location. Fetches a live forecast score from the same pipeline as the Planner to provide a conditions banner alongside the astronomical data.
+
+Not a JSON endpoint — returns a full HTML page.
+
+---
+
 ### `GET /healthz`
 
 Health check. Returns `{"status": "ok"}` when the API is running.
