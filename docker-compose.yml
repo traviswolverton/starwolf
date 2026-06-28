@@ -14,8 +14,8 @@ services:
       retries: 5
     # Uncomment for GUI access via SSH tunnel (ssh -L 5432:localhost:5432 travis@<server>)
     # Comment out when done — no need to expose this permanently
-    ports:
-      - "0.0.0.0:5432:5432"
+    # ports:
+    #   - "0.0.0.0:5432:5432"  # uncomment for GUI access via SSH tunnel
     restart: unless-stopped
 
   django:
