@@ -9,8 +9,9 @@ Usage:
   python manage.py enrich_site_details --limit 20          # stop after N sites
   python manage.py enrich_site_details --site-id 42        # single site
   python manage.py enrich_site_details --near-houston      # 20 closest to Houston (test mode)
-  python manage.py enrich_site_details --no-ollama         # skip narrative generation
-  python manage.py enrich_site_details --model phi4        # different Ollama model
+  python manage.py enrich_site_details --no-ollama              # skip narrative generation
+  python manage.py enrich_site_details --missing-narrative      # only sites without a narrative
+  python manage.py enrich_site_details --model phi4             # different Ollama model
   python manage.py enrich_site_details --ollama http://host.docker.internal:11434
 """
 import json
@@ -198,19 +199,21 @@ class Command(BaseCommand):
         parser.add_argument("--offset",      type=int, default=0)
         parser.add_argument("--site-id",     type=int, default=0, help="Enrich a single site by ID")
         parser.add_argument("--near-houston",action="store_true", help="Test mode: 20 closest sites to Houston")
-        parser.add_argument("--no-ollama",   action="store_true", help="Skip Ollama narrative")
-        parser.add_argument("--model",       default=MODEL_DEFAULT)
+        parser.add_argument("--no-ollama",        action="store_true", help="Skip Ollama narrative")
+        parser.add_argument("--missing-narrative", action="store_true", help="Only sites that have a detail row but no narrative yet")
+        parser.add_argument("--model",             default=MODEL_DEFAULT)
         parser.add_argument("--ollama",      default=OLLAMA_DEFAULT)
 
     def handle(self, *args, **options):
         _ensure_table()
 
-        force        = options["force"]
-        limit        = options["limit"]
-        offset       = options["offset"]
-        site_id      = options["site_id"]
-        near_houston = options["near_houston"]
-        no_ollama    = options["no_ollama"]
+        force            = options["force"]
+        limit            = options["limit"]
+        offset           = options["offset"]
+        site_id          = options["site_id"]
+        near_houston     = options["near_houston"]
+        no_ollama        = options["no_ollama"]
+        missing_narrative = options["missing_narrative"]
         model        = options["model"]
         ollama_url   = options["ollama"]
 
@@ -241,6 +244,13 @@ class Command(BaseCommand):
                     "SELECT id, name, site_type, bortle_class, elevation_m, lat, lon, state_province, country "
                     "FROM sites ORDER BY id"
                 )
+            elif missing_narrative:
+                cur.execute(
+                    "SELECT s.id, s.name, s.site_type, s.bortle_class, s.elevation_m, s.lat, s.lon, s.state_province, s.country "
+                    "FROM sites s "
+                    "JOIN site_details sd ON sd.site_id = s.id "
+                    "WHERE sd.narrative IS NULL ORDER BY s.id"
+                )
             else:
                 cur.execute(
                     "SELECT s.id, s.name, s.site_type, s.bortle_class, s.elevation_m, s.lat, s.lon, s.state_province, s.country "
@@ -265,19 +275,30 @@ class Command(BaseCommand):
         for i, site in enumerate(sites, 1):
             name = site["name"]
             try:
-                # Wikipedia summary + URL
-                wiki_summary, wiki_url = _wikipedia(name, site["state_province"])
-                time.sleep(0.4)
+                if missing_narrative:
+                    # Reuse already-stored Wikipedia data; only generate the narrative
+                    with connection.cursor() as cur:
+                        cur.execute(
+                            "SELECT wikipedia_url, wikipedia_summary, image_url, image_credit, maps_url "
+                            "FROM site_details WHERE site_id=%s", [site["id"]]
+                        )
+                        row = cur.fetchone()
+                    wiki_url, wiki_summary, image_url, image_credit, maps_url = row if row else ("", "", "", "", "")
+                    maps_url = maps_url or f"https://www.google.com/maps/search/?api=1&query={site['lat']},{site['lon']}"
+                else:
+                    # Wikipedia summary + URL
+                    wiki_summary, wiki_url = _wikipedia(name, site["state_province"])
+                    time.sleep(0.4)
 
-                # Wikimedia image
-                image_url, image_credit = _wikimedia_image(name, site["state_province"])
-                time.sleep(0.4)
+                    # Wikimedia image
+                    image_url, image_credit = _wikimedia_image(name, site["state_province"])
+                    time.sleep(0.4)
 
-                # Google Maps URL (no API key needed for a search link)
-                maps_url = (
-                    f"https://www.google.com/maps/search/?api=1&query="
-                    f"{site['lat']},{site['lon']}"
-                )
+                    # Google Maps URL (no API key needed for a search link)
+                    maps_url = (
+                        f"https://www.google.com/maps/search/?api=1&query="
+                        f"{site['lat']},{site['lon']}"
+                    )
 
                 # Ollama narrative
                 narrative = None
