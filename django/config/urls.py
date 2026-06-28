@@ -2,6 +2,7 @@ import json
 from datetime import date, timedelta
 from pathlib import Path
 
+from django.contrib import admin
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import include, path
@@ -60,6 +61,7 @@ def home(request):
 
 
 urlpatterns = [
+    path("django-admin/", admin.site.urls),
     path("", home, name="home"),
     path("about", page_views.about, name="about"),
     path("moon", page_views.moon_phase_page, name="moon_phase"),
