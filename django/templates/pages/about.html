@@ -138,6 +138,77 @@
 </details>
 
 <details open>
+  <summary>🪐 Planetary &amp; Sky Ephemeris — skyfield + DE421</summary>
+  <div class="details-body">
+    <p><strong>Library:</strong> <a href="https://rhodesmill.org/skyfield/" target="_blank">skyfield</a> by Brandon Rhodes</p>
+    <p><strong>Ephemeris:</strong> DE421, NASA Jet Propulsion Laboratory</p>
+    <p>skyfield computes precise positions of the Sun, Moon, and planets using the JPL DE421
+    planetary ephemeris. StarWolf uses it to calculate rise/set times, peak altitude, peak
+    azimuth (compass direction), and visibility windows for all sky objects on the Tonight's
+    Sky and What's Up? pages.</p>
+    <ul>
+      <li><strong>skyfield license:</strong> <a href="https://opensource.org/licenses/MIT" target="_blank">MIT</a></li>
+      <li><strong>DE421 ephemeris:</strong> Public domain, NASA/JPL — baked into the Docker image at build time</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>🌌 Deep Sky Object Catalog — Messier Catalog</summary>
+  <div class="details-body">
+    <p>StarWolf bundles a catalog of all 110 Messier objects (galaxies, nebulae, star clusters)
+    with coordinates, magnitudes, and common names. Object visibility is computed against each
+    site's limiting magnitude derived from its Bortle class.</p>
+    <ul>
+      <li><strong>Data:</strong> Compiled from public-domain astronomical literature; no license restrictions</li>
+      <li><strong>Coverage:</strong> All 110 Messier objects (M1–M110)</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>🛸 ISS Pass Predictions — Celestrak</summary>
+  <div class="details-body">
+    <p><strong>Provider:</strong> <a href="https://celestrak.org" target="_blank">Celestrak</a> (Dr. T.S. Kelso)</p>
+    <p>ISS pass times are computed using Two-Line Element (TLE) orbital data fetched from
+    Celestrak and processed by skyfield. TLE data is cached for 6 hours.</p>
+    <ul>
+      <li><strong>TLE source:</strong> <a href="https://celestrak.org/SATCAT/tle.php?CATNR=25544" target="_blank">Celestrak SATCAT — ISS (ZARYA)</a></li>
+      <li><strong>License:</strong> Free for non-commercial use; attribution appreciated</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>🖼️ Site Images — Wikimedia Commons</summary>
+  <div class="details-body">
+    <p><strong>Provider:</strong> <a href="https://commons.wikimedia.org" target="_blank">Wikimedia Commons</a> / Wikimedia Foundation</p>
+    <p>Site thumbnail images are fetched via the Wikipedia PageImages API, which returns
+    representative images from Wikimedia Commons. Images are loaded directly from Wikimedia
+    CDN — StarWolf does not host or cache them.</p>
+    <ul>
+      <li><strong>API:</strong> <a href="https://www.mediawiki.org/wiki/Extension:PageImages" target="_blank">Wikipedia PageImages API</a> — free, no key required</li>
+      <li><strong>License:</strong> Varies per image; most are CC BY-SA. Credits are displayed with each image.</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>📡 Visitor Location — ipwho.is</summary>
+  <div class="details-body">
+    <p><strong>Provider:</strong> <a href="https://ipwho.is" target="_blank">ipwho.is</a></p>
+    <p>When you first visit StarWolf without a saved location, your approximate location is
+    estimated from your IP address using ipwho.is. This is used only to pre-populate the
+    location field — it is not stored, logged, or used for any other purpose. IP addresses
+    are never sent to ipwho.is directly; only the server's outbound request is made.</p>
+    <ul>
+      <li><strong>License:</strong> Free tier, non-commercial use</li>
+      <li><strong>Data stored:</strong> None — IP geolocation is used for the initial location estimate only</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
   <summary>🤖 AI Forecast Summaries — Ollama</summary>
   <div class="details-body">
     <p><strong>Runtime:</strong> <a href="https://ollama.com" target="_blank">Ollama</a> (MIT License)</p>
@@ -161,26 +232,19 @@ Here's what's running under the hood:</p>
 <div class="arch-grid">
   <div>
     <h3>Frontend</h3>
-    <p><strong><a href="https://www.djangoproject.com" target="_blank">Django 5</a> + <a href="https://htmx.org" target="_blank">HTMX</a></strong><br>
-    Server-rendered HTML with HTMX for partial page updates. Migrating from Streamlit
-    via a strangler-fig pattern — pages move to Django one at a time while Streamlit
-    continues serving unmigrated pages.</p>
-
-    <p><strong><a href="https://fastapi.tiangolo.com" target="_blank">FastAPI</a></strong><br>
-    Lightweight REST API on port 8000 (<code>api.py</code>) that exposes the forecast
-    engine for external consumers. Auto-docs at <code>/docs</code>.</p>
+    <p><strong><a href="https://www.djangoproject.com" target="_blank">Django 5</a> + <a href="https://htmx.org" target="_blank">HTMX</a> + <a href="https://alpinejs.dev" target="_blank">Alpine.js</a></strong><br>
+    Server-rendered HTML with HTMX for partial page updates and Alpine.js for lightweight
+    client-side interactivity (tooltips, show/hide, date pickers).</p>
     <p><a href="/api">📡 API Guide →</a></p>
 
     <h3>Data Layer</h3>
     <p><strong><a href="https://www.postgresql.org" target="_blank">PostgreSQL 16</a></strong><br>
-    Stores the site catalog, app settings, and visitor log. Accessed via
-    <a href="https://www.sqlalchemy.org" target="_blank">SQLAlchemy</a> Core from shared modules;
-    Django manages its own auth tables via the ORM.</p>
+    Stores the site catalog, site details (Wikipedia summaries, images, narratives),
+    app settings, user preferences, and visitor log.</p>
 
     <p><strong><a href="https://redis.io" target="_blank">Redis 7</a></strong><br>
-    Forecast cache with TTL-based expiry (1 hour for Open-Meteo,
-    3 hours for 7timer). Cache misses fall through to live API calls;
-    Redis is optional — the app degrades gracefully if unavailable.</p>
+    Forecast cache with TTL-based expiry (1 hour for Open-Meteo, 3 hours for 7timer,
+    1 hour for sky object calculations, 6 hours for ISS TLE data).</p>
   </div>
 
   <div>
@@ -196,6 +260,11 @@ Here's what's running under the hood:</p>
     Fetches and merges Open-Meteo (hourly) and 7timer! (6-hourly ASTRO)
     forecasts per site. All network calls are Redis-cached.</p>
 
+    <p><strong><code>sky_objects.py</code></strong><br>
+    Computes what's visible in the sky for any lat/lon and date using skyfield
+    and the JPL DE421 ephemeris. Covers planets, Moon, Messier DSOs, meteor
+    showers, and ISS passes. Results are cached 1 hour per site/date/equipment combination.</p>
+
     <p><strong><code>bortle_lookup.py</code></strong><br>
     Reads a single pixel from the 2.9 GB Falchi et al. 2016 GeoTIFF using
     <a href="https://rasterio.readthedocs.io" target="_blank">rasterio</a> — lazy read, no full
@@ -203,13 +272,12 @@ Here's what's running under the hood:</p>
 
     <h3>Infrastructure</h3>
     <p><strong><a href="https://docs.docker.com/compose" target="_blank">Docker Compose</a></strong><br>
-    Five services: <code>app</code> (Streamlit, transitional), <code>django</code>, <code>api</code> (FastAPI),
-    <code>db</code> (Postgres), <code>redis</code>. The World Atlas GeoTIFF is mounted as a
-    read-only volume so it stays off the image layer.</p>
+    Three services: <code>django</code> (gunicorn, port 8080), <code>db</code> (Postgres), <code>redis</code>.
+    The World Atlas GeoTIFF and JPL DE421 ephemeris are baked into the image at build time.</p>
 
     <p><strong><a href="https://ollama.com" target="_blank">Ollama</a></strong> (host, optional)<br>
-    Local LLM inference for AI forecast summaries. Runs outside Docker,
-    reachable at <code>localhost:11434</code>. No data leaves the machine.</p>
+    Local LLM inference for AI site narratives and forecast summaries. Runs outside Docker,
+    reachable via <code>host.docker.internal:11434</code>. No data leaves the machine.</p>
   </div>
 </div>
 
