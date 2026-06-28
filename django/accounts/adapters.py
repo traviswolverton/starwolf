@@ -1,29 +1,24 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from django.shortcuts import render
 
 
 class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request):
-        # Block email/password registration; social signup handled separately
         return False
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def is_open_for_signup(self, request, sociallogin):
-        # Always allow new accounts via Google, GitHub, Discord
         return True
 
-    def authentication_error(self, request, provider_id, error=None, exception=None, extra_context=None):
-        # Return 200 so the proxy doesn't intercept the error page as a 401
-        return render(request, "socialaccount/authentication_error.html", status=200)
-
-    def populate_username(self, request, user):
-        user.username = user.email
-
-    def save_user(self, request, user, form, commit=True):
-        user = super().save_user(request, user, form, commit=False)
-        user.username = user.email
-        if commit:
-            user.save()
+    def save_user(self, request, sociallogin, form=None):
+        user = super().save_user(request, sociallogin, form)
+        if not user.username:
+            user.username = user.email
+            user.save(update_fields=["username"])
         return user
+
+    def on_authentication_error(self, request, provider, error=None, exception=None, extra_context=None):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error("Social auth error provider=%s error=%r exception=%r extra=%r", provider, error, exception, extra_context)
