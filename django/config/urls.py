@@ -91,11 +91,13 @@ urlpatterns = [
     path("api/v1/bortle", api_views.bortle, name="api_bortle"),
     path("api/v1/sites", api_views.sites, name="api_sites"),
     path("api/v1/forecast", api_views.forecast, name="api_forecast"),
+    path("api/v1/sky-catalog", api_views.sky_catalog, name="api_sky_catalog"),
     path("api/healthz", lambda r: JsonResponse({"status": "ok"}), name="api_health"),
     # Routes without prefix (proxy strips /api before forwarding)
     path("v1/bortle", api_views.bortle),
     path("v1/sites", api_views.sites),
     path("v1/forecast", api_views.forecast),
+    path("v1/sky-catalog", api_views.sky_catalog),
     path("healthz", lambda r: JsonResponse({"status": "ok"})),
     path("django-health", health),
     path("accounts/", include("allauth.urls")),

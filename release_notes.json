@@ -4,6 +4,7 @@
       "date": "2026-06-28",
       "features": [
         "Bright Stars section — Tonight's Sky and What's Up now include the 25 brightest named stars (Sirius, Vega, Arcturus, etc.) with visibility tiers, rise/set times, and peak altitude.",
+        "Sky catalog API — new `GET /v1/sky-catalog` endpoint returns all 155 catalogued objects (planets, stars, DSOs, meteor showers, ISS) with flat per-category fields; filterable by `category` and `active`.",
         "Sky catalog — all sky objects (planets, stars, DSOs, meteor showers, ISS) are now stored in a unified DB table (`sky_catalog`) with an idempotent `seed_sky_catalog` management command.",
         "ISS passes now appear on Tonight's Sky and What's Up — fixed a deprecated Celestrak TLE URL and a skyfield Time scalar bug that silently returned zero passes."
       ]

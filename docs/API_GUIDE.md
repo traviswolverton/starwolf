@@ -251,6 +251,94 @@ The **Bortle modifier** is applied multiplicatively to the naked eye composite:
 
 ---
 
+### `GET /v1/sky-catalog` — Sky Object Catalog
+
+Returns the static sky object catalog — all objects the engine knows about (planets, named stars, Messier DSOs, meteor showers, ISS). Does not compute visibility; use the Tonight's Sky page or site detail for computed positions.
+
+#### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `category` | string | ❌ | Filter by category: `planet`, `star`, `dso`, `meteor_shower`, `satellite` |
+| `active` | string | ❌ | `true` (default) / `false` / `all` — filter by active flag |
+
+#### Response
+
+```json
+{
+  "count": 155,
+  "objects": [
+    {
+      "id": 1,
+      "name": "M1",
+      "common_name": "Crab Nebula",
+      "category": "dso",
+      "obj_type": "supernova remnant",
+      "magnitude": 8.4,
+      "ra_h": 5.5755,
+      "dec_d": 22.0145,
+      "source": "messier_csv",
+      "active": true,
+      "sort_order": 0,
+      "notes": null
+    },
+    {
+      "id": 8,
+      "name": "Mercury",
+      "category": "planet",
+      "obj_type": "planet",
+      "magnitude": null,
+      "ra_h": null,
+      "dec_d": null,
+      "source": "de421",
+      "active": true,
+      "sort_order": 1,
+      "ephemeris_name": "mercury"
+    },
+    {
+      "id": 120,
+      "name": "Perseids",
+      "category": "meteor_shower",
+      "obj_type": "meteor_shower",
+      "magnitude": null,
+      "ra_h": null,
+      "dec_d": null,
+      "source": "static",
+      "active": true,
+      "sort_order": 4,
+      "peak_month": 8,
+      "peak_day": 12,
+      "zhr": 100,
+      "radiant_ra_h": 3.1,
+      "radiant_dec_d": 58.0
+    }
+  ]
+}
+```
+
+#### Field notes
+
+| Field | Description |
+|---|---|
+| `category` | Object category: `planet`, `star`, `dso`, `meteor_shower`, `satellite` |
+| `magnitude` | Apparent magnitude. `null` for planets and satellites (computed at runtime) |
+| `ra_h` | Right ascension in hours. `null` for planets, ISS, and meteor showers (positions change) |
+| `dec_d` | Declination in degrees. `null` for same categories |
+| `source` | Data source: `messier_csv`, `yale_bsc`, `de421`, `celestrak`, `static` |
+| `ephemeris_name` | *(planet only)* Key used to look up this object in the DE421 ephemeris |
+| `peak_month`, `peak_day`, `zhr` | *(meteor_shower only)* Peak date and zenith hourly rate |
+| `radiant_ra_h`, `radiant_dec_d` | *(meteor_shower only)* Radiant position in sky |
+| `norad_id`, `tle_source_url` | *(satellite only)* NORAD catalog ID and TLE data URL |
+
+#### Error responses
+
+| Status | When |
+|---|---|
+| `422` | `category` is not a valid value |
+| `429` | Rate limit exceeded (60/min) |
+
+---
+
 ## Examples
 
 ### curl
@@ -267,6 +355,15 @@ curl "https://starwolf.wolvertons.net/api/v1/forecast?lat=30.67&lon=-104.02&bort
 
 # Longer window in a specific timezone
 curl "https://starwolf.wolvertons.net/api/v1/forecast?lat=36.10&lon=-112.11&days=14&timezone=America/Phoenix"
+
+# Sky catalog — all objects
+curl "https://starwolf.wolvertons.net/api/v1/sky-catalog"
+
+# Sky catalog — just DSOs
+curl "https://starwolf.wolvertons.net/api/v1/sky-catalog?category=dso"
+
+# Sky catalog — all including inactive
+curl "https://starwolf.wolvertons.net/api/v1/sky-catalog?active=all"
 
 # Health check
 curl "https://starwolf.wolvertons.net/api/healthz"
@@ -298,6 +395,21 @@ for night in data["nights"]:
         f"  👁 {night['naked_eye']:.0f}"
         f"  cloud={night['stats']['avg_cloud_cover']}%"
     )
+```
+
+### Sky catalog
+
+```python
+resp = requests.get(
+    "https://starwolf.wolvertons.net/api/v1/sky-catalog",
+    params={"category": "meteor_shower"},
+    timeout=10,
+)
+resp.raise_for_status()
+showers = resp.json()["objects"]
+
+for s in showers:
+    print(f"{s['name']:20} peak {s['peak_month']:02d}/{s['peak_day']:02d}  ZHR {s['zhr']}")
 ```
 
 ### Bulk site export

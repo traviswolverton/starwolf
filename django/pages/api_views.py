@@ -1,5 +1,5 @@
 """
-REST API views: GET /api/v1/bortle, /api/v1/sites, /api/v1/forecast
+REST API views: GET /api/v1/bortle, /api/v1/sites, /api/v1/forecast, /api/v1/sky-catalog
 
 Rate limiting uses Django's cache backend (Redis).
 """
@@ -129,3 +129,53 @@ def forecast(request):
         "nights": nights,
         "errors": fc.get("errors", []),
     })
+
+
+def _serialize_sky_object(obj):
+    """Flatten DB row + extra_data into a single API-level dict."""
+    base = {
+        "id":          obj.id,
+        "name":        obj.name,
+        "common_name": obj.common_name or None,
+        "category":    obj.category,
+        "obj_type":    obj.obj_type or None,
+        "magnitude":   obj.magnitude,
+        "ra_h":        obj.ra_h,
+        "dec_d":       obj.dec_d,
+        "source":      obj.source or None,
+        "active":      obj.active,
+        "sort_order":  obj.sort_order,
+        "notes":       obj.notes or None,
+    }
+    # Merge category-specific extra_data fields into the top level
+    base.update(obj.extra_data)
+    return base
+
+
+def sky_catalog(request):
+    if _rate_limit(f"skycatalog:{_ip(request)}", limit=60, window=60):
+        return JsonResponse({"detail": "Rate limit exceeded (60/min)."}, status=429)
+
+    from accounts.models import SkyObject
+
+    qs = SkyObject.objects.all()
+
+    category = request.GET.get("category")
+    if category:
+        valid = {c for c, _ in SkyObject.CATEGORIES}
+        if category not in valid:
+            return JsonResponse(
+                {"detail": f"Invalid category. Must be one of: {', '.join(sorted(valid))}."},
+                status=422,
+            )
+        qs = qs.filter(category=category)
+
+    active_param = request.GET.get("active", "true").lower()
+    if active_param == "true":
+        qs = qs.filter(active=True)
+    elif active_param == "false":
+        qs = qs.filter(active=False)
+    # "all" → no filter
+
+    objects = [_serialize_sky_object(obj) for obj in qs.order_by("category", "sort_order", "name")]
+    return JsonResponse({"count": len(objects), "objects": objects})
