@@ -134,7 +134,7 @@ def _effective_limit(bortle: int, equipment: str) -> float:
 
 def _altaz_series(observer, obj, t_start, t_end, ts, n: int = 72):
     """Return (times_array, alt_degrees_array) across the night window."""
-    jd = np.linspace(t_start.tt, t_end.tt, n)
+    jd = np.linspace(t_start.whole + t_start.tt_fraction, t_end.whole + t_end.tt_fraction, n)
     times = ts.tt_jd(jd)
     astrometric = observer.at(times).observe(obj)
     alts, azs, _ = astrometric.apparent().altaz()
@@ -154,10 +154,11 @@ def _night_window(eph, ts, observer, target_date: date):
         times, events = almanac.find_discrete(t0, t1, f)
         night_start = night_end = None
         for t, e in zip(times, events):
+            t_sc = ts.tt_jd(float(t.tt))  # convert 0-d array element to scalar
             if int(e) == 0 and night_start is None:
-                night_start = t
+                night_start = t_sc
             elif int(e) != 0 and night_start is not None and night_end is None:
-                night_end = t
+                night_end = t_sc
                 break
     except Exception:
         night_start = night_end = None
@@ -178,10 +179,11 @@ def _rise_set(eph, obj, observer, t0, t1):
         times, events = almanac.find_discrete(t0, t1, f)
         rise = set_ = None
         for t, e in zip(times, events):
+            t_sc = t.ts.tt_jd(float(t.tt))
             if int(e) == 1 and rise is None:
-                rise = t
+                rise = t_sc
             elif int(e) == 0 and set_ is None:
-                set_ = t
+                set_ = t_sc
         return rise, set_
     except Exception:
         return None, None
@@ -231,19 +233,22 @@ def _compute_iss_passes(lat: float, lon: float, t0, t1, ts, tz: ZoneInfo) -> lis
         current = {}
         for t, e in zip(times, events):
             e = int(e)
+            # Wrap 0-d Time array element into a proper scalar Time
+            t = ts.tt_jd(float(t.tt))
             if e == 0:  # rises above 10°
                 current = {"rise": t}
             elif e == 1 and current:  # peak
-                astrometric = (sat - observer).at(t)
-                alt, az, _ = astrometric.altaz()
+                diff = sat - observer
+                topocentric = diff.at(t)
+                alt, az, _ = topocentric.altaz()
                 current["peak"] = t
                 current["peak_alt"] = round(alt.degrees)
                 current["peak_az"] = az.degrees
-            elif e == 2 and current.get("rise"):  # sets below 10°
+            elif e == 2 and "rise" in current:  # sets below 10°
                 current["set"] = t
                 rise_t = current["rise"]
                 set_t = current["set"]
-                duration_s = (set_t.tt - rise_t.tt) * 86400
+                duration_s = (float(set_t.tt) - float(rise_t.tt)) * 86400
                 az_deg = current.get("peak_az", 0)
                 directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
                 direction = directions[round(az_deg / 45) % 8]
@@ -258,7 +263,8 @@ def _compute_iss_passes(lat: float, lon: float, t0, t1, ts, tz: ZoneInfo) -> lis
                 current = {}
         return passes
     except Exception as e:
-        _log.debug("ISS pass computation failed: %s", e)
+        import traceback
+        _log.debug("ISS pass computation failed: %s\n%s", e, traceback.format_exc())
         return []
 
 
@@ -298,7 +304,7 @@ def compute_sky(
     moon_rise, moon_set = _rise_set(eph, moon_obj, observer, t_start, t_end)
 
     # Illumination
-    t_mid = ts.tt_jd((t_start.tt + t_end.tt) / 2)
+    t_mid = ts.tt_jd(((t_start.whole + t_start.tt_fraction) + (t_end.whole + t_end.tt_fraction)) / 2)
     sun_obj = eph["sun"]
     e = earth.at(t_mid)
     s = e.observe(sun_obj).apparent()

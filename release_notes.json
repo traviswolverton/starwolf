@@ -1,6 +1,12 @@
 {
   "releases": [
     {
+      "date": "2026-06-28",
+      "features": [
+        "ISS passes now appear on Tonight's Sky and What's Up — fixed a deprecated Celestrak TLE URL and a skyfield Time scalar bug that silently returned zero passes."
+      ]
+    },
+    {
       "date": "2026-06-27",
       "features": [
         "Tonight's Sky — new page (top nav) shows everything visible tonight from your saved location: Moon phase and rise/set, all planets with visibility tier and peak altitude, top Messier deep-sky objects filtered by Bortle class, active meteor showers, and ISS passes. Includes a 10-day date picker.",
