@@ -1,8 +1,11 @@
 import hashlib
 import json
+import logging
 import math
 import re
 import threading
+
+_log = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -931,6 +934,7 @@ def tonight(request):
     sky = None
     bortle = None
     bortle_source = None
+    forecast_scores = None
 
     if has_location:
         lat = prefs.location_lat
@@ -938,17 +942,46 @@ def tonight(request):
         # Look up Bortle from World Atlas
         try:
             from engine.bortle_lookup import lookup_bortle
-            bortle = lookup_bortle(lat, lon) or 5
+            result = lookup_bortle(lat, lon)
+            bortle = (result.get("bortle") if isinstance(result, dict) else result) or 5
             bortle_source = "World Atlas of Artificial Sky Brightness"
         except Exception:
             bortle = 5
             bortle_source = "estimated"
 
+        # Fetch planner-style forecast scores for the target date
+        cloud_score = None
+        try:
+            from engine.forecast import fetch_site_forecast
+            from engine.scorer import score_forecast
+            fc_cache_key = f"sky:forecast:{lat:.4f}:{lon:.4f}:{target_date.isoformat()}"
+            fc_data = cache_get(fc_cache_key)
+            if fc_data is None:
+                fc_data = fetch_site_forecast(
+                    {"lat": lat, "lon": lon, "name": "Your location", "id": 0, "bortle_class": bortle},
+                    forecast_days=11, timezone=tz_name,
+                )
+                cache_set(fc_cache_key, fc_data, 3600)
+            nights = score_forecast(fc_data, tz_name)
+            for n in nights:
+                if n["date"] == target_date.isoformat():
+                    forecast_scores = {
+                        "composite":  round(n.get("composite") or 0),
+                        "naked_eye":  round(n.get("naked_eye") or 0) if n.get("naked_eye") is not None else None,
+                        "cloud_pct":  round(n.get("stats", {}).get("avg_cloud_cover") or 0),
+                        "moon_score": round(n.get("factors", {}).get("moon") or 0),
+                        "humidity":   round(n.get("stats", {}).get("avg_humidity") or 0),
+                    }
+                    cloud_score = forecast_scores["composite"]
+                    break
+        except Exception as e:
+            _log.debug("Tonight forecast fetch failed: %s", e)
+
         cache_key = f"sky:tonight:{lat:.4f}:{lon:.4f}:{target_date.isoformat()}:{equipment}:{bortle}"
         sky = cache_get(cache_key)
         if sky is None:
             try:
-                sky = compute_sky(lat, lon, target_date, bortle, equipment, None, tz_name)
+                sky = compute_sky(lat, lon, target_date, bortle, equipment, cloud_score, tz_name)
                 cache_set(cache_key, sky, 3600)
             except Exception as e:
                 import logging
@@ -956,14 +989,15 @@ def tonight(request):
 
     date_options = [(today + timedelta(days=i)) for i in range(11)]
     return render(request, "pages/tonight.html", {
-        "sky":           sky,
-        "has_location":  has_location,
-        "location_name": getattr(prefs, "location_display", "") or getattr(prefs, "location_text", ""),
-        "bortle":        bortle,
-        "bortle_source": bortle_source,
-        "target_date":   target_date,
-        "date_options":  date_options,
-        "has_equipment": getattr(prefs, "equipment", None) is not None,
+        "sky":             sky,
+        "has_location":    has_location,
+        "location_name":   getattr(prefs, "location_display", "") or getattr(prefs, "location_text", ""),
+        "bortle":          bortle,
+        "bortle_source":   bortle_source,
+        "forecast_scores": forecast_scores,
+        "target_date":     target_date,
+        "date_options":    date_options,
+        "has_equipment":   getattr(prefs, "equipment", None) is not None,
         "equipment_label": dict([
             ("naked_eye",   "Naked Eye"),
             ("binoculars",  "Binoculars"),

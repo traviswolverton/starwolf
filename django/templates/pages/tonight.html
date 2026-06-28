@@ -30,6 +30,49 @@
 </div>
 
 {% if sky %}
+
+{# ── Conditions banner ───────────────────────────────────────────────── #}
+{% if forecast_scores %}
+<div class="sky-conditions-banner
+  {% if forecast_scores.composite >= 70 %}sky-cond-good
+  {% elif forecast_scores.composite >= 40 %}sky-cond-marginal
+  {% else %}sky-cond-poor{% endif %}">
+  <div class="sky-cond-scores">
+    <span class="sky-cond-item">
+      <span class="sky-cond-label">Overall</span>
+      <span class="sky-cond-value">{{ forecast_scores.composite }}</span>
+    </span>
+    {% if forecast_scores.naked_eye is not None %}
+    <span class="sky-cond-item">
+      <span class="sky-cond-label">👁 Naked Eye</span>
+      <span class="sky-cond-value">{{ forecast_scores.naked_eye }}</span>
+    </span>
+    {% endif %}
+    <span class="sky-cond-item">
+      <span class="sky-cond-label">☁️ Cloud</span>
+      <span class="sky-cond-value">{{ forecast_scores.cloud_pct }}%</span>
+    </span>
+    <span class="sky-cond-item">
+      <span class="sky-cond-label">🌙 Moon</span>
+      <span class="sky-cond-value">{{ forecast_scores.moon_score }}</span>
+    </span>
+    <span class="sky-cond-item">
+      <span class="sky-cond-label">💧 Humidity</span>
+      <span class="sky-cond-value">{{ forecast_scores.humidity }}%</span>
+    </span>
+  </div>
+  <p class="sky-cond-note">
+    {% if forecast_scores.composite >= 70 %}
+      ✅ Good conditions tonight — visibility tiers below should be achievable.
+    {% elif forecast_scores.composite >= 40 %}
+      ⚠️ Marginal conditions (score {{ forecast_scores.composite }}) — bright objects like Venus are still visible, but faint DSOs may be washed out. Check the <a href="{% url 'planner' %}">Planner</a> for a clearer night.
+    {% else %}
+      ❌ Poor conditions tonight (score {{ forecast_scores.composite }}) — visibility tiers below assume clear skies, which isn't the forecast. Brighter objects may still be visible between clouds.
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+
 {% include "pages/_sky_objects.html" %}
 
 {# ── Drive to dark site nudge ────────────────────────────────────────── #}

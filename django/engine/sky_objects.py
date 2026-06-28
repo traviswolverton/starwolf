@@ -82,6 +82,11 @@ METEOR_SHOWERS = [
 _MIN_ALTITUDE = 10.0   # degrees — objects below this are considered inaccessible
 _ALT_EXTINCTION_THRESHOLD = 15.0  # degrees — apply ~1 mag penalty below this
 
+_COMPASS_16 = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"]
+
+def _az_compass(az_deg: float) -> str:
+    return _COMPASS_16[round(az_deg / 22.5) % 16]
+
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -361,11 +366,13 @@ def compute_sky(
         eff_mag = mag + (1.0 if peak_alt < _ALT_EXTINCTION_THRESHOLD else 0.0)
         tier, tier_label, tier_emoji = _visibility_tier(eff_mag, eff_limit)
 
+        peak_az = float(azs[peak_idx])
         planets.append({
             "name":        name,
             "visible":     True,
             "magnitude":   mag,
             "peak_alt":    round(peak_alt),
+            "peak_az":     _az_compass(peak_az),
             "peak_str":    _fmt_time(peak_t, tz),
             "rise_str":    _fmt_time(p_rise, tz) if p_rise else None,
             "set_str":     _fmt_time(p_set, tz) if p_set else None,
@@ -404,9 +411,11 @@ def compute_sky(
 
         tier, tier_label, tier_emoji = _visibility_tier(eff_mag, eff_limit)
 
+        peak_az = float(azs[peak_idx])
         entry = {
             **obj,
             "peak_alt":    round(peak_alt),
+            "peak_az":     _az_compass(peak_az),
             "peak_str":    _fmt_time(peak_t, tz),
             "vis_start":   _fmt_time(vis_start_t, tz),
             "vis_end":     _fmt_time(vis_end_t, tz),

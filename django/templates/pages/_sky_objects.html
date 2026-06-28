@@ -73,7 +73,9 @@
         <span class="sky-obj-detail">
           {% if p.rise_str %}Rises {{ p.rise_str }}{% endif %}
           {% if p.rise_str and p.peak_alt %} · {% endif %}
-          {% if p.peak_alt %}Peak {{ p.peak_alt }}° at {{ p.peak_str }}{% endif %}
+          {% if p.peak_alt %}Peak {{ p.peak_alt }}° {{ p.peak_az }} at {{ p.peak_str }}{% endif %}
+        </span>
+        {% if p.peak_alt and p.peak_alt <= 15 %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ p.peak_alt }}° above the horizon — haze and light pollution will significantly dim this object. Best views above 30°.</span></span>{% endif %}
         </span>
       {% else %}
         <span class="sky-tier sky-tier-4">⛔ {{ p.note }}</span>
@@ -102,7 +104,8 @@
       <span class="sky-tier sky-tier-{{ d.tier }}">{{ d.tier_emoji }} {{ d.tier_label }}</span>
       <span class="sky-obj-type">{{ d.obj_type }}</span>
       <span class="sky-obj-mag">mag {{ d.magnitude }}</span>
-      <span class="sky-obj-detail">{{ d.vis_start }}–{{ d.vis_end }} · Peak {{ d.peak_alt }}°</span>
+      <span class="sky-obj-detail">{{ d.vis_start }}–{{ d.vis_end }} · Peak {{ d.peak_alt }}° {{ d.peak_az }}</span>
+      {% if d.peak_alt <= 15 %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ d.peak_alt }}° above the horizon — atmospheric haze and light pollution will significantly dim this object. Best views come from objects above 30°.</span></span>{% endif %}
     </div>
     {% endfor %}
   </div>

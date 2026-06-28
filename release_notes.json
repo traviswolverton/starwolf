@@ -7,7 +7,10 @@
         "What's Up on site detail pages — each site detail page now has a 'What's Up?' section with the same sky visibility data for that specific site, with a 10-day date nav powered by HTMX.",
         "Visibility tiers — objects are labelled 🟢 Naked Eye, 🔵 Binoculars, 🔭 Small Scope, 🔭🔭 Large Scope, or ⛔ Not Tonight based on the site's Bortle class and your equipment setting.",
         "Equipment preference — new setting in Preferences lets you choose your equipment (naked eye through large telescope); visibility tiers adjust accordingly. A nudge appears on Tonight's Sky if not set.",
-        "Drive to dark site nudge — Tonight's Sky shows objects above the horizon but invisible from light-polluted locations, with a link to the Planner to find a darker site."
+        "Drive to dark site nudge — Tonight's Sky shows objects above the horizon but invisible from light-polluted locations, with a link to the Planner to find a darker site.",
+        "Conditions banner — Tonight's Sky now fetches live forecast scores (Overall, Naked Eye, Cloud %, Moon, Humidity) and shows a colour-coded banner explaining whether visibility tiers are actually achievable tonight.",
+        "Compass direction — every planet and DSO now shows the compass bearing at peak altitude (e.g. 'Peak 39° S at 4:46a') so you know which way to face.",
+        "Low-altitude warning — objects peaking at 15° or below show a ⚠️ icon with a tap/hover tooltip explaining the atmospheric impact."
       ]
     },
     {
