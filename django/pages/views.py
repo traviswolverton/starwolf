@@ -987,16 +987,23 @@ def _enrich_night(night, prefs, site_coords, site_ids=None, enriched_site_ids=No
     tel_norm = _norm(composite, 0, 100, True) or 0
     eye_norm = _norm(naked_eye, 0, 100, True) if naked_eye is not None else None
     map_url = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=12/{lat}/{lon}" if lat else ""
+    has_7timer = stats.get("seeing_7timer") is not None or stats.get("transparency_7timer") is not None
+    detail_metrics = [
+        m for m in metrics
+        if not (m["label"] in ("Seeing †", "Transp. †") and m["value"] == "—")
+    ]
     return {
         **night,
-        "date_str":       date_obj.strftime("%a %-d %b"),
-        "date_day":       date_obj.strftime("%-d"),
-        "date_month":     date_obj.strftime("%b").upper(),
-        "dark_window":    dark_window,
-        "dist_str":       dist_str,
-        "dist_km":        dist_km,
-        "metrics":        metrics,
-        "summary_metrics": [m for m in metrics if m["label"] != "Night Hours"],
+        "date_str":         date_obj.strftime("%a %-d %b"),
+        "date_day":         date_obj.strftime("%-d"),
+        "date_month":       date_obj.strftime("%b").upper(),
+        "dark_window":      dark_window,
+        "dist_str":         dist_str,
+        "dist_km":          dist_km,
+        "metrics":          metrics,
+        "summary_metrics":  [m for m in metrics if m["label"] != "Night Hours"],
+        "detail_metrics":   detail_metrics,
+        "has_7timer":       has_7timer,
         "tel_score":      round(composite),
         "eye_score":      round(naked_eye) if naked_eye is not None else None,
         "tel_color":      f"hsl({int(tel_norm * 120)}, 70%, 42%)",
@@ -1255,8 +1262,9 @@ def _render_results(request, nights):
 
     future = [n for n in nights if datetime.fromisoformat(n["date"]).date() >= today]
 
-    scored_raw = [n for n in future if not n.get("disqualified") and (n.get("composite") or 0) >= threshold]
-    disq_raw   = [n for n in future if n.get("disqualified")]
+    scored_raw    = [n for n in future if not n.get("disqualified") and (n.get("composite") or 0) >= threshold]
+    disq_raw      = [n for n in future if n.get("disqualified")]
+    low_raw       = [n for n in future if not n.get("disqualified") and (n.get("composite") or 0) < threshold]
 
     # Enrich scored nights
     with connection.cursor() as cur:
@@ -1271,7 +1279,7 @@ def _render_results(request, nights):
 
     enriched = [_enrich_night(n, prefs, site_coords, site_ids, enriched_site_ids) for n in scored_raw]
 
-    # Minimally format disqualified nights (just need date display + reason)
+    # Minimally format non-scored nights (disqualified or below threshold)
     def _fmt_disq(n):
         date_obj = datetime.fromisoformat(n["date"])
         return {
@@ -1281,6 +1289,10 @@ def _render_results(request, nights):
             "date_month": date_obj.strftime("%b").upper(),
         }
     disq_formatted = [_fmt_disq(n) for n in disq_raw]
+    low_formatted  = [
+        {**_fmt_disq(n), "below_threshold": True, "disqualified": f"Score {round(n.get('composite') or 0)} is below your minimum threshold of {threshold}"}
+        for n in low_raw
+    ]
 
     # Group by site
     scored_by_site = defaultdict(list)
@@ -1290,6 +1302,10 @@ def _render_results(request, nights):
     disq_by_site = defaultdict(list)
     for n in disq_formatted:
         disq_by_site[n["site"]].append(n)
+
+    low_by_site = defaultdict(list)
+    for n in low_formatted:
+        low_by_site[n["site"]].append(n)
 
     def _score_color(score):
         norm = _norm(score, 0, 100, True) or 0
@@ -1310,8 +1326,11 @@ def _render_results(request, nights):
                 (n["tel_score"] + n["eye_score"]) / 2 if n["eye_score"] is not None else n["tel_score"]
             ))
 
-        # Merge scored + disq for this site, sorted by date (for date nav)
-        all_nights = sorted(site_nights + disq_by_site.get(site_name, []), key=lambda n: n["date"])
+        # Merge scored + disq + below-threshold for this site, sorted by date (for date nav)
+        all_nights = sorted(
+            site_nights + disq_by_site.get(site_name, []) + low_by_site.get(site_name, []),
+            key=lambda n: n["date"]
+        )
 
         tel_min, tel_max = min(tel_scores), max(tel_scores)
         eye_min = min(eye_scores) if eye_scores else None

@@ -556,13 +556,26 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   padding: 0.85rem;
   border-top: 1px solid #2a2d3e;
   background: #151820;
+  overflow: hidden; /* tooltip clipping boundary */
+}
+.detail-score-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.detail-scores { display: flex; gap: 0.4rem; flex: 1; }
+.detail-dark-window {
+  font-size: 0.88rem; color: #888; white-space: nowrap;
 }
 
 /* Date navigator */
+.date-nav-scroll {
+  overflow-x: auto; margin-bottom: 0.85rem;
+  scrollbar-width: thin; scrollbar-color: #2a2d3e transparent;
+}
 .date-nav {
-  display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 0.35rem;
-  justify-content: flex-start; margin-bottom: 0.85rem;
-  padding-bottom: 0.25rem; scrollbar-width: thin; scrollbar-color: #2a2d3e transparent;
+  display: flex; flex-wrap: nowrap; gap: 0.35rem;
+  justify-content: center; width: max-content; min-width: 100%;
+  padding-bottom: 0.25rem;
 }
 .date-nav-btn {
   padding: 0.25rem 0.6rem; border-radius: 5px; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0;
@@ -623,6 +636,16 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   line-height: 1.5;
   z-index: 100;
   pointer-events: none;
+}
+/* Prevent first two columns' tooltips from going off the left edge */
+.metric-cell:nth-child(1) .metric-tip,
+.metric-cell:nth-child(2) .metric-tip {
+  left: 0; transform: none;
+}
+/* Prevent last two columns' tooltips from going off the right edge */
+.metric-cell:nth-last-child(1) .metric-tip,
+.metric-cell:nth-last-child(2) .metric-tip {
+  left: auto; right: 0; transform: none;
 }
 @media (max-width: 640px) {
   .metric-tip {
@@ -1789,11 +1812,10 @@ select.text-input { cursor: pointer; }
 .detail-legend { font-size: 0.75rem; color: #4a5a6a; margin-top: 0.25rem; }
 .night-site-link {
   color: #c0c8d8; text-decoration: none;
-  border-bottom: 1px dashed #3a4060;
 }
-.night-site-link:hover { color: #4caf96; border-bottom-color: #4caf96; }
+.night-site-link:hover { color: #4caf96; text-decoration: underline; }
 .night-site-link.has-detail {
   color: #4caf96;
-  border-bottom-color: #4caf9660;
+  border-bottom-color: transparent;
   text-shadow: 0 0 6px #4caf9680;
 }

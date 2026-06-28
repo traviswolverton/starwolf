@@ -84,14 +84,16 @@
   <div class="night-detail" x-show="open" x-cloak>
 
     {# Date navigator #}
-    <div class="date-nav">
-      {% for night in site.all_nights %}
-      <button class="date-nav-btn{% if night.disqualified %} date-nav-disq{% endif %}{% if night.date == site.best_night.date %} date-nav-best{% endif %}"
-              :class="{ active: activeDate === '{{ night.date }}' }"
-              @click.stop="activeDate = '{{ night.date }}'">
-        {{ night.date_str }}{% if night.disqualified %} ⚠{% endif %}
-      </button>
-      {% endfor %}
+    <div class="date-nav-scroll">
+      <div class="date-nav">
+        {% for night in site.all_nights %}
+        <button class="date-nav-btn{% if night.disqualified %} date-nav-disq{% endif %}{% if night.date == site.best_night.date %} date-nav-best{% endif %}"
+                :class="{ active: activeDate === '{{ night.date }}' }"
+                @click.stop="activeDate = '{{ night.date }}'">
+          {{ night.date_str }}{% if night.disqualified and not night.below_threshold %} ⚠{% endif %}
+        </button>
+        {% endfor %}
+      </div>
     </div>
 
     {# Per-date content #}
@@ -103,9 +105,20 @@
         <p class="field-hint">This night was excluded from scoring because it exceeded a hard threshold set in your Preferences.</p>
       </div>
       {% else %}
-      {% if night.dark_window %}<div class="night-dark-window-row">{{ night.dark_window }}</div>{% endif %}
+      {# Score + dark window row #}
+      <div class="detail-score-row">
+        <span class="detail-scores">
+          <span class="night-score-badge" style="background:{{ night.tel_color }};">🔭 {{ night.tel_score }}</span>
+          {% if night.eye_score is not None %}
+          <span class="night-score-badge" style="background:{{ night.eye_color }};">👁 {{ night.eye_score }}</span>
+          {% endif %}
+        </span>
+        {% if night.dark_window %}
+        <span class="detail-dark-window">{{ night.dark_window }}</span>
+        {% endif %}
+      </div>
       <div class="metrics-grid" x-data="{ tip: null }">
-        {% for m in night.metrics %}
+        {% for m in night.detail_metrics %}
         <div class="metric-cell"
              @mouseenter="tip = '{{ m.label }}'"
              @mouseleave="tip = null"
@@ -121,7 +134,7 @@
     </div>
     {% endfor %}
 
-    <p class="field-hint" style="margin-top:0.5rem;">† Seeing and transparency from 7timer (1–8, lower is better). Only available ~3 days out.</p>
+    {% if night.has_7timer %}<p class="field-hint" style="margin-top:0.5rem;">† Seeing and transparency from 7timer (1–8, lower is better). Only available ~3 days out.</p>{% endif %}
   </div>
 
 </div>

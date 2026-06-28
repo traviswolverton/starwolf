@@ -3,10 +3,12 @@
     {
       "date": "2026-06-27",
       "features": [
-        "Planner results redesigned — one card per site instead of one per night. Each card shows telescope and naked eye score ranges (min–max), the best night date, and map links (OpenStreetMap, Google Maps, Apple Maps). Expanding a card shows a scrollable date navigator; clicking a date updates the metrics. Disqualified nights appear in the date nav with a red dashed border and an explanation.",
+        "Planner results redesigned — one card per site instead of one per night. Each card shows telescope and naked eye score ranges (min–max), the best night date, and map links (OpenStreetMap, Google Maps, Apple Maps). Expanding a card shows a scrollable date navigator; clicking a date updates the metrics. Disqualified and below-threshold nights appear in the date nav dimmed, with an explanation when selected.",
+        "Planner card detail — expanded view now shows telescope and naked eye scores with emojis at the top, with the dark window hours (e.g. 9p – 7a) right-justified. Seeing and transparency metrics are hidden when not available; the 7timer footnote only appears when those values are present.",
         "Planner preference — new 'Best Night Metric' setting lets you choose whether the best night highlight and default sort are driven by telescope score, naked eye score, or a combined average.",
         "Admin panel — new AI Prompt tab lets you edit the system prompt and user prompt template sent to Ollama for the AI forecast summary. Changes take effect on the next planner run.",
-        "Admin panel — User management tab with role (guest/user/admin) and active/inactive controls."
+        "Admin panel — User management tab with role (guest/user/admin) and active/inactive controls.",
+        "Site name links — removed dashed underline; teal color alone signals clickability, with an underline appearing on hover."
       ]
     },
     {
