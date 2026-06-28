@@ -49,14 +49,14 @@ _CONNECT_TIMEOUT = 3  # seconds — fast-fail if Ollama isn't reachable
 
 _log = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = (
+_DEFAULT_SYSTEM_PROMPT = (
     "You are a friendly stargazing advisor helping amateur astronomers in Texas plan their "
     "observing sessions. You speak casually and helpfully, like a knowledgeable friend — not "
     "a weather report. Keep responses to 3–5 sentences. Never mention numeric scores directly. "
     "Translate the data into plain language about what the sky will actually feel like."
 )
 
-_USER_PROMPT_TEMPLATE = """\
+_DEFAULT_USER_PROMPT_TEMPLATE = """\
 Here are the best-scoring stargazing windows for the coming week:
 
 {context_table}
@@ -125,10 +125,15 @@ def generate_forecast_summary(context_table: str) -> str | None:
         _log.warning("Blocked Ollama request to non-private URL: %s", e)
         return None
 
+    system_prompt = settings.get("ollama_system_prompt") or _DEFAULT_SYSTEM_PROMPT
+    user_prompt   = (settings.get("ollama_user_prompt") or _DEFAULT_USER_PROMPT_TEMPLATE).format(
+        context_table=context_table
+    )
+
     payload = {
         "model": model,
-        "system": _SYSTEM_PROMPT,
-        "prompt": _USER_PROMPT_TEMPLATE.format(context_table=context_table),
+        "system": system_prompt,
+        "prompt": user_prompt,
         "stream": False,
     }
     try:

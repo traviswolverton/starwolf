@@ -504,39 +504,92 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   overflow: visible;
   position: relative;
 }
-.night-card[open] { border-color: #3a4060; }
+.night-card.is-open { border-color: #3a4060; }
 .night-summary {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   padding: 0.65rem 0.85rem;
   cursor: pointer;
-  list-style: none;
   flex-wrap: wrap;
 }
-.night-summary::-webkit-details-marker { display: none; }
-.night-summary::before { content: '▶'; font-size: 0.65rem; color: #555; flex-shrink: 0; }
-.night-card[open] .night-summary::before { content: '▼'; }
+.score-range-group {
+  display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0;
+}
+.score-range-icon { font-size: 0.85rem; }
+.score-range-sep { color: #556070; font-size: 0.8rem; font-weight: 400; }
+.score-range-divider { color: #2a2d3e; font-size: 1rem; margin: 0 0.1rem; flex-shrink: 0; }
+.score-range-spacer { flex: 1; }
+.best-night-header { font-size: 0.92rem; font-weight: 700; color: #d4a44c; white-space: nowrap; flex-shrink: 0; }
 .night-score-badge {
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem;
   min-width: 2.2rem; padding: 0.15rem 0.45rem;
   border-radius: 5px; font-weight: 700; font-size: 0.92rem; color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.4); flex-shrink: 0;
 }
-.night-score-badge.eye { font-size: 0.8rem; }
-.night-date  { font-weight: 600; color: #c0c8d8; white-space: nowrap; }
-.night-sep   { color: #444; }
-.night-site  { color: #c0c8d8; }
+.night-score-badge.eye { background: #1a1d27; border: 1px solid #2a2d3e; font-size: 0.82rem; }
+.card-chevron { color: #555; font-size: 0.8rem; margin-left: auto; transition: transform 0.2s; }
+.card-chevron.open { transform: rotate(90deg); }
 .night-dist  { font-size: 0.82rem; color: #4caf96; white-space: nowrap; }
 .night-site-row {
-  display: flex; align-items: baseline; gap: 0.5rem;
-  flex-basis: 100%; padding-left: 1.25rem;
+  display: flex; align-items: center; gap: 0.5rem;
+  flex-basis: 100%; padding-left: 0.25rem;
 }
+.night-site-name-group { display: flex; align-items: baseline; gap: 0.5rem; flex: 1; min-width: 0; }
+.night-map-links { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; margin-left: auto; }
+
+.night-map-link {
+  font-size: 0.78rem; font-weight: 600; color: #556070; text-decoration: none;
+  background: #1e2436; border: 1px solid #2a2d3e; border-radius: 4px;
+  padding: 0.1rem 0.35rem; transition: color 0.15s, border-color 0.15s;
+}
+.night-map-link:hover { color: #4caf96; border-color: #4caf96; }
+.night-map-link.google-maps { color: #EA4335; border-color: #5a2020; }
+.night-map-link.google-maps:hover { color: #ff6b5b; border-color: #EA4335; }
+.night-dark-window-row {
+  text-align: center; font-size: 0.85rem; color: #888;
+  margin-bottom: 0.65rem;
+}
+
+/* Expanded detail */
 .night-detail {
   padding: 0.85rem;
   border-top: 1px solid #2a2d3e;
   background: #151820;
 }
+
+/* Date navigator */
+.date-nav {
+  display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 0.35rem;
+  justify-content: flex-start; margin-bottom: 0.85rem;
+  padding-bottom: 0.25rem; scrollbar-width: thin; scrollbar-color: #2a2d3e transparent;
+}
+.date-nav-btn {
+  padding: 0.25rem 0.6rem; border-radius: 5px; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0;
+  background: #1e2436; border: 1px solid #2a2d3e; color: #888; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.date-nav-btn:hover { background: #252c42; border-color: #3a4060; color: #c0c8d8; }
+.date-nav-btn.active { background: #2a3450; border-color: #4caf96; color: #c0c8d8; font-weight: 600; }
+.date-nav-btn.date-nav-best { border-color: #6b5020; color: #d4a44c; }
+.date-nav-btn.date-nav-best.active { background: #2a2010; border-color: #d4a44c; color: #d4a44c; }
+.date-nav-btn.date-nav-disq { opacity: 0.5; border-style: dashed; border-color: #6b2020; }
+.date-nav-btn.date-nav-disq.active { opacity: 1; border-color: #e05c5c; color: #e05c5c; background: #2a1a1a; border-style: solid; }
+
+/* Best night badge inside expanded view */
+.best-night-badge {
+  display: inline-block; font-size: 0.72rem; color: #d4a44c;
+  margin-left: 0.5rem; vertical-align: middle;
+}
+
+/* Disqualified night message */
+.disq-night-msg {
+  padding: 0.85rem; text-align: center;
+}
+.disq-night-reason {
+  color: #e05c5c; font-size: 0.9rem; margin-bottom: 0.4rem;
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -583,8 +636,6 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
     pointer-events: auto;
   }
 }
-.night-map-link { font-size: 0.82rem; color: #4caf96; text-decoration: none; }
-.night-map-link:hover { text-decoration: underline; }
 .load-more { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; }
 
 /* Heatmap */

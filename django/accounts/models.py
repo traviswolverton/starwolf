@@ -46,6 +46,12 @@ class UserPreferences(models.Model):
     disq_max_precip_prob = models.IntegerField(default=40)
     disq_min_visibility_km = models.IntegerField(default=10)
 
+    # Planner scoring preference
+    best_metric = models.CharField(
+        max_length=16, default="combined",
+        choices=[("telescope", "Telescope"), ("naked_eye", "Naked Eye"), ("combined", "Combined")],
+    )
+
     class Meta:
         db_table = "starwolf_user_preferences"
 

@@ -13,7 +13,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from timezonefinder import TimezoneFinder
@@ -45,6 +45,7 @@ class _GuestPrefs:
     disq_max_cloud_cover  = 85
     disq_max_precip_prob  = 40
     disq_min_visibility_km = 10
+    best_metric           = "combined"
 
 
 def _planner_key_prefix(request):
@@ -305,6 +306,9 @@ def preferences(request):
             prefs.disq_max_cloud_cover = int(request.POST.get("disq_max_cloud_cover", 85))
             prefs.disq_max_precip_prob = int(request.POST.get("disq_max_precip_prob", 40))
             prefs.disq_min_visibility_km = int(request.POST.get("disq_min_visibility_km", 10))
+            bm = request.POST.get("best_metric", "combined")
+            if bm in ("telescope", "naked_eye", "combined"):
+                prefs.best_metric = bm
             prefs.save()
             return HttpResponse('<div class="alert success">Preferences saved.</div>')
         except Exception as e:
@@ -330,6 +334,7 @@ def preferences_reset(request):
     prefs.disq_max_cloud_cover = 85
     prefs.disq_max_precip_prob = 40
     prefs.disq_min_visibility_km = 10
+    prefs.best_metric = "combined"
     # Re-detect timezone from location if available
     if prefs.has_location:
         tz = _tf.timezone_at(lat=prefs.location_lat, lng=prefs.location_lon)
@@ -984,20 +989,21 @@ def _enrich_night(night, prefs, site_coords, site_ids=None, enriched_site_ids=No
     map_url = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=12/{lat}/{lon}" if lat else ""
     return {
         **night,
-        "date_str":    date_obj.strftime("%a %-d %b"),
-        "date_day":    date_obj.strftime("%-d"),
-        "date_month":  date_obj.strftime("%b").upper(),
-        "dark_window": dark_window,
-        "dist_str":    dist_str,
-        "dist_km":     dist_km,
-        "metrics":     metrics,
-        "tel_score":   round(composite),
-        "eye_score":   round(naked_eye) if naked_eye is not None else None,
-        "tel_color":   f"hsl({int(tel_norm * 120)}, 70%, 42%)",
-        "eye_color":   f"hsl({int(eye_norm * 120)}, 70%, 42%)" if eye_norm is not None else "#555",
-        "map_url":     map_url,
-        "site_id":     site_ids.get(night["site"]) if site_ids else None,
-        "has_detail":  (site_ids.get(night["site"]) in enriched_site_ids) if (site_ids and enriched_site_ids) else False,
+        "date_str":       date_obj.strftime("%a %-d %b"),
+        "date_day":       date_obj.strftime("%-d"),
+        "date_month":     date_obj.strftime("%b").upper(),
+        "dark_window":    dark_window,
+        "dist_str":       dist_str,
+        "dist_km":        dist_km,
+        "metrics":        metrics,
+        "summary_metrics": [m for m in metrics if m["label"] != "Night Hours"],
+        "tel_score":      round(composite),
+        "eye_score":      round(naked_eye) if naked_eye is not None else None,
+        "tel_color":      f"hsl({int(tel_norm * 120)}, 70%, 42%)",
+        "eye_color":      f"hsl({int(eye_norm * 120)}, 70%, 42%)" if eye_norm is not None else "#555",
+        "map_url":        map_url,
+        "site_id":        site_ids.get(night["site"]) if site_ids else None,
+        "has_detail":     (site_ids.get(night["site"]) in enriched_site_ids) if (site_ids and enriched_site_ids) else False,
     }
 
 
@@ -1237,37 +1243,22 @@ def planner_poll(request):
 
 
 def _render_results(request, nights):
+    from collections import defaultdict
     prefs = request.prefs
     threshold = prefs.min_score_threshold if prefs else 40
-    sort = request.GET.get("sort", "score")
+    best_metric = getattr(prefs, "best_metric", "combined")
+    default_sort = "eye" if best_metric == "naked_eye" else "score"
+    sort = request.GET.get("sort", default_sort)
     hm_sort = request.GET.get("hm_sort", "alpha")
     score_key = "naked_eye" if request.GET.get("view") == "eye" else "composite"
     today = datetime.now(ZoneInfo(prefs.timezone if prefs else "America/Chicago")).date()
 
-    # Split scored vs disqualified
-    scored = [
-        n for n in nights
-        if not n.get("disqualified")
-        and datetime.fromisoformat(n["date"]).date() >= today
-        and (n.get("composite") or 0) >= threshold
-    ]
-    disq = [
-        n for n in nights
-        if n.get("disqualified")
-        and datetime.fromisoformat(n["date"]).date() >= today
-    ]
+    future = [n for n in nights if datetime.fromisoformat(n["date"]).date() >= today]
 
-    # Sort
-    if sort == "date":
-        scored.sort(key=lambda n: (n["date"], -(n.get("composite") or 0)))
-    elif sort == "location":
-        scored.sort(key=lambda n: (n["site"], n["date"]))
-    elif sort == "eye":
-        scored.sort(key=lambda n: -(n.get("naked_eye") or 0))
-    else:
-        scored.sort(key=lambda n: -(n.get("composite") or 0))
+    scored_raw = [n for n in future if not n.get("disqualified") and (n.get("composite") or 0) >= threshold]
+    disq_raw   = [n for n in future if n.get("disqualified")]
 
-    # Enrich
+    # Enrich scored nights
     with connection.cursor() as cur:
         cur.execute("SELECT id, name, lat, lon FROM sites WHERE active=1")
         rows_sites = cur.fetchall()
@@ -1278,9 +1269,89 @@ def _render_results(request, nights):
         cur.execute("SELECT site_id FROM site_details")
         enriched_site_ids = {r[0] for r in cur.fetchall()}
 
-    enriched = [_enrich_night(n, prefs, site_coords, site_ids, enriched_site_ids) for n in scored]
+    enriched = [_enrich_night(n, prefs, site_coords, site_ids, enriched_site_ids) for n in scored_raw]
 
-    # Distance lookup for heatmap rows
+    # Minimally format disqualified nights (just need date display + reason)
+    def _fmt_disq(n):
+        date_obj = datetime.fromisoformat(n["date"])
+        return {
+            **n,
+            "date_str":   date_obj.strftime("%a %-d %b"),
+            "date_day":   date_obj.strftime("%-d"),
+            "date_month": date_obj.strftime("%b").upper(),
+        }
+    disq_formatted = [_fmt_disq(n) for n in disq_raw]
+
+    # Group by site
+    scored_by_site = defaultdict(list)
+    for n in enriched:
+        scored_by_site[n["site"]].append(n)
+
+    disq_by_site = defaultdict(list)
+    for n in disq_formatted:
+        disq_by_site[n["site"]].append(n)
+
+    def _score_color(score):
+        norm = _norm(score, 0, 100, True) or 0
+        return f"hsl({int(norm * 120)}, 70%, 42%)"
+
+    # Build one record per site
+    sites = []
+    for site_name, site_nights in scored_by_site.items():
+        tel_scores = [n["tel_score"] for n in site_nights]
+        eye_scores = [n["eye_score"] for n in site_nights if n["eye_score"] is not None]
+
+        if best_metric == "naked_eye":
+            best_night = max(site_nights, key=lambda n: n["eye_score"] or 0)
+        elif best_metric == "telescope":
+            best_night = max(site_nights, key=lambda n: n["tel_score"])
+        else:
+            best_night = max(site_nights, key=lambda n: (
+                (n["tel_score"] + n["eye_score"]) / 2 if n["eye_score"] is not None else n["tel_score"]
+            ))
+
+        # Merge scored + disq for this site, sorted by date (for date nav)
+        all_nights = sorted(site_nights + disq_by_site.get(site_name, []), key=lambda n: n["date"])
+
+        tel_min, tel_max = min(tel_scores), max(tel_scores)
+        eye_min = min(eye_scores) if eye_scores else None
+        eye_max = max(eye_scores) if eye_scores else None
+
+        first = site_nights[0]
+        sites.append({
+            "name":          site_name,
+            "site_id":       first.get("site_id"),
+            "has_detail":    first.get("has_detail", False),
+            "dist_str":      first.get("dist_str", ""),
+            "dist_km":       first.get("dist_km"),
+            "map_url":       first.get("map_url", ""),
+            "google_maps_url": f"https://www.google.com/maps/search/?api=1&query={site_coords[site_name][0]},{site_coords[site_name][1]}" if site_name in site_coords else "",
+            "apple_maps_url":  f"https://maps.apple.com/?ll={site_coords[site_name][0]},{site_coords[site_name][1]}&z=12" if site_name in site_coords else "",
+            "tel_min":       tel_min,
+            "tel_max":       tel_max,
+            "tel_min_color": _score_color(tel_min),
+            "tel_max_color": _score_color(tel_max),
+            "eye_min":       eye_min,
+            "eye_max":       eye_max,
+            "eye_min_color": _score_color(eye_min) if eye_min is not None else "#555",
+            "eye_max_color": _score_color(eye_max) if eye_max is not None else "#555",
+            "best_night":    best_night,
+            "all_nights":    all_nights,
+            "night_count":   len(site_nights),
+        })
+
+    # Sort sites
+    if sort == "dist":
+        sites.sort(key=lambda s: s["dist_km"] or 99999)
+    elif sort == "eye":
+        sites.sort(key=lambda s: -(s["eye_max"] or 0))
+    else:  # score (default)
+        sites.sort(key=lambda s: -s["tel_max"])
+
+    # Sites with ALL nights disqualified (not in scored list)
+    orphan_disq = [n for n in disq_formatted if n["site"] not in scored_by_site]
+
+    # Distance lookup for heatmap
     is_imperial = prefs and prefs.units == "imperial"
     dist_lookup = {}
     if prefs and prefs.has_location:
@@ -1289,39 +1360,43 @@ def _render_results(request, nights):
             dist_str = f"{km * _KM_TO_MI:.0f} mi" if is_imperial else f"{km:.0f} km"
             dist_lookup[site_name] = {"km": km, "str": dist_str}
 
-    # Heatmap — use only future nights so past dates don't appear
-    future_nights = [n for n in nights if datetime.fromisoformat(n["date"]).date() >= today]
-    heatmap = _build_heatmap(future_nights, threshold, score_key, dist_lookup=dist_lookup, hm_sort=hm_sort)
+    # Heatmap
+    heatmap = _build_heatmap(future, threshold, score_key, dist_lookup=dist_lookup, hm_sort=hm_sort)
 
     # AI summary
     ai_summary = None
     try:
-        if scored and is_ollama_available():
-            ai_summary = get_cached_summary(scored[:10])
+        if scored_raw and is_ollama_available():
+            ai_summary = get_cached_summary(scored_raw[:10])
     except Exception:
         pass
 
-    # Furthest result distance → rounded up to nearest 10, for dynamic slider max
-    dist_kms = [n["dist_km"] for n in enriched if n.get("dist_km")]
+    # Furthest result distance
+    dist_kms = [s["dist_km"] for s in sites if s.get("dist_km")]
     max_dist_rounded = None
     if dist_kms:
         max_km = max(dist_kms)
         max_val = max_km * _KM_TO_MI if is_imperial else max_km
         max_dist_rounded = math.ceil(max_val / 10) * 10
 
+    total_nights = sum(s["night_count"] for s in sites)
+    total_disq   = len(disq_raw)
+
     return render(request, "pages/_planner_results.html", {
-        "nights":      enriched,
-        "disq":        disq,
-        "heatmap":     heatmap,
-        "threshold":   threshold,
-        "sort":        sort,
-        "hm_sort":     hm_sort,
-        "has_location": bool(dist_lookup),
-        "score_key":   score_key,
-        "ai_summary":  ai_summary,
-        "total_scored":  len(scored),
-        "total_disq":    len(disq),
+        "sites":         sites,
+        "orphan_disq":   orphan_disq,
+        "heatmap":       heatmap,
+        "threshold":     threshold,
+        "sort":          sort,
+        "hm_sort":       hm_sort,
+        "has_location":  bool(dist_lookup),
+        "score_key":     score_key,
+        "ai_summary":    ai_summary,
+        "total_sites":   len(sites),
+        "total_nights":  total_nights,
+        "total_disq":    total_disq,
         "max_dist_rounded": max_dist_rounded,
+        "best_metric":   best_metric,
     })
 
 
@@ -1340,11 +1415,28 @@ def admin_panel(request):
         cur.execute("SELECT COUNT(*) FROM sites WHERE bortle_class IS NULL")
         bortle_null_count = cur.fetchone()[0]
 
+    from accounts.models import User as StarWolfUser
+    users = (
+        StarWolfUser.objects
+        .prefetch_related("socialaccount_set")
+        .order_by("date_joined")
+    )
+
+    from engine.ai_summary import _DEFAULT_SYSTEM_PROMPT, _DEFAULT_USER_PROMPT_TEMPLATE
+    with connection.cursor() as cur:
+        cur.execute("SELECT key, value FROM app_settings WHERE key IN ('ollama_system_prompt','ollama_user_prompt')")
+        prompt_settings = dict(cur.fetchall())
+
     return render(request, "pages/admin.html", {
         "tel_weights": tel_weights,
         "eye_weights": eye_weights,
         "app_settings": app_settings,
         "bortle_null_count": bortle_null_count,
+        "users": users,
+        "ollama_system_prompt": prompt_settings.get("ollama_system_prompt", _DEFAULT_SYSTEM_PROMPT),
+        "ollama_user_prompt": prompt_settings.get("ollama_user_prompt", _DEFAULT_USER_PROMPT_TEMPLATE),
+        "default_system_prompt": _DEFAULT_SYSTEM_PROMPT,
+        "default_user_prompt": _DEFAULT_USER_PROMPT_TEMPLATE,
     })
 
 
@@ -1433,6 +1525,58 @@ def admin_bortle_fill(request):
     if failed:
         msg += '<div class="alert warning">Some failed:<br>' + "<br>".join(failed) + "</div>"
     return HttpResponse(msg)
+
+
+@require_http_methods(["POST"])
+def admin_save_prompts(request):
+    if not request.user.is_authenticated or not request.user.is_admin():
+        return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
+
+    system_prompt = request.POST.get("ollama_system_prompt", "").strip()
+    user_prompt   = request.POST.get("ollama_user_prompt", "").strip()
+
+    with connection.cursor() as cur:
+        for key, value in [("ollama_system_prompt", system_prompt), ("ollama_user_prompt", user_prompt)]:
+            cur.execute("""
+                INSERT INTO app_settings (key, value, description)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+            """, [key, value, ""])
+
+    # Bust the AI summary cache so next planner run picks up the new prompt
+    from django.core.cache import cache
+    cache.delete_pattern("ai_summary:*") if hasattr(cache, "delete_pattern") else None
+
+    return HttpResponse('<div class="alert success">Prompts saved. Next planner run will use the updated prompt.</div>')
+
+
+@require_http_methods(["POST"])
+def admin_user_role(request, user_id):
+    if not request.user.is_authenticated or not request.user.is_admin():
+        return HttpResponse(status=403)
+    from accounts.models import User as StarWolfUser
+    target = get_object_or_404(StarWolfUser, id=user_id)
+    if target == request.user:
+        return HttpResponse('<span class="alert error">Cannot change your own role.</span>')
+    new_role = request.POST.get("role")
+    if new_role not in (StarWolfUser.GUEST, StarWolfUser.USER, StarWolfUser.ADMIN):
+        return HttpResponse(status=400)
+    target.role = new_role
+    target.save(update_fields=["role"])
+    return render(request, "pages/_admin_user_row.html", {"u": target, "current_user": request.user})
+
+
+@require_http_methods(["POST"])
+def admin_user_active(request, user_id):
+    if not request.user.is_authenticated or not request.user.is_admin():
+        return HttpResponse(status=403)
+    from accounts.models import User as StarWolfUser
+    target = get_object_or_404(StarWolfUser, id=user_id)
+    if target == request.user:
+        return HttpResponse('<span class="alert error">Cannot deactivate yourself.</span>')
+    target.is_active = not target.is_active
+    target.save(update_fields=["is_active"])
+    return render(request, "pages/_admin_user_row.html", {"u": target, "current_user": request.user})
 
 
 def api_guide(request):

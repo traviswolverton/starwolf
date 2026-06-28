@@ -3,6 +3,15 @@
     {
       "date": "2026-06-27",
       "features": [
+        "Planner results redesigned — one card per site instead of one per night. Each card shows telescope and naked eye score ranges (min–max), the best night date, and map links (OpenStreetMap, Google Maps, Apple Maps). Expanding a card shows a scrollable date navigator; clicking a date updates the metrics. Disqualified nights appear in the date nav with a red dashed border and an explanation.",
+        "Planner preference — new 'Best Night Metric' setting lets you choose whether the best night highlight and default sort are driven by telescope score, naked eye score, or a combined average.",
+        "Admin panel — new AI Prompt tab lets you edit the system prompt and user prompt template sent to Ollama for the AI forecast summary. Changes take effect on the next planner run.",
+        "Admin panel — User management tab with role (guest/user/admin) and active/inactive controls."
+      ]
+    },
+    {
+      "date": "2026-06-27",
+      "features": [
         "Social sign-in (Google, GitHub, Discord) — all three providers now work end-to-end. Fixed a crash in the signup flow caused by a signature mismatch in the social account adapter.",
         "All allauth pages styled — every authentication page (account inactive, email confirm, password reset, login cancelled, connected accounts, and the full password reset flow) now uses the dark StarWolf theme. No more bare white pages.",
         "Error logging — Django now logs request errors and social auth failures to the container output for easier debugging."

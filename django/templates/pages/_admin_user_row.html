@@ -1,0 +1,43 @@
+{% load tz %}
+<tr id="user-row-{{ u.id }}">
+  <td style="font-size:0.85rem;">
+    {{ u.email }}
+    {% if not u.is_active %}<span class="type-badge" style="background:#2a1a1a;border-color:#6b2020;color:#e05c5c;margin-left:0.4rem;">inactive</span>{% endif %}
+  </td>
+  <td style="font-size:0.8rem;color:#556070;">
+    {% for sa in u.socialaccount_set.all %}
+      <span title="{{ sa.provider }}" style="font-size:0.9rem;">
+        {% if sa.provider == "google" %}G{% elif sa.provider == "discord" %}D{% elif sa.provider == "github" %}GH{% else %}{{ sa.provider }}{% endif %}
+      </span>
+    {% empty %}<span style="color:#556070;">email</span>{% endfor %}
+  </td>
+  <td style="font-size:0.8rem;color:#556070;">
+    {% if u.last_login %}{{ u.last_login|localtime|date:"M j, Y g:i a" }}{% else %}never{% endif %}
+  </td>
+  <td>
+    {% if u == current_user %}
+      <span class="type-badge" style="background:#1a1f30;border-color:#2a3050;color:#4caf96;">{{ u.role }} (you)</span>
+    {% else %}
+    <form method="post" action="{% url 'admin_user_role' u.id %}"
+          hx-post="{% url 'admin_user_role' u.id %}" hx-target="#user-row-{{ u.id }}" hx-swap="outerHTML">
+      {% csrf_token %}
+      <select name="role" class="text-input" style="padding:0.2rem 0.4rem;font-size:0.8rem;" onchange="this.form.requestSubmit()">
+        <option value="guest"  {% if u.role == "guest"  %}selected{% endif %}>Guest</option>
+        <option value="user"   {% if u.role == "user"   %}selected{% endif %}>User</option>
+        <option value="admin"  {% if u.role == "admin"  %}selected{% endif %}>Admin</option>
+      </select>
+    </form>
+    {% endif %}
+  </td>
+  <td>
+    {% if u != current_user %}
+    <form method="post" action="{% url 'admin_user_active' u.id %}"
+          hx-post="{% url 'admin_user_active' u.id %}" hx-target="#user-row-{{ u.id }}" hx-swap="outerHTML">
+      {% csrf_token %}
+      <button type="submit" class="btn-secondary" style="padding:0.2rem 0.6rem;font-size:0.8rem;">
+        {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+      </button>
+    </form>
+    {% endif %}
+  </td>
+</tr>

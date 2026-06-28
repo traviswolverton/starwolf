@@ -80,6 +80,21 @@
         </td>
       </tr>
 
+      <tr>
+        <td class="pref-label">
+          <span title="Which score determines the 'best night' highlight and default sort order in Planner results.">
+            Best Night Metric <span class="pref-hint-icon">?</span>
+          </span>
+        </td>
+        <td class="pref-control">
+          <select name="best_metric" class="text-input" style="padding:0.3rem 0.5rem;">
+            <option value="combined"  {% if prefs.best_metric == "combined"  %}selected{% endif %}>Combined (telescope + naked eye)</option>
+            <option value="telescope" {% if prefs.best_metric == "telescope" %}selected{% endif %}>🔭 Telescope</option>
+            <option value="naked_eye" {% if prefs.best_metric == "naked_eye" %}selected{% endif %}>👁 Naked Eye</option>
+          </select>
+        </td>
+      </tr>
+
       <tr class="pref-section-header">
         <td colspan="2">Hard Disqualifiers <span class="pref-section-sub">— nights exceeding these are excluded regardless of score; drag to max to disable</span></td>
       </tr>

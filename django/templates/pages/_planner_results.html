@@ -1,4 +1,4 @@
-{% if not nights and not disq %}
+{% if not sites and not orphan_disq %}
 <div class="alert warning">No nights scored above {{ threshold }}. Lower your threshold in Preferences.</div>
 {% else %}
 
@@ -15,7 +15,7 @@
 <p class="detail-legend">Teal site name = photos &amp; full detail page available</p>
 <div class="results-header">
   <span class="results-count">
-    {{ total_scored }} night{{ total_scored|pluralize }}
+    {{ total_sites }} site{{ total_sites|pluralize }}, {{ total_nights }} night{{ total_nights|pluralize }}
     {% if total_disq %} · {{ total_disq }} disqualified{% endif %}
   </span>
   <div class="sort-bar">
@@ -24,62 +24,116 @@
       hx-get="{% url 'planner_poll' %}?sort=score" hx-target="#planner-output" hx-swap="innerHTML">Score</button>
     <button class="sort-btn {% if sort == 'eye' %}active{% endif %}"
       hx-get="{% url 'planner_poll' %}?sort=eye" hx-target="#planner-output" hx-swap="innerHTML">Naked Eye</button>
-    <button class="sort-btn {% if sort == 'date' %}active{% endif %}"
-      hx-get="{% url 'planner_poll' %}?sort=date" hx-target="#planner-output" hx-swap="innerHTML">Date</button>
-    <button class="sort-btn {% if sort == 'location' %}active{% endif %}"
-      hx-get="{% url 'planner_poll' %}?sort=location" hx-target="#planner-output" hx-swap="innerHTML">Location</button>
+    {% if has_location %}
+    <button class="sort-btn {% if sort == 'dist' %}active{% endif %}"
+      hx-get="{% url 'planner_poll' %}?sort=dist" hx-target="#planner-output" hx-swap="innerHTML">Distance</button>
+    {% endif %}
   </div>
 </div>
 
 <div x-data="{ shown: 10 }">
-{% for night in nights %}
-<details class="night-card" x-show="{{ forloop.counter }} <= shown" {% if forloop.counter > 10 %}x-cloak{% endif %}>
-  <summary class="night-summary">
-    <span class="night-score-badge" style="background:{{ night.tel_color }};">{{ night.tel_score }}</span>
-    {% if night.eye_score is not None %}
-    <span class="night-score-badge eye" style="background:{{ night.eye_color }};" title="Naked eye score">👁 {{ night.eye_score }}</span>
+{% for site in sites %}
+<div class="night-card" x-show="{{ forloop.counter }} <= shown" {% if forloop.counter > 10 %}x-cloak{% endif %}
+     x-data="{ open: false, activeDate: '{{ site.best_night.date }}' }">
+
+  {# ── Card header ── #}
+  <div class="night-summary" @click="open = !open">
+
+    {# Telescope score range #}
+    <span class="score-range-group">
+      <span class="score-range-icon">🔭</span>
+      <span class="night-score-badge" style="background:{{ site.tel_min_color }};">{{ site.tel_min }}</span>
+      {% if site.tel_min != site.tel_max %}
+      <span class="score-range-sep">–</span>
+      <span class="night-score-badge" style="background:{{ site.tel_max_color }};">{{ site.tel_max }}</span>
+      {% endif %}
+    </span>
+    {# Naked eye score range #}
+    {% if site.eye_max is not None %}
+    <span class="score-range-divider">|</span>
+    <span class="score-range-group">
+      <span class="score-range-icon">👁</span>
+      <span class="night-score-badge" style="background:{{ site.eye_min_color }};">{{ site.eye_min }}</span>
+      {% if site.eye_min != site.eye_max %}
+      <span class="score-range-sep">–</span>
+      <span class="night-score-badge" style="background:{{ site.eye_max_color }};">{{ site.eye_max }}</span>
+      {% endif %}
+    </span>
     {% endif %}
-    <span class="night-cal-wrap">
-      <span class="night-cal" title="{{ night.date_str }}">
-        <span class="night-cal-month">{{ night.date_month }}</span>
-        <span class="night-cal-day">{{ night.date_day }}</span>
-      </span>
-      {% if night.dark_window %}<span class="night-dark-window">{{ night.dark_window }}</span>{% endif %}
-    </span>
+    <span class="score-range-spacer"></span>
+    {# Best night — right-justified #}
+    <span class="best-night-header">★ {{ site.best_night.date_str }}</span>
+
+    {# Site name + distance + map links #}
     <span class="night-site-row">
-      {% if night.site_id %}<a href="{% url 'site_detail' night.site_id %}?from=planner" class="night-site-link{% if night.has_detail %} has-detail{% endif %}" title="{% if night.has_detail %}Photos &amp; full detail available{% endif %}">{{ night.site }}{% if night.has_detail %}<span class="night-site-detail-dot">✦</span>{% endif %}</a>{% else %}{{ night.site }}{% endif %}
-      {% if night.dist_str %}<span class="night-dist">{{ night.dist_str }}</span>{% endif %}
+      <span class="night-site-name-group">
+        {% if site.site_id %}<a href="{% url 'site_detail' site.site_id %}?from=planner" class="night-site-link{% if site.has_detail %} has-detail{% endif %}" title="{% if site.has_detail %}Photos &amp; full detail available{% endif %}" @click.stop>{{ site.name }}{% if site.has_detail %}<span class="night-site-detail-dot">✦</span>{% endif %}</a>{% else %}{{ site.name }}{% endif %}
+        {% if site.dist_str %}<span class="night-dist">{{ site.dist_str }}</span>{% endif %}
+      </span>
+      <span class="night-map-links">
+        {% if site.map_url %}<a href="{{ site.map_url }}" target="_blank" rel="noopener" class="night-map-link" title="OpenStreetMap" @click.stop>🗺️</a>{% endif %}
+        {% if site.google_maps_url %}<a href="{{ site.google_maps_url }}" target="_blank" rel="noopener" class="night-map-link google-maps" title="Google Maps" @click.stop>G</a>{% endif %}
+        {% if site.apple_maps_url %}<a href="{{ site.apple_maps_url }}" target="_blank" rel="noopener" class="night-map-link" title="Apple Maps" @click.stop>🍎</a>{% endif %}
+      </span>
     </span>
-  </summary>
-  <div class="night-detail">
-    <div class="metrics-grid" x-data="{ tip: null }">
-      {% for m in night.metrics %}
-      <div class="metric-cell"
-           @mouseenter="tip = '{{ m.label }}'"
-           @mouseleave="tip = null"
-           @click="tip = tip === '{{ m.label }}' ? null : '{{ m.label }}'"
-           :class="{ 'metric-cell--active': tip === '{{ m.label }}' }">
-        <div class="metric-label">{{ m.label }}</div>
-        <div class="metric-value" style="color:{{ m.color }};">{{ m.value }}</div>
-        <div class="metric-tip" x-show="tip === '{{ m.label }}'" x-cloak x-transition>{{ m.tip }}</div>
-      </div>
+
+    <span class="card-chevron" :class="{ open: open }">›</span>
+  </div>
+
+  {# ── Expanded: date nav + per-date detail ── #}
+  <div class="night-detail" x-show="open" x-cloak>
+
+    {# Date navigator #}
+    <div class="date-nav">
+      {% for night in site.all_nights %}
+      <button class="date-nav-btn{% if night.disqualified %} date-nav-disq{% endif %}{% if night.date == site.best_night.date %} date-nav-best{% endif %}"
+              :class="{ active: activeDate === '{{ night.date }}' }"
+              @click.stop="activeDate = '{{ night.date }}'">
+        {{ night.date_str }}{% if night.disqualified %} ⚠{% endif %}
+      </button>
       {% endfor %}
     </div>
-    {% if night.map_url %}
-    <a href="{{ night.map_url }}" target="_blank" rel="noopener" class="night-map-link">🗺️ View on OpenStreetMap</a>
-    {% endif %}
+
+    {# Per-date content #}
+    {% for night in site.all_nights %}
+    <div x-show="activeDate === '{{ night.date }}'">
+      {% if night.disqualified %}
+      <div class="disq-night-msg">
+        <p class="disq-night-reason">⚠️ {{ night.disqualified }}</p>
+        <p class="field-hint">This night was excluded from scoring because it exceeded a hard threshold set in your Preferences.</p>
+      </div>
+      {% else %}
+      {% if night.dark_window %}<div class="night-dark-window-row">{{ night.dark_window }}</div>{% endif %}
+      <div class="metrics-grid" x-data="{ tip: null }">
+        {% for m in night.metrics %}
+        <div class="metric-cell"
+             @mouseenter="tip = '{{ m.label }}'"
+             @mouseleave="tip = null"
+             @click.stop="tip = tip === '{{ m.label }}' ? null : '{{ m.label }}'"
+             :class="{ 'metric-cell--active': tip === '{{ m.label }}' }">
+          <div class="metric-label">{{ m.label }}</div>
+          <div class="metric-value" style="color:{{ m.color }};">{{ m.value }}</div>
+          <div class="metric-tip" x-show="tip === '{{ m.label }}'" x-cloak x-transition>{{ m.tip }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
     <p class="field-hint" style="margin-top:0.5rem;">† Seeing and transparency from 7timer (1–8, lower is better). Only available ~3 days out.</p>
   </div>
-</details>
+
+</div>
 {% empty %}
 <p class="field-hint">No nights above threshold {{ threshold }}. Try lowering the minimum score in Preferences.</p>
 {% endfor %}
 
-{% if nights|length > 10 %}
+{% if sites|length > 10 %}
 <div class="load-more">
-  <span class="field-hint" x-text="`Showing ${Math.min(shown, {{ nights|length }})} of {{ nights|length }} nights`">Showing 10 of {{ nights|length }} nights</span>
-  <button class="btn-secondary" @click="shown += 10" x-show="shown < {{ nights|length }}">Show next 10</button>
-  <button class="btn-secondary" @click="shown = {{ nights|length }}" x-show="shown < {{ nights|length }}">Show all</button>
+  <span class="field-hint" x-text="`Showing ${Math.min(shown, {{ sites|length }})} of {{ sites|length }} sites`">Showing 10 of {{ sites|length }} sites</span>
+  <button class="btn-secondary" @click="shown += 10" x-show="shown < {{ sites|length }}">Show next 10</button>
+  <button class="btn-secondary" @click="shown = {{ sites|length }}" x-show="shown < {{ sites|length }}">Show all</button>
 </div>
 {% endif %}
 </div>
@@ -128,17 +182,17 @@
 </details>
 {% endif %}
 
-{% if disq %}
+{% if orphan_disq %}
 <details class="disq-section">
-  <summary>⚠️ Disqualified nights ({{ total_disq }})</summary>
+  <summary>⚠️ Sites with all nights disqualified ({{ orphan_disq|length }})</summary>
   <div class="disq-body">
-    <p class="field-hint">These nights exceeded a hard threshold set in Preferences.</p>
+    <p class="field-hint">These sites had no nights above the score threshold — all were excluded by your Preferences hard limits.</p>
     <table class="sites-table">
       <thead><tr><th>Date</th><th>Site</th><th>Reason</th></tr></thead>
       <tbody>
-        {% for n in disq %}
+        {% for n in orphan_disq %}
         <tr>
-          <td>{{ n.date|slice:":10" }}</td>
+          <td>{{ n.date_str }}</td>
           <td>{{ n.site }}</td>
           <td class="col-notes">{{ n.disqualified }}</td>
         </tr>

@@ -4,12 +4,36 @@
 {% block content %}
 <h1>🔧 Admin</h1>
 
-<div x-data="{ tab: 'telescope' }" class="tab-container">
+<div x-data="{ tab: 'users' }" class="tab-container">
   <div class="tab-bar">
-    <button class="tab-btn" :class="{ active: tab === 'telescope' }" @click="tab = 'telescope'">Telescope Weights</button>
+    <button class="tab-btn" :class="{ active: tab === 'users' }"      @click="tab = 'users'">Users</button>
+    <button class="tab-btn" :class="{ active: tab === 'telescope' }"  @click="tab = 'telescope'">Telescope Weights</button>
     <button class="tab-btn" :class="{ active: tab === 'naked_eye' }"  @click="tab = 'naked_eye'">Naked Eye Weights</button>
     <button class="tab-btn" :class="{ active: tab === 'settings' }"   @click="tab = 'settings'">App Settings</button>
     <button class="tab-btn" :class="{ active: tab === 'bortle' }"     @click="tab = 'bortle'">Bortle Fill</button>
+    <button class="tab-btn" :class="{ active: tab === 'prompts' }"    @click="tab = 'prompts'">AI Prompt</button>
+  </div>
+
+  <!-- Users -->
+  <div x-show="tab === 'users'" x-cloak>
+    <div class="table-wrap">
+      <table class="sites-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Provider</th>
+            <th>Last Login</th>
+            <th>Role</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            {% include "pages/_admin_user_row.html" with u=u current_user=request.user %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- Telescope Weights -->
@@ -114,6 +138,25 @@
     <p class="field-hint" style="color:#4caf96;">✓ All sites have a Bortle class.</p>
     {% endif %}
     <div id="bortle-result" style="margin-top:0.75rem;"></div>
+  </div>
+
+  <!-- AI Prompt -->
+  <div x-show="tab === 'prompts'" x-cloak>
+    <p class="field-hint">These prompts are sent to Ollama when generating the AI forecast summary. Use <code>{context_table}</code> in the user prompt to insert the scored nights data. Saving busts the summary cache — the next planner run will use the updated prompt.</p>
+    <form hx-post="{% url 'admin_save_prompts' %}" hx-target="#prompts-result" hx-swap="innerHTML">
+      {% csrf_token %}
+      <div style="margin-bottom:1rem;">
+        <label class="form-label" style="display:block;margin-bottom:0.4rem;color:#888;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;">System Prompt</label>
+        <textarea name="ollama_system_prompt" rows="5" class="text-input" style="width:100%;resize:vertical;font-family:monospace;font-size:0.83rem;line-height:1.5;">{{ ollama_system_prompt }}</textarea>
+        <p class="field-hint" style="margin-top:0.25rem;">Resets to default: <em>{{ default_system_prompt }}</em></p>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label class="form-label" style="display:block;margin-bottom:0.4rem;color:#888;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;">User Prompt Template</label>
+        <textarea name="ollama_user_prompt" rows="10" class="text-input" style="width:100%;resize:vertical;font-family:monospace;font-size:0.83rem;line-height:1.5;">{{ ollama_user_prompt }}</textarea>
+      </div>
+      <button type="submit" class="btn-primary">Save Prompts</button>
+    </form>
+    <div id="prompts-result" style="margin-top:0.75rem;"></div>
   </div>
 </div>
 
