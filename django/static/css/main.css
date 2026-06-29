@@ -2136,3 +2136,67 @@ select.text-input { cursor: pointer; }
 .sky-cond-marginal .sky-cond-note { color: #d4a44c; }
 .sky-cond-poor .sky-cond-note     { color: #e05c5c; }
 .sky-cond-note a { color: inherit; }
+
+/* ── Sky Objects Catalog page ─────────────────────────────────────────── */
+.catalog-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1rem; }
+.catalog-count { color: #888; font-size: 0.85rem; margin: 0 0 0.75rem; }
+.filter-search {
+  padding: 0.45rem 0.75rem;
+  background: var(--input-bg, #1a1f2b);
+  border: 1px solid #2e3650;
+  border-radius: 6px;
+  color: var(--text, #c0c8d8);
+  font-size: 0.85rem;
+  min-width: 180px;
+}
+.filter-search:focus { outline: none; border-color: #4a7cbf; }
+.filter-clear { color: #888; font-size: 0.85rem; text-decoration: none; padding: 0.45rem 0.5rem; white-space: nowrap; }
+.filter-clear:hover { color: #c0c8d8; }
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.catalog-card {
+  background: #141824;
+  border: 1px solid #1e2535;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+}
+.catalog-card:hover { border-color: #3a4a6a; }
+.catalog-card-img-wrap {
+  width: 100%;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: #0d1018;
+}
+.catalog-card-img-wrap--empty {
+  display: flex; align-items: center; justify-content: center;
+  background: #0d1018;
+}
+.catalog-card-no-img { font-size: 2rem; color: #2a3040; }
+.catalog-card-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.catalog-card-body { padding: 0.75rem 0.9rem 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; flex: 1; }
+.catalog-card-title { display: flex; flex-direction: column; gap: 0.1rem; }
+.catalog-card-name { font-weight: 700; font-size: 1rem; color: #e0e8f8; }
+.catalog-card-common { font-size: 0.82rem; color: #8090b0; }
+.catalog-card-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.catalog-card-type { font-size: 0.78rem; color: #6070a0; }
+.catalog-card-mag { font-size: 0.78rem; color: #6a7a9a; margin-left: auto; }
+.catalog-card-summary { font-size: 0.8rem; color: #707888; margin: 0; line-height: 1.45; }
+
+/* Category badges */
+.catalog-badge {
+  display: inline-block; padding: 0.15rem 0.5rem;
+  border-radius: 999px; font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.03em; text-transform: uppercase;
+}
+.catalog-badge--planet        { background: #1a2a4a; color: #7ab0f0; }
+.catalog-badge--star          { background: #2a2510; color: #f0d070; }
+.catalog-badge--dso           { background: #1a2a1a; color: #70c070; }
+.catalog-badge--meteor_shower { background: #2a1a2a; color: #d080e0; }
+.catalog-badge--satellite     { background: #1a2a2a; color: #70d0d0; }

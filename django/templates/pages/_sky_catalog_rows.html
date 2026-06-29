@@ -1,0 +1,43 @@
+{% if not rows %}
+<div class="alert info" style="margin-top:1rem;">No objects match your filters.</div>
+{% else %}
+<p class="catalog-count">{{ total }} object{{ total|pluralize }}</p>
+<div class="catalog-grid">
+  {% for obj in rows %}
+  <div class="catalog-card">
+    {% if obj.image_url %}
+    <div class="catalog-card-img-wrap">
+      <img src="{{ obj.image_url }}" alt="{{ obj.name }}" class="catalog-card-img" loading="lazy">
+    </div>
+    {% else %}
+    <div class="catalog-card-img-wrap catalog-card-img-wrap--empty">
+      <span class="catalog-card-no-img">{{ obj.cat_label|slice:":1" }}</span>
+    </div>
+    {% endif %}
+
+    <div class="catalog-card-body">
+      <div class="catalog-card-title">
+        <span class="catalog-card-name">{{ obj.name }}</span>
+        {% if obj.common_name %}
+        <span class="catalog-card-common">{{ obj.common_name }}</span>
+        {% endif %}
+      </div>
+
+      <div class="catalog-card-meta">
+        <span class="catalog-badge catalog-badge--{{ obj.category }}">{{ obj.cat_label }}</span>
+        {% if obj.obj_type %}<span class="catalog-card-type">{{ obj.obj_type }}</span>{% endif %}
+        {% if obj.magnitude is not None %}
+        <span class="catalog-card-mag" title="Apparent magnitude">mag {{ obj.magnitude|floatformat:1 }}</span>
+        {% endif %}
+      </div>
+
+      {% if obj.summary %}
+      <p class="catalog-card-summary">{{ obj.summary }}{% if obj.summary|length >= 160 %}…{% endif %}</p>
+      {% elif obj.notes %}
+      <p class="catalog-card-summary">{{ obj.notes }}</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

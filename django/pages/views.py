@@ -1932,3 +1932,77 @@ def api_guide(request):
         ),
         "endpoints": endpoints,
     })
+
+
+# ── Sky Objects catalog ───────────────────────────────────────────────────────
+
+_CAT_LABELS = {
+    "planet":        "Planet",
+    "star":          "Star",
+    "dso":           "Deep Sky Object",
+    "meteor_shower": "Meteor Shower",
+    "satellite":     "Satellite",
+}
+
+_GEAR_LABELS = {
+    0: "Naked Eye",
+    1: "Binoculars",
+    2: "Small Scope",
+    3: "Large Scope",
+    4: "Not Tonight",
+}
+
+
+def _obj_catalog_rows(qs_filter: dict, sort: str, search: str):
+    from accounts.models import SkyObject
+    qs = SkyObject.objects.filter(active=True, **qs_filter).select_related("detail")
+    if search:
+        from django.db.models import Q
+        qs = qs.filter(Q(name__icontains=search) | Q(common_name__icontains=search))
+    order = {
+        "name":      "name",
+        "mag":       "magnitude",
+        "cat":       "category",
+    }.get(sort, "category")
+    qs = qs.order_by(order, "sort_order", "name")
+    rows = []
+    for obj in qs:
+        detail = getattr(obj, "detail", None)
+        rows.append({
+            "id":          obj.id,
+            "name":        obj.name,
+            "common_name": obj.common_name,
+            "category":    obj.category,
+            "cat_label":   _CAT_LABELS.get(obj.category, obj.category),
+            "obj_type":    obj.obj_type,
+            "magnitude":   obj.magnitude,
+            "notes":       obj.notes,
+            "image_url":   detail.image_url if detail else "",
+            "wiki_url":    detail.wikipedia_url if detail else "",
+            "summary":     (detail.wikipedia_summary or "")[:160] if detail else "",
+        })
+    return rows
+
+
+@require_http_methods(["GET"])
+def sky_catalog(request):
+    cats   = request.GET.getlist("cat")
+    sort   = request.GET.get("sort", "cat")
+    search = request.GET.get("q", "").strip()
+
+    qs_filter = {}
+    if cats:
+        qs_filter["category__in"] = cats
+
+    rows = _obj_catalog_rows(qs_filter, sort, search)
+    ctx = {
+        "rows":     rows,
+        "cats":     cats,
+        "sort":     sort,
+        "search":   search,
+        "cat_choices": list(_CAT_LABELS.items()),
+        "total":    len(rows),
+    }
+    if request.headers.get("HX-Request"):
+        return render(request, "pages/_sky_catalog_rows.html", ctx)
+    return render(request, "pages/sky_catalog.html", ctx)

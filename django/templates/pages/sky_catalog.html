@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Sky Objects Catalog — StarWolf{% endblock %}
+
+{% block content %}
+<div class="catalog-header">
+  <div>
+    <h1>Sky Objects Catalog</h1>
+    <p class="subtitle">{{ total }} object{{ total|pluralize }} in the catalog — planets, stars, deep sky objects, and meteor showers.</p>
+  </div>
+</div>
+
+<form
+  id="catalog-form"
+  hx-get="{% url 'sky_catalog' %}"
+  hx-target="#catalog-results"
+  hx-swap="innerHTML"
+  hx-push-url="true"
+  hx-trigger="change, submit, input changed delay:300ms from:[name=q]"
+  class="filter-bar"
+>
+  <!-- Category multi-select -->
+  <div class="multi-filter" x-data="{ open: false }" @click.outside="open = false">
+    <button type="button" class="filter-btn{% if cats %} filter-btn--active{% endif %}" @click.prevent="open = !open">
+      Category{% if cats %} ({{ cats|length }}){% endif %}
+    </button>
+    <div class="multi-dropdown" x-show="open" x-cloak @click.stop>
+      {% for code, label in cat_choices %}
+      <label class="multi-option">
+        <input type="checkbox" name="cat" value="{{ code }}"{% if code in cats %} checked{% endif %}>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Sort -->
+  <select name="sort" class="filter-select">
+    <option value="cat"  {% if sort == "cat"  %}selected{% endif %}>Sort: Category</option>
+    <option value="name" {% if sort == "name" %}selected{% endif %}>Sort: Name</option>
+    <option value="mag"  {% if sort == "mag"  %}selected{% endif %}>Sort: Magnitude</option>
+  </select>
+
+  <!-- Search -->
+  <input type="search" name="q" value="{{ search }}" placeholder="Search by name…" class="filter-search" autocomplete="off">
+
+  {% if cats or search %}
+  <a href="{% url 'sky_catalog' %}" class="filter-clear">✕ Clear</a>
+  {% endif %}
+</form>
+
+<div id="catalog-results">
+  {% include "pages/_sky_catalog_rows.html" %}
+</div>
+{% endblock %}

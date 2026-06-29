@@ -26,6 +26,7 @@
     <nav class="nav-links" :class="{ 'is-open': open }">
       <a href="{% url 'planner' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'planner' %}nav-active{% endif %}">Planner</a>
       <a href="{% url 'tonight' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'tonight' %}nav-active{% endif %}">Tonight</a>
+      <a href="{% url 'sky_catalog' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'sky_catalog' %}nav-active{% endif %}">Objects</a>
       <a href="{% url 'sites' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'sites' %}nav-active{% endif %}">Sites</a>
       <a href="{% url 'heatmap' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'heatmap' %}nav-active{% endif %}">Tonight's Sky Map</a>
       <a href="{% url 'bortle_scorer' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'bortle_scorer' %}nav-active{% endif %}">Bortle Scorer</a>
