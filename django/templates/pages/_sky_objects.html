@@ -1,5 +1,5 @@
 {# Shared partial: renders the "What's Up" sky object list for a given site/date. #}
-{# Consumed by site_detail (via HTMX) and tonight.html (directly). #}
+{# Consumed by sky_objects (site_detail HTMX) and tonight.html (directly). #}
 
 {# Date nav — only rendered when site_id is present (site detail HTMX context) #}
 {% if site_id %}
@@ -21,15 +21,15 @@
 <p class="field-hint">Could not compute sky data. Please try again.</p>
 {% else %}
 
-{# ── Weather banner ─────────────────────────────────────────────────── #}
-{% if sky.weather_note %}
+{# weather_note banner only shown in site_detail context (no verdict header there) #}
+{% if site_id and sky.weather_note %}
 <div class="sky-weather-note sky-weather-{{ sky.weather_note.level }}">
   {% if sky.weather_note.level == "good" %}☀️{% elif sky.weather_note.level == "marginal" %}⛅{% else %}☁️{% endif %}
   {{ sky.weather_note.text }}
 </div>
 {% endif %}
 
-{# ── Night window + filters ─────────────────────────────────────────── #}
+{# ── Night window ───────────────────────────────────────────────────── #}
 <div x-data="{
   cats: new Set(['planet','star','dso']),
   gears: new Set([0,1,2,3,4]),
@@ -39,11 +39,6 @@
   toggleGear(v) { this.gears.has(v) ? this.gears.delete(v) : this.gears.add(v); this.gears = new Set(this.gears); },
   showRow(cat, tier) { return this.cats.has(cat) && this.gears.has(tier); }
 }">
-
-<p class="sky-night-window">
-  🌃 Astronomical night: <strong>{{ sky.night_start }} – {{ sky.night_end }}</strong>
-  &nbsp;·&nbsp; Bortle {{ sky.bortle }} site
-</p>
 
 {# ── Moon card ──────────────────────────────────────────────────────── #}
 <div class="sky-moon-card">
@@ -143,109 +138,136 @@
 </div>
 {% endif %}
 
-{# ── Unified object table ───────────────────────────────────────────── #}
+{# ── Top picks ──────────────────────────────────────────────────────── #}
+{% with picks=sky_top_picks %}
+{% if picks %}
+<div class="sky-top-picks">
+  <div class="sky-section-header" style="margin-bottom:0.6rem;">
+    <div class="sky-section-title">
+      <span class="sky-section-icon">✦</span>
+      Top picks tonight
+    </div>
+  </div>
+  <div class="sky-picks-list">
+    {% for row in picks %}
+    <div class="sky-pick-row">
+      <span class="sky-pick-name">
+        {{ row.name }}{% if row.common_name %} <span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
+      </span>
+      <span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span>
+      <span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span>
+      <span class="sky-pick-dur">
+        {% if row.vis_duration %}{{ row.vis_duration }}{% elif row.category == 'planet' %}Up at dark{% else %}—{% endif %}
+      </span>
+      <span class="sky-pick-peak">{% if row.peak_alt %}{{ row.peak_alt }}° {{ row.peak_az }}{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <a href="#sky-all-objects" class="sky-picks-see-all">See all {{ sky_rows|length }} objects ↓</a>
+</div>
+{% endif %}
+{% endwith %}
+
+{# ── Full object table (collapsed) ──────────────────────────────────── #}
 {% if sky_rows %}
-<div class="sky-section-header">
-  <div class="sky-section-title">
-    <span class="sky-section-icon">✦</span>
-    Tonight's Objects
-    <span class="sky-section-count">{{ sky_rows|length }}</span>
-  </div>
-  <div class="sky-filter-bar">
-    <div class="multi-filter" @click.outside="catOpen = false">
-      <button type="button" class="filter-btn" @click.prevent="catOpen = !catOpen">
-        Category <span class="filter-btn-arrow">▾</span>
-      </button>
-      <div class="multi-dropdown" x-show="catOpen" x-cloak @click.stop>
-        <label class="multi-option"><input type="checkbox" checked @change="toggleCat('planet')"><span class="sky-cat-badge sky-cat-planet" style="font-size:0.68rem">Planet</span></label>
-        <label class="multi-option"><input type="checkbox" checked @change="toggleCat('star')"><span class="sky-cat-badge sky-cat-star" style="font-size:0.68rem">Star</span></label>
-        <label class="multi-option"><input type="checkbox" checked @change="toggleCat('dso')"><span class="sky-cat-badge sky-cat-dso" style="font-size:0.68rem">DSO</span></label>
+<details class="sky-all-objects-details" id="sky-all-objects">
+  <summary class="sky-all-objects-summary">
+    <div class="sky-section-header" style="margin-bottom:0;">
+      <div class="sky-section-title">
+        <span class="sky-section-icon">☰</span>
+        All objects tonight
+        <span class="sky-section-count">{{ sky_rows|length }}</span>
+      </div>
+      <div class="sky-filter-bar">
+        <div class="multi-filter" @click.outside="catOpen = false">
+          <button type="button" class="filter-btn" @click.prevent.stop="catOpen = !catOpen">
+            Category <span class="filter-btn-arrow">▾</span>
+          </button>
+          <div class="multi-dropdown" x-show="catOpen" x-cloak @click.stop>
+            <label class="multi-option"><input type="checkbox" checked @change="toggleCat('planet')"><span class="sky-cat-badge sky-cat-planet" style="font-size:0.68rem">Planet</span></label>
+            <label class="multi-option"><input type="checkbox" checked @change="toggleCat('star')"><span class="sky-cat-badge sky-cat-star" style="font-size:0.68rem">Star</span></label>
+            <label class="multi-option"><input type="checkbox" checked @change="toggleCat('dso')"><span class="sky-cat-badge sky-cat-dso" style="font-size:0.68rem">DSO</span></label>
+          </div>
+        </div>
+        <div class="multi-filter" @click.outside="gearOpen = false">
+          <button type="button" class="filter-btn" @click.prevent.stop="gearOpen = !gearOpen">
+            Gear <span class="filter-btn-arrow">▾</span>
+          </button>
+          <div class="multi-dropdown" x-show="gearOpen" x-cloak @click.stop>
+            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(0)"><span class="sky-tier sky-tier-0">🟢 Naked Eye</span></label>
+            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(1)"><span class="sky-tier sky-tier-1">🔵 Binoculars</span></label>
+            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(2)"><span class="sky-tier sky-tier-2">🔭 Small Scope</span></label>
+            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(3)"><span class="sky-tier sky-tier-3">🔭🔭 Large Scope</span></label>
+            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(4)"><span class="sky-tier sky-tier-4">⛔ Not Tonight</span></label>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="multi-filter" @click.outside="gearOpen = false">
-      <button type="button" class="filter-btn" @click.prevent="gearOpen = !gearOpen">
-        Gear <span class="filter-btn-arrow">▾</span>
-      </button>
-      <div class="multi-dropdown" x-show="gearOpen" x-cloak @click.stop>
-        <label class="multi-option"><input type="checkbox" checked @change="toggleGear(0)"><span class="sky-tier sky-tier-0">🟢 Naked Eye</span></label>
-        <label class="multi-option"><input type="checkbox" checked @change="toggleGear(1)"><span class="sky-tier sky-tier-1">🔵 Binoculars</span></label>
-        <label class="multi-option"><input type="checkbox" checked @change="toggleGear(2)"><span class="sky-tier sky-tier-2">🔭 Small Scope</span></label>
-        <label class="multi-option"><input type="checkbox" checked @change="toggleGear(3)"><span class="sky-tier sky-tier-3">🔭🔭 Large Scope</span></label>
-        <label class="multi-option"><input type="checkbox" checked @change="toggleGear(4)"><span class="sky-tier sky-tier-4">⛔ Not Tonight</span></label>
-      </div>
-    </div>
+  </summary>
+  <div class="sky-table-wrap">
+    <table class="sky-table">
+      <thead>
+        <tr>
+          <th title="Name of the object.">Object</th>
+          <th title="Planet, Star, or Deep Sky Object.">Category</th>
+          <th title="Minimum equipment needed at this Bortle class.">Gear</th>
+          <th class="sky-th-num" title="Visual magnitude — lower is brighter.">Mag</th>
+          <th title="Visibility window during astronomical night.">Visible</th>
+          <th title="Total time visible above 10°.">Duration</th>
+          <th title="Highest point above the horizon tonight.">Peak</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in sky_rows %}
+        <tr class="sky-tr {% if row.tier == 4 %}sky-tr-dim{% endif %}"
+            x-show="showRow('{{ row.category }}', {{ row.tier }})">
+
+          <td class="sky-td-name">
+            <span class="sky-obj-name">{{ row.name }}</span>
+            {% if row.common_name %}<span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
+            {% if row.category == 'dso' and row.obj_type %}<span class="sky-obj-type-sub">{{ row.obj_type }}</span>{% endif %}
+            {% if row.note %}<span class="sky-obj-note">{{ row.note }}</span>{% endif %}
+          </td>
+
+          <td><span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span></td>
+
+          <td><span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span></td>
+
+          <td class="sky-td-num">
+            {% if row.magnitude is not None %}
+              <span class="sky-mag-val {{ row.conf_class }}" title="{{ row.conf_tip }}">{{ row.magnitude|floatformat:1 }}</span>
+              {% if row.conf_margin is not None %}
+                <span class="sky-conf-dot {{ row.conf_class }}" title="{{ row.conf_tip }}"></span>
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+
+          <td class="sky-td-vis">
+            {% if row.vis_start and row.vis_end %}{{ row.vis_start }}–{{ row.vis_end }}
+            {% elif row.vis_start %}Rises {{ row.vis_start }}
+            {% elif row.category == 'planet' and row.tier != 4 %}Up at dark
+            {% else %}—{% endif %}
+          </td>
+
+          <td class="sky-td-dur">
+            {% if row.vis_minutes %}
+              <span class="sky-dur-label">{{ row.vis_duration }}</span>
+              <span class="sky-dur-bar-wrap"><span class="sky-dur-bar" style="width:min(100%, calc({{ row.vis_minutes }} / 600 * 100%))"></span></span>
+            {% else %}—{% endif %}
+          </td>
+
+          <td class="sky-td-peak">
+            {% if row.peak_alt %}
+              {{ row.peak_alt }}°{% if row.peak_az %} {{ row.peak_az }}{% endif %}{% if row.peak_str %} · {{ row.peak_str }}{% endif %}
+              {% if row.low_alt %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ row.peak_alt }}° above the horizon — haze will significantly dim this object.</span></span>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-</div>
-<div class="sky-table-wrap">
-  <table class="sky-table">
-    <thead>
-      <tr>
-        <th title="Name of the object. DSOs include the object type (galaxy, nebula, etc.).">Object</th>
-        <th title="Planet, Star, or Deep Sky Object (DSO) — galaxies, nebulae, star clusters.">Category</th>
-        <th title="Minimum equipment needed to see this object at this Bortle class. Based on visual magnitude vs. the sky's limiting magnitude.">Gear</th>
-        <th class="sky-th-num" title="Visual magnitude — brightness on an astronomical scale. Lower (and negative) values are brighter. Venus at −4.4 is ~250× brighter than a mag 1 star.">Mag</th>
-        <th title="Time window when the object is above 10° altitude during astronomical night. Planets that are already up at dark show 'Up at dark'.">Visible</th>
-        <th title="Total time visible above 10° during the night. The bar shows duration relative to a 10-hour maximum.">Duration</th>
-        <th title="Highest point above the horizon tonight, compass direction, and time of peak. Objects below 15° are flagged — atmospheric haze significantly dims them.">Peak</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in sky_rows %}
-      <tr class="sky-tr {% if row.tier == 4 %}sky-tr-dim{% endif %}"
-          x-show="showRow('{{ row.category }}', {{ row.tier }})">
-
-        {# Object name + type sub-label for DSOs #}
-        <td class="sky-td-name">
-          <span class="sky-obj-name">{{ row.name }}</span>
-          {% if row.common_name %}<span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
-          {% if row.category == 'dso' and row.obj_type %}<span class="sky-obj-type-sub">{{ row.obj_type }}</span>{% endif %}
-          {% if row.note %}<span class="sky-obj-note">{{ row.note }}</span>{% endif %}
-        </td>
-
-        {# Category badge #}
-        <td><span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span></td>
-
-        {# Gear tier #}
-        <td><span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span></td>
-
-        {# Magnitude + confidence #}
-        <td class="sky-td-num">
-          {% if row.magnitude is not None %}
-            <span class="sky-mag-val {{ row.conf_class }}" title="{{ row.conf_tip }}">{{ row.magnitude|floatformat:1 }}</span>
-            {% if row.conf_margin is not None %}
-              <span class="sky-conf-dot {{ row.conf_class }}" title="{{ row.conf_tip }}"></span>
-            {% endif %}
-          {% else %}—{% endif %}
-        </td>
-
-        {# Visibility window #}
-        <td class="sky-td-vis">
-          {% if row.vis_start and row.vis_end %}{{ row.vis_start }}–{{ row.vis_end }}
-          {% elif row.vis_start %}Rises {{ row.vis_start }}
-          {% elif row.category == 'planet' and row.tier != 4 %}Up at dark
-          {% else %}—{% endif %}
-        </td>
-
-        {# Duration bar #}
-        <td class="sky-td-dur">
-          {% if row.vis_minutes %}
-            <span class="sky-dur-label">{{ row.vis_duration }}</span>
-            <span class="sky-dur-bar-wrap"><span class="sky-dur-bar" style="width:min(100%, calc({{ row.vis_minutes }} / 600 * 100%))"></span></span>
-          {% else %}—{% endif %}
-        </td>
-
-        {# Peak #}
-        <td class="sky-td-peak">
-          {% if row.peak_alt %}
-            {{ row.peak_alt }}°{% if row.peak_az %} {{ row.peak_az }}{% endif %}{% if row.peak_str %} · {{ row.peak_str }}{% endif %}
-            {% if row.low_alt %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ row.peak_alt }}° above the horizon — haze will significantly dim this object.</span></span>{% endif %}
-          {% else %}—{% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+</details>
 {% endif %}
 
 </div>{# end x-data gear filter #}

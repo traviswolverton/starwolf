@@ -917,9 +917,18 @@ def sky_objects(request, site_id):
     from engine.sky_objects import BORTLE_LIMITING_MAG
     sky_rows = _flatten_sky(result, bortle)
     date_options = [(today + timedelta(days=i)) for i in range(11)]
+
+    def _pick_score(r):
+        naked = 1 if r["tier"] == 0 else 0
+        hours = (r.get("vis_minutes") or 0) / 60
+        alt   = (r.get("peak_alt") or 0) / 90
+        return naked * 3 + hours + alt
+    site_top_picks = sorted([r for r in sky_rows if r["tier"] < 4], key=_pick_score, reverse=True)[:5]
+
     return render(request, "pages/_sky_objects.html", {
         "sky":                  result,
         "sky_rows":             sky_rows,
+        "sky_top_picks":        site_top_picks,
         "site_id":              site_id,
         "site_name":            site_name,
         "target_date":          target_date,
@@ -1024,6 +1033,17 @@ def tonight(request):
     sky_rows = _flatten_sky(sky, bortle or 5) if sky else []
     date_options = [(today + timedelta(days=i)) for i in range(11)]
 
+    # Top picks: best 5 visible objects by naked-eye preference + duration + peak alt
+    sky_top_picks = []
+    if sky_rows:
+        def _pick_score(r):
+            naked = 1 if r["tier"] == 0 else 0
+            hours = (r.get("vis_minutes") or 0) / 60
+            alt   = (r.get("peak_alt") or 0) / 90
+            return naked * 3 + hours + alt
+        candidates = [r for r in sky_rows if r["tier"] < 4]
+        sky_top_picks = sorted(candidates, key=_pick_score, reverse=True)[:5]
+
     # ── Heatmap data ──────────────────────────────────────────────────────────
     heatmap_sites, heatmap_meta = _load_heatmap_data(today)
     is_admin = request.user.is_authenticated and request.user.is_admin()
@@ -1065,6 +1085,7 @@ def tonight(request):
     return render(request, "pages/tonight.html", {
         "sky":                    sky,
         "sky_rows":               sky_rows,
+        "sky_top_picks":          sky_top_picks,
         "has_location":           has_location,
         "location_lat":           prefs.location_lat if has_location else None,
         "location_lon":           prefs.location_lon if has_location else None,

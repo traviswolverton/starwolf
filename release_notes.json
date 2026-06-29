@@ -3,6 +3,8 @@
     {
       "date": "2026-06-29",
       "features": [
+        "What's Up Tonight redesign: a 'Top picks tonight' section now shows the 3–5 best objects (naked-eye first, ranked by duration and peak altitude) before the full object table. The full table is now collapsed by default — click to expand.",
+        "Conditions block simplified to two tiers: Cloud/Score/Moon at large weight, Naked Eye/Humidity/Astro night window in a smaller secondary row. Duplicate cloud cover warning banner removed.",
         "Tonight page now shows a verdict-first header — 'Worth the drive / Marginal / Poor conditions' — with score and a quick-jump chip to the next good night when tonight is poor.",
         "Top 3 dark-sky sites within 100 miles appear on the Tonight page so you can get a site recommendation without leaving the page. 'Worth the drive' sites are marked ✦.",
         "Nav renamed: Library → Explore. Bortle Scorer moved out of the nav and into the Sites page as a utility link.",
