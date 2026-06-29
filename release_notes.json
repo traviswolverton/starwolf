@@ -3,6 +3,16 @@
     {
       "date": "2026-06-29",
       "features": [
+        "Tonight page now shows a verdict-first header — 'Worth the drive / Marginal / Poor conditions' — with score and a quick-jump chip to the next good night when tonight is poor.",
+        "Top 3 dark-sky sites within 100 miles appear on the Tonight page so you can get a site recommendation without leaving the page. 'Worth the drive' sites are marked ✦.",
+        "Nav renamed: Library → Explore. Bortle Scorer moved out of the nav and into the Sites page as a utility link.",
+        "Authenticated users now land on the Tonight page directly instead of the home page.",
+        "Conditions card reordered — cloud cover now leads (go/no-go signal first), followed by overall score, moon, naked-eye score, and humidity."
+      ]
+    },
+    {
+      "date": "2026-06-29",
+      "features": [
         "Added 24 constellations and asterisms to the sky catalog — Orion, Big Dipper, Cassiopeia, Summer Triangle, Winter Hexagon, and more. Each shows rise/set window and peak altitude on the Tonight page and has a dedicated detail page with Wikipedia summary and CC image. Asterisms (Big Dipper, Orion's Belt, Summer Triangle, etc.) are distinguished from full constellations by type."
       ]
     },

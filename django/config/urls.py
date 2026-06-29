@@ -4,7 +4,7 @@ from pathlib import Path
 
 from django.contrib import admin
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import include, path
 
 from pages import api_views
@@ -37,6 +37,10 @@ def health(request):
 
 
 def home(request):
+    # Authenticated users land on Tonight
+    if request.user.is_authenticated:
+        return redirect("tonight")
+
     # Determine what's "new" since last visit
     session_key = "last_home_visit"
     today = date.today()

@@ -55,6 +55,7 @@
           {% if not effective_count %}disabled title="No sites in range"{% endif %}>
     {% if has_results %}🔄 Re-run Forecast{% else %}▶ Run Forecast{% endif %}
   </button>
+  {% if not has_results and effective_count %}<span class="planner-run-hint">Scores all sites in radius — typically 30–60 seconds</span>{% endif %}
 
   {% if effective_count %}
   <span class="planner-site-count">

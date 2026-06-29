@@ -954,6 +954,7 @@ def tonight(request):
     bortle = None
     bortle_source = None
     forecast_scores = None
+    next_good_night = None
 
     if has_location:
         lat = prefs.location_lat
@@ -970,6 +971,7 @@ def tonight(request):
 
         # Fetch planner-style forecast scores for the target date
         cloud_score = None
+        next_good_night = None  # first future date with score ≥ 70
         try:
             from engine.forecast import fetch_site_forecast
             from engine.scorer import score_forecast
@@ -992,7 +994,19 @@ def tonight(request):
                         "humidity":   round(n.get("stats", {}).get("avg_humidity") or 0),
                     }
                     cloud_score = forecast_scores["composite"]
-                    break
+                # Find next good night (score ≥ 70, not the current target date)
+                if (n["date"] != target_date.isoformat()
+                        and n.get("composite") is not None
+                        and round(n["composite"]) >= 70
+                        and next_good_night is None):
+                    try:
+                        from datetime import date as _d
+                        next_good_night = {
+                            "date": _d.fromisoformat(n["date"]),
+                            "score": round(n["composite"]),
+                        }
+                    except Exception:
+                        pass
         except Exception as e:
             _log.debug("Tonight forecast fetch failed: %s", e)
 
@@ -1018,29 +1032,35 @@ def tonight(request):
         ts = heatmap_meta["computed_at"]
         if hasattr(ts, "astimezone"):
             ts_str = ts.astimezone(_CDT).strftime("%-I:%M %p CDT")
-    top10 = []
-    if heatmap_sites:
-        from accounts.models import SiteDailyScore
-        top10 = [
-            {
-                "name":    r["name"],
-                "score":   round(r["score"]),
-                "bortle":  r["site__bortle_class"],
-                "state":   r["site__state_province"],
-                "country": r["site__country"],
-                "color":   _score_to_color(r["score"]),
-            }
-            for r in (
-                SiteDailyScore.objects
-                .filter(score_date=today, score__isnull=False)
-                .select_related("site")
-                .order_by("-score")
-                .values("name", "score", "site__bortle_class", "site__state_province", "site__country")[:10]
-            )
-        ]
-        for i, site in enumerate(heatmap_sites[:10]):
-            site["rank"] = i + 1
     compute_state = cache.get(_COMPUTE_STATE_KEY)
+
+    # Verdict from forecast score
+    verdict = None
+    verdict_color = None
+    if forecast_scores:
+        sc = forecast_scores["composite"]
+        if sc >= 70:
+            verdict, verdict_color = "Worth the drive", "good"
+        elif sc >= 40:
+            verdict, verdict_color = "Marginal", "marginal"
+        else:
+            verdict, verdict_color = "Poor conditions", "poor"
+
+    # Top 3 sites within 100 miles of user
+    top3_nearby = []
+    _MI_100_KM = 160.934
+    if heatmap_sites and has_location:
+        lat_u = prefs.location_lat
+        lon_u = prefs.location_lon
+        nearby = []
+        for s in heatmap_sites:
+            if s["score"] is None:
+                continue
+            dist_km = _haversine(lat_u, lon_u, s["lat"], s["lon"])
+            if dist_km <= _MI_100_KM:
+                nearby.append({**s, "dist_mi": round(dist_km / 1.60934)})
+        nearby.sort(key=lambda x: -x["score"])
+        top3_nearby = nearby[:3]
 
     return render(request, "pages/tonight.html", {
         "sky":                    sky,
@@ -1054,6 +1074,10 @@ def tonight(request):
         "bortle_naked_eye_limit": BORTLE_LIMITING_MAG.get(bortle or 5, 5.6),
         "darker_sky_count":       sum(1 for r in sky_rows if r["tier"] == 4),
         "forecast_scores":        forecast_scores,
+        "verdict":                verdict,
+        "verdict_color":          verdict_color,
+        "next_good_night":        next_good_night if has_location else None,
+        "top3_nearby":            top3_nearby,
         "target_date":            target_date,
         "date_options":           date_options,
         "sites_json":             json.dumps(heatmap_sites or []),
@@ -1061,7 +1085,6 @@ def tonight(request):
         "is_stale":               heatmap_meta["is_stale"] if heatmap_meta else False,
         "date_used":              heatmap_meta["date_used"] if heatmap_meta else today,
         "ts_str":                 ts_str,
-        "top10":                  top10,
         "is_admin":               is_admin,
         "compute_state":          compute_state,
         "missing_count":          (heatmap_meta["total"] - heatmap_meta["scored"]) if heatmap_meta else 0,

@@ -450,6 +450,7 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .planner-run-form { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
 .radius-row { display: flex; align-items: center; gap: 0.6rem; }
 .planner-run-btn { white-space: nowrap; }
+.planner-run-hint { font-size: 0.78rem; color: #8090b0; }
 .planner-site-count { font-size: 0.83rem; color: #666; }
 .planner-site-count.warn { color: #e6a817; }
 
@@ -879,6 +880,8 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .sites-table tbody tr:last-child td { border-bottom: none; }
 .sites-table tbody tr:nth-child(even) td { background: #111420; }
 .sites-table tbody tr:hover td { background: #1e2436 !important; }
+.sites-utility-bar { margin-bottom: 1rem; }
+.sites-bortle-link { font-size: 0.85rem; }
 
 .col-dist   { white-space: nowrap; color: #4caf96; font-variant-numeric: tabular-nums; min-width: 4.5rem; }
 .col-name   { font-weight: 500; }
@@ -2242,8 +2245,36 @@ a.catalog-card:hover { border-color: #3a4a6a; }
 .obj-vis-note { font-size: 0.82rem; color: #708090; margin: 0.4rem 0 0; }
 
 /* ── Consolidated Tonight page ───────────────────────────────────────── */
-.tonight-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-.tonight-page-header h1 { margin: 0; }
+.tonight-page-header { margin-bottom: 0.5rem; }
+.tonight-heading-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; }
+.tonight-heading-row h1 { margin: 0; }
+/* admin controls row keeps flex layout */
+.tonight-page-header .heatmap-controls { margin-top: 0.5rem; }
+.tonight-date-label { font-size: 0.85rem; color: #8090b0; }
+.tonight-verdict { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.6rem 1rem; border-radius: 8px; margin-bottom: 0.75rem; }
+.tonight-verdict--good    { background: rgba(50, 200, 55, 0.12); border: 1px solid rgba(50, 200, 55, 0.3); }
+.tonight-verdict--marginal{ background: rgba(135, 200, 0, 0.10); border: 1px solid rgba(135, 200, 0, 0.3); }
+.tonight-verdict--poor    { background: rgba(220, 50, 50, 0.10); border: 1px solid rgba(220, 50, 50, 0.3); }
+.tonight-verdict-label { font-size: 1.1rem; font-weight: 700; }
+.tonight-verdict--good    .tonight-verdict-label { color: #32c837; }
+.tonight-verdict--marginal .tonight-verdict-label { color: #87c800; }
+.tonight-verdict--poor    .tonight-verdict-label { color: #dc3232; }
+.tonight-verdict-score { font-size: 0.85rem; color: #8090b0; }
+.tonight-next-good { font-size: 0.82rem; color: #4caf96; text-decoration: none; background: rgba(76,175,150,0.1); border: 1px solid rgba(76,175,150,0.3); border-radius: 4px; padding: 0.15rem 0.5rem; }
+.tonight-next-good:hover { background: rgba(76,175,150,0.2); }
+
+/* ── Top 3 nearby sites ──────────────────────────────────────────────── */
+.tonight-top3 { background: #0e1420; border: 1px solid #1e2535; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+.tonight-top3-header { font-size: 0.75rem; font-weight: 700; color: #8090b0; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem; }
+.tonight-top3-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+.tonight-top3-row { display: grid; grid-template-columns: 1.2rem 1fr auto auto auto; align-items: center; gap: 0.6rem; }
+.tonight-top3-rank { font-size: 0.75rem; color: #8090b0; font-weight: 600; }
+.tonight-top3-name { font-size: 0.9rem; color: #d0d8e8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tonight-top3-dist { font-size: 0.8rem; color: #8090b0; white-space: nowrap; }
+.tonight-top3-score { font-size: 0.9rem; font-weight: 700; }
+.tonight-top3-star { font-size: 0.75rem; color: #f0c040; width: 0.8rem; }
+.tonight-top3-link { font-size: 0.8rem; color: #4caf96; text-decoration: none; }
+.tonight-top3-link:hover { text-decoration: underline; }
 .tonight-sky-section { margin-top: 2.5rem; }
 .tonight-sky-heading { font-size: 1.25rem; color: #c0c8d8; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #1e2535; }
 

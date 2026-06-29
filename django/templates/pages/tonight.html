@@ -3,7 +3,21 @@
 
 {% block content %}
 <div class="tonight-page-header">
-  <h1>🌠 Tonight</h1>
+  <div class="tonight-heading-row">
+    <h1>🌠 Tonight</h1>
+    {% if target_date %}<span class="tonight-date-label">{{ target_date|date:"D, N j" }}</span>{% endif %}
+  </div>
+  {% if verdict and has_location %}
+  <div class="tonight-verdict tonight-verdict--{{ verdict_color }}">
+    <span class="tonight-verdict-label">{{ verdict }}</span>
+    {% if forecast_scores %}<span class="tonight-verdict-score">score {{ forecast_scores.composite }}</span>{% endif %}
+    {% if next_good_night and verdict_color != "good" %}
+    <a href="?date={{ next_good_night.date|date:'Y-m-d' }}" class="tonight-next-good">
+      Next good night: {{ next_good_night.date|date:"D j M" }} &nbsp;{{ next_good_night.score }} →
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
   {% if is_admin %}
   <div class="heatmap-controls" id="heatmap-controls">
     {% if not heatmap_has_data %}
@@ -61,6 +75,25 @@
 </div>
 {% endif %}
 
+{# ── Top 3 Nearby Sites ───────────────────────────────────────────────── #}
+{% if top3_nearby %}
+<div class="tonight-top3">
+  <div class="tonight-top3-header">Top sites near you tonight</div>
+  <div class="tonight-top3-list">
+    {% for s in top3_nearby %}
+    <div class="tonight-top3-row">
+      <span class="tonight-top3-rank">{{ forloop.counter }}</span>
+      <span class="tonight-top3-name">{{ s.name }}</span>
+      <span class="tonight-top3-dist">{{ s.dist_mi }} mi</span>
+      <span class="tonight-top3-score" style="color:{{ s.color }};">{{ s.score }}</span>
+      {% if s.score >= 70 %}<span class="tonight-top3-star">✦</span>{% else %}<span class="tonight-top3-star"></span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <a href="{% url 'planner' %}" class="tonight-top3-link">Full rankings in Planner →</a>
+</div>
+{% endif %}
+
 {# ── What's Up Tonight (user location) ───────────────────────────────── #}
 <div class="tonight-sky-section">
   <h2 class="tonight-sky-heading">What's Up Tonight</h2>
@@ -96,8 +129,16 @@
     {% else %}sky-cond-poor{% endif %}">
     <div class="sky-cond-scores">
       <span class="sky-cond-item">
+        <span class="sky-cond-label">☁️ Cloud</span>
+        <span class="sky-cond-value">{{ forecast_scores.cloud_pct }}%</span>
+      </span>
+      <span class="sky-cond-item">
         <span class="sky-cond-label">Overall</span>
         <span class="sky-cond-value">{{ forecast_scores.composite }}</span>
+      </span>
+      <span class="sky-cond-item">
+        <span class="sky-cond-label">🌙 Moon</span>
+        <span class="sky-cond-value">{{ forecast_scores.moon_score }}</span>
       </span>
       {% if forecast_scores.naked_eye is not None %}
       <span class="sky-cond-item">
@@ -105,14 +146,6 @@
         <span class="sky-cond-value">{{ forecast_scores.naked_eye }}</span>
       </span>
       {% endif %}
-      <span class="sky-cond-item">
-        <span class="sky-cond-label">☁️ Cloud</span>
-        <span class="sky-cond-value">{{ forecast_scores.cloud_pct }}%</span>
-      </span>
-      <span class="sky-cond-item">
-        <span class="sky-cond-label">🌙 Moon</span>
-        <span class="sky-cond-value">{{ forecast_scores.moon_score }}</span>
-      </span>
       <span class="sky-cond-item">
         <span class="sky-cond-label">💧 Humidity</span>
         <span class="sky-cond-value">{{ forecast_scores.humidity }}%</span>

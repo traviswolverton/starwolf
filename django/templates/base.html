@@ -24,18 +24,17 @@
     </div>
 
     <nav class="nav-links" :class="{ 'is-open': open }">
-      <a href="{% url 'planner' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'planner' %}nav-active{% endif %}">Planner</a>
       <a href="{% url 'tonight' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'tonight' %}nav-active{% endif %}">Tonight</a>
+      <a href="{% url 'planner' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'planner' %}nav-active{% endif %}">Planner</a>
       <div class="nav-dropdown-wrap" x-data="{ libOpen: false }" @click.outside="libOpen = false">
         <button class="nav-dropdown-trigger nav-dropdown-trigger--accent {% if request.resolver_match.url_name in 'sky_catalog,sky_object_detail,sites,site_detail' %}nav-active{% endif %}" @click="libOpen = !libOpen; open = true">
-          Library <span x-text="libOpen ? '▴' : '▾'" style="font-size:0.65rem;"></span>
+          Explore <span x-text="libOpen ? '▴' : '▾'" style="font-size:0.65rem;"></span>
         </button>
         <div class="nav-dropdown-panel" x-show="libOpen" x-cloak @click="libOpen = false; open = false">
           <a href="{% url 'sky_catalog' %}" class="nav-dropdown-item {% if request.resolver_match.url_name in 'sky_catalog,sky_object_detail' %}nav-active{% endif %}">🌌 Objects</a>
           <a href="{% url 'sites' %}" class="nav-dropdown-item {% if request.resolver_match.url_name in 'sites,site_detail' %}nav-active{% endif %}">📍 Sites</a>
         </div>
       </div>
-      <a href="{% url 'bortle_scorer' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'bortle_scorer' %}nav-active{% endif %}">Bortle Scorer</a>
       <a href="{% url 'about' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'about' %}nav-active{% endif %}">About</a>
       <div class="nav-divider"></div>
       <div class="nav-dropdown-wrap" x-data="{ devOpen: false }" @click.outside="devOpen = false">
