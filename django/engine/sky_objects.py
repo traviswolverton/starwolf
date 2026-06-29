@@ -494,6 +494,40 @@ def compute_sky(
     dsos.sort(key=lambda d: (d["tier"], -d["peak_alt"]))
     dsos_drive.sort(key=lambda d: (-d["peak_alt"], d["magnitude"]))
 
+    # ── Constellations & Asterisms ────────────────────────────────────────────
+    constellations = []
+    for con in _load_catalog("constellation"):
+        if con.ra_h is None or con.dec_d is None:
+            continue
+        star = Star(ra_hours=con.ra_h, dec_degrees=con.dec_d)
+        times, alts, azs = _altaz_series(observer, star, t_start, t_end, ts)
+        above = alts > _MIN_ALTITUDE
+        if not np.any(above):
+            continue
+
+        peak_idx = int(np.argmax(alts))
+        peak_alt = float(alts[peak_idx])
+        peak_t = times[peak_idx]
+        above_idx = np.where(above)[0]
+        vis_start_t = times[int(above_idx[0])]
+        vis_end_t   = times[int(above_idx[-1])]
+
+        constellations.append({
+            "name":        con.name,
+            "common_name": con.common_name,
+            "obj_type":    con.obj_type,
+            "peak_alt":    round(peak_alt),
+            "peak_az":     _az_compass(float(azs[peak_idx])),
+            "peak_str":    _fmt_time(peak_t, tz),
+            "vis_start":   _fmt_time(vis_start_t, tz),
+            "vis_end":     _fmt_time(vis_end_t, tz),
+            "tier":        0,
+            "tier_label":  "Visible",
+            "tier_emoji":  "✅",
+        })
+
+    constellations.sort(key=lambda c: -c["peak_alt"])
+
     # ── Meteor Showers ────────────────────────────────────────────────────────
     showers = []
     for shower in _load_catalog("meteor_shower"):
@@ -574,8 +608,9 @@ def compute_sky(
         "moon":         moon,
         "planets":      planets,
         "stars":        stars,
-        "dsos":         dsos,
-        "dsos_drive":   dsos_drive,
+        "dsos":            dsos,
+        "dsos_drive":      dsos_drive,
+        "constellations":  constellations,
         "showers":      showers,
         "next_shower":  next_shower,
         "iss_passes":   all_passes,

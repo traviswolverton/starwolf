@@ -1206,6 +1206,33 @@ def _flatten_sky(sky, bortle=5):
         })
 
 
+    # Constellations
+    for c in sky.get("constellations", []):
+        mins, dur = _vis_duration(c.get("vis_start"), c.get("vis_end"))
+        rows.append({
+            "name":           c["name"],
+            "common_name":    c.get("common_name", ""),
+            "category":       "constellation",
+            "category_label": c.get("obj_type", "Constellation"),
+            "obj_type":       c.get("obj_type", "Constellation"),
+            "magnitude":      None,
+            "conf_margin":    None,
+            "conf_class":     "sky-conf-easy",
+            "conf_tip":       "Naked eye",
+            "tier":           0,
+            "tier_label":     c.get("tier_label", "Visible"),
+            "tier_emoji":     c.get("tier_emoji", "✅"),
+            "vis_start":      c.get("vis_start"),
+            "vis_end":        c.get("vis_end"),
+            "vis_minutes":    mins,
+            "vis_duration":   dur,
+            "peak_alt":       c.get("peak_alt"),
+            "peak_az":        c.get("peak_az"),
+            "peak_str":       c.get("peak_str"),
+            "low_alt":        (c.get("peak_alt") or 0) <= 15,
+            "note":           "",
+        })
+
     rows.sort(key=lambda r: r["tier"])
     return rows
 
@@ -1989,6 +2016,7 @@ _CAT_LABELS = {
     "dso":           "Deep Sky Object",
     "meteor_shower": "Meteor Shower",
     "satellite":     "Satellite",
+    "constellation": "Constellation",
 }
 
 _GEAR_LABELS = {

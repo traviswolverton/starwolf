@@ -1,0 +1,25 @@
+name,common_name,ra_h,dec_d,obj_type,notes
+Orion,,5.583,5.0,Constellation,One of the most recognizable constellations; best seen in winter
+Ursa Major,Great Bear,11.083,55.0,Constellation,Contains the Big Dipper asterism; circumpolar from mid-latitudes
+Ursa Minor,Little Bear,15.0,77.0,Constellation,Contains the Little Dipper and Polaris the North Star
+Cassiopeia,,1.0,60.0,Constellation,Distinctive W shape; circumpolar from northern latitudes
+Leo,,11.0,15.0,Constellation,Prominent spring constellation; contains bright star Regulus
+Scorpius,,16.5,-30.0,Constellation,Vivid summer constellation; contains bright star Antares
+Sagittarius,,19.0,-28.0,Constellation,Rich Milky Way constellation; teapot asterism points to galactic center
+Gemini,,7.0,25.0,Constellation,Winter constellation; contains bright stars Castor and Pollux
+Taurus,,4.5,15.0,Constellation,Winter constellation; contains the Pleiades and Hyades clusters
+Boötes,,14.5,30.0,Constellation,Spring constellation; contains bright star Arcturus
+Cygnus,Northern Cross,20.5,44.0,Constellation,Summer constellation; contains Deneb; part of the Summer Triangle
+Lyra,,18.9,36.0,Constellation,Small but bright; contains Vega; part of the Summer Triangle
+Aquila,,19.7,3.0,Constellation,Summer constellation; contains Altair; part of the Summer Triangle
+Perseus,,3.5,45.0,Constellation,Winter constellation; contains the Double Cluster and Algol
+Virgo,,13.0,-4.0,Constellation,Largest zodiac constellation; contains bright star Spica
+Hercules,,17.0,28.0,Constellation,Summer constellation; contains the great globular cluster M13
+Andromeda,,1.0,37.0,Constellation,Autumn constellation; our nearest large galaxy M31 lies within it
+Corona Borealis,Northern Crown,15.8,30.0,Constellation,Small but distinctive semicircle of stars; spring/summer sky
+Canis Major,Great Dog,6.8,-22.0,Constellation,Contains Sirius the brightest star; prominent in winter
+Big Dipper,,11.0,57.0,Asterism,Seven-star ladle shape forming the tail of Ursa Major; pointer to Polaris
+Little Dipper,,15.0,75.0,Asterism,Fainter dipper shape in Ursa Minor; end star is Polaris
+Orion's Belt,,5.6,-1.2,Asterism,Three bright stars in a row at the center of Orion: Alnitak Alnilam Mintaka
+Summer Triangle,,19.7,40.0,Asterism,Vega Deneb and Altair; dominates the summer and autumn night sky
+Winter Hexagon,,5.5,10.0,Asterism,Six bright stars forming a huge hexagon visible in winter; includes Sirius Rigel and Betelgeuse

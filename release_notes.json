@@ -3,6 +3,12 @@
     {
       "date": "2026-06-29",
       "features": [
+        "Added 24 constellations and asterisms to the sky catalog — Orion, Big Dipper, Cassiopeia, Summer Triangle, Winter Hexagon, and more. Each shows rise/set window and peak altitude on the Tonight page and has a dedicated detail page with Wikipedia summary and CC image. Asterisms (Big Dipper, Orion's Belt, Summer Triangle, etc.) are distinguished from full constellations by type."
+      ]
+    },
+    {
+      "date": "2026-06-29",
+      "features": [
         "Tonight page now combines the site forecast map and 'What's Up Tonight' sky objects into a single page — the old 'Tonight's Sky Map' nav link is removed; /heatmap redirects to /tonight. The page shows the scored site map, Top 10 sites, and your personal sky objects list all in one place."
       ]
     },

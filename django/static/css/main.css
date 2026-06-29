@@ -2269,3 +2269,4 @@ a.catalog-card:hover { border-color: #3a4a6a; }
   .tonight-maps-row { grid-template-columns: 1fr; }
   .tonight-map { height: 240px; }
 }
+.catalog-badge--constellation { background: #1a1a3a; color: #a0a0f0; }

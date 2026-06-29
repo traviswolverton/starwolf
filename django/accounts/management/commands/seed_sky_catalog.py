@@ -137,6 +137,25 @@ class Command(BaseCommand):
             )
             totals["meteor_shower"] = totals.get("meteor_shower", 0) + 1
 
+        # ── Constellations (constellations.csv) ──────────────────────────────
+        const_path = os.path.join(_DATA_DIR, "constellations.csv")
+        with open(const_path, newline="", encoding="utf-8") as f:
+            for i, row in enumerate(csv.DictReader(f)):
+                SkyObject.objects.update_or_create(
+                    name=row["name"], category=SkyObject.CATEGORY_CONSTELLATION,
+                    defaults={
+                        "common_name": row.get("common_name", ""),
+                        "obj_type":    row.get("obj_type", "Constellation"),
+                        "ra_h":        float(row["ra_h"]),
+                        "dec_d":       float(row["dec_d"]),
+                        "source":      "constellations_csv",
+                        "sort_order":  i,
+                        "notes":       row.get("notes", ""),
+                        "active":      True,
+                    },
+                )
+                totals["constellation"] = totals.get("constellation", 0) + 1
+
         # ── Satellites ───────────────────────────────────────────────────────
         for i, s in enumerate(SATELLITES):
             SkyObject.objects.update_or_create(

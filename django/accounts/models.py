@@ -200,17 +200,19 @@ class SiteDailyScore(models.Model):
 
 
 class SkyObject(models.Model):
-    CATEGORY_PLANET   = "planet"
-    CATEGORY_STAR     = "star"
-    CATEGORY_DSO      = "dso"
-    CATEGORY_SHOWER   = "meteor_shower"
-    CATEGORY_SATELLITE = "satellite"
+    CATEGORY_PLANET        = "planet"
+    CATEGORY_STAR          = "star"
+    CATEGORY_DSO           = "dso"
+    CATEGORY_SHOWER        = "meteor_shower"
+    CATEGORY_SATELLITE     = "satellite"
+    CATEGORY_CONSTELLATION = "constellation"
     CATEGORIES = [
-        (CATEGORY_PLANET,    "Planet"),
-        (CATEGORY_STAR,      "Star"),
-        (CATEGORY_DSO,       "Deep Sky Object"),
-        (CATEGORY_SHOWER,    "Meteor Shower"),
-        (CATEGORY_SATELLITE, "Satellite"),
+        (CATEGORY_PLANET,        "Planet"),
+        (CATEGORY_STAR,          "Star"),
+        (CATEGORY_DSO,           "Deep Sky Object"),
+        (CATEGORY_SHOWER,        "Meteor Shower"),
+        (CATEGORY_SATELLITE,     "Satellite"),
+        (CATEGORY_CONSTELLATION, "Constellation"),
     ]
 
     name        = models.CharField(max_length=100)
