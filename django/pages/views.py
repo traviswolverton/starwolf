@@ -889,14 +889,19 @@ def sky_objects(request, site_id):
             return HttpResponse('<p class="field-hint">Could not compute sky visibility. Please try again.</p>')
         cache_set(cache_key, result, 3600)
 
+    from engine.sky_objects import BORTLE_LIMITING_MAG
+    sky_rows = _flatten_sky(result, bortle)
     date_options = [(today + timedelta(days=i)) for i in range(11)]
     return render(request, "pages/_sky_objects.html", {
-        "sky":          result,
-        "sky_rows":     _flatten_sky(result),
-        "site_id":      site_id,
-        "site_name":    site_name,
-        "target_date":  target_date,
-        "date_options": date_options,
+        "sky":                  result,
+        "sky_rows":             sky_rows,
+        "site_id":              site_id,
+        "site_name":            site_name,
+        "target_date":          target_date,
+        "date_options":         date_options,
+        "bortle":               bortle,
+        "bortle_naked_eye_limit": BORTLE_LIMITING_MAG.get(bortle, 5.6),
+        "darker_sky_count":     sum(1 for r in sky_rows if r["tier"] == 4),
     })
 
 
@@ -976,17 +981,21 @@ def tonight(request):
                 import logging
                 logging.getLogger(__name__).error("tonight compute error: %s", e, exc_info=True)
 
+    from engine.sky_objects import BORTLE_LIMITING_MAG
+    sky_rows = _flatten_sky(sky, bortle or 5) if sky else []
     date_options = [(today + timedelta(days=i)) for i in range(11)]
     return render(request, "pages/tonight.html", {
-        "sky":             sky,
-        "sky_rows":        _flatten_sky(sky) if sky else [],
-        "has_location":    has_location,
-        "location_name":   getattr(prefs, "location_display", "") or getattr(prefs, "location_text", ""),
-        "bortle":          bortle,
-        "bortle_source":   bortle_source,
-        "forecast_scores": forecast_scores,
-        "target_date":     target_date,
-        "date_options":    date_options,
+        "sky":                    sky,
+        "sky_rows":               sky_rows,
+        "has_location":           has_location,
+        "location_name":          getattr(prefs, "location_display", "") or getattr(prefs, "location_text", ""),
+        "bortle":                 bortle,
+        "bortle_source":          bortle_source,
+        "bortle_naked_eye_limit": BORTLE_LIMITING_MAG.get(bortle or 5, 5.6),
+        "darker_sky_count":       sum(1 for r in sky_rows if r["tier"] == 4),
+        "forecast_scores":        forecast_scores,
+        "target_date":            target_date,
+        "date_options":           date_options,
     })
 
 
@@ -1016,8 +1025,24 @@ def _vis_duration(vis_start, vis_end):
     return mins, label
 
 
-def _flatten_sky(sky):
+def _sky_confidence(mag, naked_eye_limit):
+    """Return (margin, css_class, tooltip) describing how easy an object is to see."""
+    if mag is None:
+        return None, "", ""
+    margin = naked_eye_limit - mag
+    if margin >= 2.0:
+        return margin, "sky-conf-easy",     f"{margin:+.1f} mag above naked-eye limit — easy"
+    if margin >= 0.5:
+        return margin, "sky-conf-ok",       f"{margin:+.1f} mag above naked-eye limit — comfortable"
+    if margin >= -0.5:
+        return margin, "sky-conf-marginal", f"{margin:+.1f} mag — right at the naked-eye limit, marginal"
+    return margin, "sky-conf-gear",         f"{abs(margin):.1f} mag below naked-eye limit — needs equipment"
+
+
+def _flatten_sky(sky, bortle=5):
     """Merge all sky categories into a single list sorted by visibility tier."""
+    from engine.sky_objects import BORTLE_LIMITING_MAG
+    naked_eye_limit = BORTLE_LIMITING_MAG.get(bortle, 5.6)
     rows = []
 
     # Moon — always first regardless of sort; handled as header card in template
@@ -1026,13 +1051,18 @@ def _flatten_sky(sky):
     # Planets
     for p in sky.get("planets", []):
         mins, dur = _vis_duration(p.get("rise_str"), p.get("set_str"))
+        mag = p.get("magnitude")
+        cm, cc, ct = _sky_confidence(mag, naked_eye_limit)
         rows.append({
             "name":           p["name"],
             "common_name":    "",
             "category":       "planet",
             "category_label": "Planet",
             "obj_type":       "Planet",
-            "magnitude":      p.get("magnitude"),
+            "magnitude":      mag,
+            "conf_margin":    cm,
+            "conf_class":     cc,
+            "conf_tip":       ct,
             "tier":           p.get("tier", 4),
             "tier_label":     p.get("tier_label", ""),
             "tier_emoji":     p.get("tier_emoji", ""),
@@ -1050,13 +1080,18 @@ def _flatten_sky(sky):
     # Stars
     for s in sky.get("stars", []):
         mins, dur = _vis_duration(s.get("vis_start"), s.get("vis_end"))
+        mag = s.get("magnitude")
+        cm, cc, ct = _sky_confidence(mag, naked_eye_limit)
         rows.append({
             "name":           s["name"],
             "common_name":    s.get("common_name", ""),
             "category":       "star",
             "category_label": "Star",
             "obj_type":       "Star",
-            "magnitude":      s.get("magnitude"),
+            "magnitude":      mag,
+            "conf_margin":    cm,
+            "conf_class":     cc,
+            "conf_tip":       ct,
             "tier":           s.get("tier", 4),
             "tier_label":     s.get("tier_label", ""),
             "tier_emoji":     s.get("tier_emoji", ""),
@@ -1074,13 +1109,18 @@ def _flatten_sky(sky):
     # DSOs
     for d in sky.get("dsos", []):
         mins, dur = _vis_duration(d.get("vis_start"), d.get("vis_end"))
+        mag = d.get("magnitude")
+        cm, cc, ct = _sky_confidence(mag, naked_eye_limit)
         rows.append({
             "name":           d["name"],
             "common_name":    d.get("common_name", ""),
             "category":       "dso",
             "category_label": "DSO",
             "obj_type":       d.get("obj_type", ""),
-            "magnitude":      d.get("magnitude"),
+            "magnitude":      mag,
+            "conf_margin":    cm,
+            "conf_class":     cc,
+            "conf_tip":       ct,
             "tier":           d.get("tier", 4),
             "tier_label":     d.get("tier_label", ""),
             "tier_emoji":     d.get("tier_emoji", ""),

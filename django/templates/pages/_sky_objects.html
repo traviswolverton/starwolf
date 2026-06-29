@@ -123,6 +123,26 @@
   {% endif %}
 </div>
 
+{# ── Bortle / visibility context banner ─────────────────────────────── #}
+{% if bortle %}
+<div class="sky-bortle-banner">
+  <span class="sky-bortle-pill" title="John Bortle's light-pollution scale: 1 = pristine dark, 9 = inner city">Bortle {{ bortle }}</span>
+  <span class="sky-bortle-limit">Naked-eye limit <strong>mag {{ bortle_naked_eye_limit }}</strong></span>
+  <span class="sky-bortle-desc">
+    {% if bortle <= 3 %}Excellent dark skies — faint DSOs and the Milky Way's structure visible
+    {% elif bortle == 4 %}Good rural skies — most DSOs and bright globulars accessible
+    {% elif bortle == 5 %}Suburban skies — showpiece objects visible, faint DSOs washed out
+    {% elif bortle == 6 %}Bright suburban — stick to planets, bright clusters, and double stars
+    {% elif bortle == 7 %}Suburban/urban — only the best showpieces survive
+    {% elif bortle == 8 %}City sky — planets, Moon, and a handful of bright stars
+    {% else %}Inner-city — bright planets and Moon only{% endif %}
+  </span>
+  {% if darker_sky_count %}
+  <span class="sky-bortle-darker" title="These objects exceed your site's naked-eye + large-scope limit">{{ darker_sky_count }} object{% if darker_sky_count != 1 %}s{% endif %} need darker skies</span>
+  {% endif %}
+</div>
+{% endif %}
+
 {# ── Unified object table ───────────────────────────────────────────── #}
 {% if sky_rows %}
 <div class="sky-section-header">
@@ -188,8 +208,15 @@
         {# Gear tier #}
         <td><span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span></td>
 
-        {# Magnitude #}
-        <td class="sky-td-num">{% if row.magnitude is not None %}{{ row.magnitude|floatformat:1 }}{% else %}—{% endif %}</td>
+        {# Magnitude + confidence #}
+        <td class="sky-td-num">
+          {% if row.magnitude is not None %}
+            <span class="sky-mag-val {{ row.conf_class }}" title="{{ row.conf_tip }}">{{ row.magnitude|floatformat:1 }}</span>
+            {% if row.conf_margin is not None %}
+              <span class="sky-conf-dot {{ row.conf_class }}" title="{{ row.conf_tip }}"></span>
+            {% endif %}
+          {% else %}—{% endif %}
+        </td>
 
         {# Visibility window #}
         <td class="sky-td-vis">

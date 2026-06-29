@@ -1940,7 +1940,20 @@ select.text-input { cursor: pointer; }
 .sky-tr-expandable:hover td { background: #1a1d27; }
 
 .sky-td-name  { min-width: 8rem; }
-.sky-td-num   { text-align: right; color: #e8eaf0; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sky-td-num   { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; vertical-align: middle; }
+.sky-mag-val  { font-weight: 600; color: #e8eaf0; }
+.sky-conf-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  margin-left: 4px; vertical-align: middle; position: relative; top: -1px;
+}
+.sky-conf-easy    .sky-mag-val, .sky-conf-easy    { color: #e8eaf0; }
+.sky-conf-ok      .sky-mag-val, .sky-conf-ok      { color: #c8dfc0; }
+.sky-conf-marginal .sky-mag-val, .sky-conf-marginal { color: #d4b96a; }
+.sky-conf-gear    .sky-mag-val, .sky-conf-gear    { color: #888; }
+.sky-conf-dot.sky-conf-easy     { background: #4caf96; }
+.sky-conf-dot.sky-conf-ok       { background: #8bc34a; }
+.sky-conf-dot.sky-conf-marginal { background: #ffc107; }
+.sky-conf-dot.sky-conf-gear     { background: #555; }
 .sky-td-vis   { color: #777; white-space: nowrap; font-size: 0.78rem; }
 .sky-td-dur   { white-space: nowrap; min-width: 7rem; }
 .sky-td-peak  { color: #777; white-space: nowrap; font-size: 0.78rem; }
@@ -2032,6 +2045,25 @@ select.text-input { cursor: pointer; }
   display: inline-block; font-size: 0.72rem; background: #1e2436;
   border: 1px solid #2a3050; border-radius: 4px; padding: 0.1rem 0.4rem;
   color: #888; margin-left: 0.4rem;
+}
+
+/* Bortle context banner */
+.sky-bortle-banner {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem;
+  background: #0c1a10; border: 1px solid #1e3a2e; border-radius: 6px;
+  padding: 0.55rem 0.85rem; margin-bottom: 0.5rem; font-size: 0.78rem;
+}
+.sky-bortle-pill {
+  background: #1a2e20; color: #4caf96; font-weight: 700; font-size: 0.72rem;
+  border: 1px solid #2a5a40; border-radius: 20px; padding: 0.15rem 0.6rem;
+  cursor: help; white-space: nowrap;
+}
+.sky-bortle-limit { color: #aaa; white-space: nowrap; }
+.sky-bortle-limit strong { color: #e8eaf0; }
+.sky-bortle-desc { color: #666; flex: 1; min-width: 12rem; }
+.sky-bortle-darker {
+  color: #d4b96a; font-size: 0.72rem; white-space: nowrap;
+  border-left: 1px solid #2a3020; padding-left: 0.75rem; cursor: help;
 }
 
 /* Tonight's Sky page */

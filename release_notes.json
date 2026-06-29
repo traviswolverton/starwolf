@@ -3,6 +3,14 @@
     {
       "date": "2026-06-28",
       "features": [
+        "Bortle context banner on sky object pages — shows your site's Bortle class, naked-eye limiting magnitude, plain-English sky quality description, and a count of objects that need darker skies than your current site.",
+        "Magnitude confidence indicator — each object's mag value now has a colored dot (green = easy, yellow = marginal, grey = needs equipment) and a hover tooltip explaining the margin above or below your sky's naked-eye limit.",
+        "Sky visibility linked to Bortle — the engine's Bortle-to-limiting-magnitude heuristics (based on the John Bortle scale) now surface directly in the UI so you can judge at a glance whether an object is a sure thing or a stretch."
+      ]
+    },
+    {
+      "date": "2026-06-28",
+      "features": [
         "Sky object table — moved Category and Gear filter dropdowns to sit just above the table (below Moon/ISS/Shower cards) where they belong; added a 'Tonight's Objects' section label with object count.",
         "Column header tooltips on sky table — hovering any column header shows a plain-English explanation of what the column means and how to interpret values (e.g. why magnitude can be negative)."
       ]
