@@ -380,6 +380,8 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   transition: background 0.1s, color 0.1s;
 }
 .nav-dropdown-panel a:hover { background: #1a1d27; color: #4caf96; }
+.nav-dropdown-panel a.nav-active { color: #4caf96; background: #121820; }
+.nav-dropdown-trigger.nav-active { border-bottom-color: #4caf96; color: #c0c8d8; }
 
 /* Mobile: user menu spans full width, dropdown flows inline */
 @media (max-width: 640px) {
