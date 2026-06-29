@@ -190,7 +190,7 @@
   }
 
   // All-sites map
-  var mapAll = L.map('map-all', { preferCanvas: true }).setView([39.5, -98.5], isMobile ? 3 : 4);
+  var mapAll = L.map('map-all', { preferCanvas: true }).setView([39.5, -98.5], isMobile ? 2 : 3);
   L.tileLayer(tileUrl, tileOpts).addTo(mapAll);
   addSites(mapAll);
 

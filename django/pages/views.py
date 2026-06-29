@@ -735,8 +735,10 @@ def _load_heatmap_data(today):
             scored += 1
         if computed_at is None and r["computed_at"] is not None:
             computed_at = r["computed_at"]
+    from accounts.models import Site
+    total_active = Site.objects.filter(active=1).count()
     return sites, {
-        "total": len(sites), "scored": scored, "computed_at": computed_at,
+        "total": total_active, "scored": scored, "computed_at": computed_at,
         "date_used": date_used, "is_stale": date_used != today,
     }
 
