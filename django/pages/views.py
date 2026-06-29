@@ -116,6 +116,19 @@ def _ip_hash(request):
     return hashlib.sha256((settings.IP_HASH_SALT + ip).encode()).hexdigest()
 
 
+def _view_rate_limited(request, key, limit, window):
+    """Return True (and set 429) if this IP has exceeded limit/window seconds."""
+    ip_hash = _ip_hash(request)
+    if ip_hash is None:
+        return False
+    cache_key = f"rl:{key}:{ip_hash}"
+    count = cache.get(cache_key, 0)
+    if count >= limit:
+        return True
+    cache.set(cache_key, count + 1, window)
+    return False
+
+
 def about(request):
     return render(request, "pages/about.html")
 
@@ -218,8 +231,8 @@ def location(request):
         # Set by address or by coordinates (from browser geolocation)
         lat = request.POST.get("lat")
         lon = request.POST.get("lon")
-        address = request.POST.get("address", "").strip()
-        display_override = request.POST.get("display", "").strip()
+        address = request.POST.get("address", "").strip()[:200]
+        display_override = request.POST.get("display", "").strip()[:200]
 
         if lat and lon:
             # Browser geolocation, direct coords, or autocomplete selection
@@ -325,6 +338,7 @@ def set_guest_location(request):
 
     tz = _tf.timezone_at(lat=lat, lng=lon) or "America/Chicago"
 
+    request.session.cycle_key()  # prevent session fixation
     request.session["guest_lat"] = lat
     request.session["guest_lon"] = lon
     request.session["guest_display"] = display
@@ -890,8 +904,11 @@ def bortle_scorer(request):
     if request.method == "GET":
         return render(request, "pages/bortle_scorer.html")
 
+    if _view_rate_limited(request, "bortle", limit=15, window=60):
+        return HttpResponse('<div class="alert error">Too many requests. Please wait a moment.</div>', status=429)
+
     # ── Resolve lat/lon ───────────────────────────────────────────────────────
-    address = request.POST.get("address", "").strip()
+    address = request.POST.get("address", "").strip()[:200]
     if address:
         lat, lon = _geocode(address)
         if lat is None:
