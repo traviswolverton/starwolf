@@ -150,7 +150,7 @@
   </div>
   <div class="sky-picks-list">
     {% for row in picks %}
-    <div class="sky-pick-row">
+    <a href="{% url 'sky_object_detail' row.name %}" class="sky-pick-row">
       <span class="sky-pick-name">
         {{ row.name }}{% if row.common_name %} <span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
         {% if row.tier == 0 %}<span class="sky-pick-naked" title="Visible to the naked eye">👁</span>{% endif %}
@@ -160,7 +160,7 @@
         <span class="sky-pick-dur">{% if row.vis_duration %}{{ row.vis_duration }}{% elif row.category == 'planet' %}Up all night{% else %}—{% endif %}</span>
         <span class="sky-pick-peak">{% if row.peak_alt %}{{ row.peak_alt }}° {{ row.peak_az }}{% endif %}</span>
       </span>
-    </div>
+    </a>
     {% endfor %}
   </div>
   <p class="sky-picks-nudge">Browse the full sky object catalog — with images, descriptions, and detail pages — in <a href="{% url 'sky_catalog' %}">Explore → Objects</a>.</p>
