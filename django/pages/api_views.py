@@ -32,10 +32,12 @@ def _default_tz():
 
 
 def _ip(request):
-    return (
-        request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
-        or request.META.get("REMOTE_ADDR", "unknown")
-    )
+    # Take the LAST entry in X-Forwarded-For — that's the one Cloudflare set.
+    # The first entry can be spoofed by the client; only the proxy's own append is trustworthy.
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return request.META.get("REMOTE_ADDR", "unknown")
 
 
 def bortle(request):
@@ -171,5 +173,11 @@ def sky_catalog(request):
         qs = qs.filter(active=False)
     # "all" → no filter
 
-    objects = [_serialize_sky_object(obj) for obj in qs.order_by("category", "sort_order", "name")]
-    return JsonResponse({"count": len(objects), "objects": objects})
+    _MAX = 1000
+    total = qs.count()
+    objects = [_serialize_sky_object(obj) for obj in qs.order_by("category", "sort_order", "name")[:_MAX]]
+    resp = {"count": len(objects), "objects": objects}
+    if total > _MAX:
+        resp["truncated"] = True
+        resp["total"] = total
+    return JsonResponse(resp)

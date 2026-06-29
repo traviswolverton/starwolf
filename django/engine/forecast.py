@@ -1,4 +1,5 @@
 import requests
+from django.core.cache import cache as django_cache
 
 from .cache import cache_get, cache_set
 
@@ -23,18 +24,33 @@ def _fetch_open_meteo(lat: float, lon: float, forecast_days: int, timezone: str)
     if cached is not None:
         return cached
 
-    resp = requests.get(
-        OPEN_METEO_URL,
-        params={"latitude": lat, "longitude": lon, "hourly": OPEN_METEO_VARS,
-                "forecast_days": forecast_days, "timezone": timezone},
-        timeout=10,
-    )
-    if not resp.ok:
-        reason = resp.json().get("reason") if resp.content else None
-        raise ValueError(reason or f"HTTP {resp.status_code}")
-    data = resp.json()
-    cache_set(key, data, _TTL_OPEN_METEO)
-    return data
+    # Prevent cache stampede: only one request per unique key at a time
+    lock_key = f"lock:{key}"
+    if not django_cache.add(lock_key, 1, 15):  # add() is atomic; fails if key exists
+        # Another thread is fetching — wait briefly then return whatever is cached
+        import time
+        for _ in range(20):
+            time.sleep(0.25)
+            cached = cache_get(key)
+            if cached is not None:
+                return cached
+        # Give up waiting and fall through to fetch anyway
+
+    try:
+        resp = requests.get(
+            OPEN_METEO_URL,
+            params={"latitude": lat, "longitude": lon, "hourly": OPEN_METEO_VARS,
+                    "forecast_days": forecast_days, "timezone": timezone},
+            timeout=10,
+        )
+        if not resp.ok:
+            reason = resp.json().get("reason") if resp.content else None
+            raise ValueError(reason or f"HTTP {resp.status_code}")
+        data = resp.json()
+        cache_set(key, data, _TTL_OPEN_METEO)
+        return data
+    finally:
+        django_cache.delete(lock_key)
 
 
 def _fetch_7timer(lat: float, lon: float) -> dict:

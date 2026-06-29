@@ -5,7 +5,7 @@ Uses skyfield for ephemeris calculations and the sky_catalog DB table.
 import logging
 import math
 from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, available_timezones
 
 import numpy as np
 import requests
@@ -308,6 +308,8 @@ def compute_sky(
     from skyfield.api import EarthSatellite, Star, wgs84
     eph, ts = _get_eph()
 
+    if tz_name not in available_timezones():
+        tz_name = "UTC"
     tz = ZoneInfo(tz_name)
     observer = eph["earth"] + wgs84.latlon(lat, lon)
     earth = eph["earth"]

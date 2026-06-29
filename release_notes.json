@@ -7,7 +7,16 @@
         "Security: session ID is now rotated when a guest sets their location, preventing session fixation attacks.",
         "Security: Bortle Scorer now rate-limited to 15 requests/minute per IP to prevent abuse of the expensive GeoTIFF lookup.",
         "Security: address input fields capped at 200 characters across location, Bortle, and guest location endpoints.",
-        "Security: added HSTS, X-Frame-Options (clickjacking protection), and secure/HttpOnly/SameSite flags on session and CSRF cookies."
+        "Security: added HSTS, X-Frame-Options (clickjacking protection), and secure/HttpOnly/SameSite flags on session and CSRF cookies.",
+        "Security: fixed X-Forwarded-For IP extraction to use the last (proxy-set) entry rather than the first (spoofable client) entry, closing a rate-limit bypass vector.",
+        "Security: planner jobs now capped at 10 concurrent server-wide — excess requests receive a 429 instead of spawning unlimited threads.",
+        "Security: exception details from third-party APIs are no longer returned to users — errors are logged server-side and users see a generic message.",
+        "Security: all admin views now protected by a @require_admin decorator; role/active changes are logged for audit.",
+        "Security: timezone strings validated against known list before use in sky computations.",
+        "Security: forecast requests use a Redis lock to prevent cache stampede under concurrent load.",
+        "Security: Nominatim responses validated for JSON Content-Type before parsing.",
+        "Security: sky catalog API capped at 1000 objects per response.",
+        "Security: IP_HASH_SALT validated at startup; warning logged if unset."
       ]
     },
     {

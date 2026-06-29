@@ -18,6 +18,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
+from accounts.decorators import require_admin
 from timezonefinder import TimezoneFinder
 
 from accounts.models import UserPreferences
@@ -92,6 +93,14 @@ _BORTLE_COLOR = {
 }
 
 
+def _safe_json(resp):
+    """Parse JSON only if the response Content-Type is actually JSON."""
+    ct = resp.headers.get("content-type", "")
+    if "json" not in ct:
+        raise ValueError(f"Unexpected content-type from external API: {ct}")
+    return resp.json()
+
+
 def _geocode(address):
     try:
         r = http.get(
@@ -100,7 +109,7 @@ def _geocode(address):
             headers={"User-Agent": "StarWolf-App/1.0"},
             timeout=10,
         )
-        results = r.json()
+        results = _safe_json(r)
         if not results:
             return None, None
         return float(results[0]["lat"]), float(results[0]["lon"])
@@ -110,10 +119,14 @@ def _geocode(address):
 
 def _ip_hash(request):
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    ip = forwarded.split(",")[0].strip() if forwarded else request.META.get("REMOTE_ADDR", "")
+    # Take last entry — Cloudflare appends the real client IP; first entry is spoofable
+    ip = forwarded.split(",")[-1].strip() if forwarded else request.META.get("REMOTE_ADDR", "")
     if not ip or ip in ("127.0.0.1", "::1"):
         return None
-    return hashlib.sha256((settings.IP_HASH_SALT + ip).encode()).hexdigest()
+    salt = settings.IP_HASH_SALT or "fallback-unsalted"
+    if not settings.IP_HASH_SALT:
+        _log.warning("IP_HASH_SALT is not set — rate limit hashing is weaker")
+    return hashlib.sha256((salt + ip).encode()).hexdigest()
 
 
 def _view_rate_limited(request, key, limit, window):
@@ -251,7 +264,7 @@ def location(request):
                         headers={"User-Agent": "StarWolf-App/1.0"},
                         timeout=8,
                     )
-                    data = resp.json()
+                    data = _safe_json(resp)
                     addr = data.get("address", {})
                     parts = [
                         addr.get("city") or addr.get("town") or addr.get("village"),
@@ -282,7 +295,8 @@ def location(request):
                 display = ", ".join(parts[:3])
                 text = address
             except Exception as e:
-                return HttpResponse(f'<div class="alert error">Lookup failed: {e}</div>')
+                _log.error("Reverse geocode failed: %s", e)
+                return HttpResponse('<div class="alert error">Location lookup failed. Please try again.</div>')
         else:
             return HttpResponse('<div class="alert error">No location provided.</div>')
 
@@ -326,7 +340,7 @@ def set_guest_location(request):
                 headers={"User-Agent": "StarWolf-App/1.0"},
                 timeout=8,
             )
-            addr = resp.json().get("address", {})
+            addr = _safe_json(resp).get("address", {})
             parts = [
                 addr.get("city") or addr.get("town") or addr.get("village"),
                 addr.get("state"),
@@ -389,7 +403,8 @@ def preferences(request):
             prefs.save()
             return HttpResponse('<div class="alert success">Preferences saved.</div>')
         except Exception as e:
-            return HttpResponse(f'<div class="alert error">Save failed: {e}</div>')
+            _log.error("Preferences save failed: %s", e)
+            return HttpResponse('<div class="alert error">Save failed. Please try again.</div>')
 
     tz_options = list(_COMMON_TIMEZONES)
     if prefs.timezone not in tz_options:
@@ -929,7 +944,8 @@ def bortle_scorer(request):
     except FileNotFoundError:
         return HttpResponse('<div class="alert error">World Atlas GeoTIFF is not available on this server.</div>')
     except ValueError as e:
-        return HttpResponse(f'<div class="alert error">No data for this location: {e}</div>')
+        _log.warning("Bortle lookup returned no data: %s", e)
+        return HttpResponse('<div class="alert error">No Bortle data for this location. Try coordinates just outside a polar or oceanic area.</div>')
 
     bortle = data["bortle"]
     sqm    = data["sqm"]
@@ -1404,7 +1420,8 @@ def feedback(request):
     except http.exceptions.Timeout:
         return HttpResponse('<div class="alert error">Request timed out. Try again.</div>')
     except Exception as e:
-        return HttpResponse(f'<div class="alert error">Submission failed: {e}</div>')
+        _log.error("Feedback submission failed: %s", e)
+        return HttpResponse('<div class="alert error">Submission failed. Please try again.</div>')
 
     if resp.status_code != 201:
         return HttpResponse(f'<div class="alert error">Submission failed (HTTP {resp.status_code}). Try again.</div>')
@@ -1585,6 +1602,7 @@ def _run_planner_thread(prefix, sites, forecast_days, tz, disq):
     import traceback
     logger = logging.getLogger(__name__)
     from concurrent.futures import ThreadPoolExecutor, as_completed
+    _PLANNER_ACTIVE_KEY = "planner:global_active"
     state_key   = f"planner:status:{prefix}"
     results_key = f"planner:nights:{prefix}"
     total = len(sites)
@@ -1608,6 +1626,9 @@ def _run_planner_thread(prefix, sites, forecast_days, tz, disq):
     except Exception:
         logger.error("Planner thread crashed:\n%s", traceback.format_exc())
         cache.set(state_key, {"running": False, "done": done, "total": total, "error": True}, 120)
+    finally:
+        active = cache.get(_PLANNER_ACTIVE_KEY, 1)
+        cache.set(_PLANNER_ACTIVE_KEY, max(0, active - 1), 600)
 
 
 def _get_planner_max_sites():
@@ -1745,6 +1766,13 @@ def planner_run(request):
     }
 
     results_key = f"planner:nights:{prefix}"
+    _PLANNER_ACTIVE_KEY = "planner:global_active"
+    _PLANNER_MAX_CONCURRENT = 10
+    active = cache.get(_PLANNER_ACTIVE_KEY, 0)
+    if active >= _PLANNER_MAX_CONCURRENT:
+        return HttpResponse('<div class="alert error">Server is busy — too many planner jobs running. Try again in a minute.</div>', status=429)
+    cache.set(_PLANNER_ACTIVE_KEY, active + 1, 600)
+
     threading.Thread(
         target=_run_planner_thread,
         args=(prefix, sites, forecast_days, tz, disq),
@@ -1939,10 +1967,8 @@ def _render_results(request, nights):
     })
 
 
+@require_admin
 def admin_panel(request):
-    from accounts.decorators import require_admin
-    if not request.user.is_authenticated or not request.user.is_admin():
-        return redirect("home")
 
     from accounts.models import AppSetting, NakedEyeWeight, Site, ScoringWeight
     tel_weights = list(ScoringWeight.objects.order_by("-weight").values("id", "factor", "weight", "description"))
@@ -1975,10 +2001,9 @@ def admin_panel(request):
     })
 
 
+@require_admin
 @require_http_methods(["POST"])
 def admin_save_weights(request):
-    if not request.user.is_authenticated or not request.user.is_admin():
-        return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
 
     from accounts.models import NakedEyeWeight, ScoringWeight
     table = request.POST.get("table", "scoring_weights")
@@ -2008,10 +2033,9 @@ def admin_save_weights(request):
     return HttpResponse('<div class="alert success">Weights saved.</div>')
 
 
+@require_admin
 @require_http_methods(["POST"])
 def admin_save_settings(request):
-    if not request.user.is_authenticated or not request.user.is_admin():
-        return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
 
     keys   = request.POST.getlist("key")
     values = request.POST.getlist("value")
@@ -2026,10 +2050,9 @@ def admin_save_settings(request):
     return HttpResponse('<div class="alert success">Settings saved.</div>')
 
 
+@require_admin
 @require_http_methods(["POST"])
 def admin_bortle_fill(request):
-    if not request.user.is_authenticated or not request.user.is_admin():
-        return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
 
     from accounts.models import Site
     null_sites = list(Site.objects.filter(bortle_class__isnull=True).order_by("name"))
@@ -2053,10 +2076,9 @@ def admin_bortle_fill(request):
     return HttpResponse(msg)
 
 
+@require_admin
 @require_http_methods(["POST"])
 def admin_save_prompts(request):
-    if not request.user.is_authenticated or not request.user.is_admin():
-        return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
 
     system_prompt = request.POST.get("ollama_system_prompt", "").strip()
     user_prompt   = request.POST.get("ollama_user_prompt", "").strip()
@@ -2072,10 +2094,9 @@ def admin_save_prompts(request):
     return HttpResponse('<div class="alert success">Prompts saved. Next planner run will use the updated prompt.</div>')
 
 
+@require_admin
 @require_http_methods(["POST"])
 def admin_user_role(request, user_id):
-    if not request.user.is_authenticated or not request.user.is_admin():
-        return HttpResponse(status=403)
     from accounts.models import User as StarWolfUser
     target = get_object_or_404(StarWolfUser, id=user_id)
     if target == request.user:
@@ -2083,27 +2104,33 @@ def admin_user_role(request, user_id):
     new_role = request.POST.get("role")
     if new_role not in (StarWolfUser.GUEST, StarWolfUser.USER, StarWolfUser.ADMIN):
         return HttpResponse(status=400)
+    old_role = target.role
     target.role = new_role
     target.save(update_fields=["role"])
+    _log.info("AUDIT admin_user_role: admin=%s target=%s %s→%s", request.user.id, user_id, old_role, new_role)
     return render(request, "pages/_admin_user_row.html", {"u": target, "current_user": request.user})
 
 
+@require_admin
 @require_http_methods(["POST"])
 def admin_user_active(request, user_id):
-    if not request.user.is_authenticated or not request.user.is_admin():
-        return HttpResponse(status=403)
     from accounts.models import User as StarWolfUser
     target = get_object_or_404(StarWolfUser, id=user_id)
     if target == request.user:
         return HttpResponse('<span class="alert error">Cannot deactivate yourself.</span>')
     target.is_active = not target.is_active
     target.save(update_fields=["is_active"])
+    _log.info("AUDIT admin_user_active: admin=%s target=%s active=%s", request.user.id, user_id, target.is_active)
     return render(request, "pages/_admin_user_row.html", {"u": target, "current_user": request.user})
 
 
 def api_guide(request):
     guide_path = Path(settings.BASE_DIR).parent / "docs" / "API_GUIDE.md"
-    raw = guide_path.read_text()
+    try:
+        raw = guide_path.read_text()
+    except Exception:
+        _log.error("API_GUIDE.md missing or unreadable at %s", guide_path)
+        return render(request, "pages/api_guide.html", {"endpoints": [], "overview_html": "<p>API documentation temporarily unavailable.</p>"})
 
     parts = re.split(r"\n(?=### )", raw)
 
