@@ -95,12 +95,9 @@ docker compose exec -d django python manage.py populate_site_locations [--all] [
 **Check progress:**
 ```bash
 docker compose exec django python manage.py shell -c "
-from django.db import connection
-with connection.cursor() as cur:
-    cur.execute('SELECT COUNT(*) FROM sites WHERE country IS NOT NULL')
-    done = cur.fetchone()[0]
-    cur.execute('SELECT COUNT(*) FROM sites')
-    total = cur.fetchone()[0]
+from accounts.models import Site
+done  = Site.objects.filter(country__isnull=False).count()
+total = Site.objects.count()
 print(f'{done}/{total} geocoded')
 "
 ```
@@ -138,10 +135,10 @@ docker compose exec -d django python manage.py enrich_notes --offset 1200 --limi
 **Check progress:**
 ```bash
 docker compose exec django python manage.py shell -c "
-from django.db import connection
-with connection.cursor() as cur:
-    cur.execute(\"SELECT COUNT(*) FROM sites WHERE LENGTH(notes) > 200 AND notes NOT LIKE '%— %'\")
-    print('Enriched:', cur.fetchone()[0])
+from accounts.models import Site
+from django.db.models import Q
+done = Site.objects.filter(notes__isnull=False).exclude(Q(notes__regex=r'^.{0,199}$') | Q(notes__contains='— ')).count()
+print('Enriched:', done)
 "
 ```
 
@@ -182,12 +179,9 @@ docker compose exec -d django python manage.py enrich_site_details --offset 1600
 **Check progress:**
 ```bash
 docker compose exec django python manage.py shell -c "
-from django.db import connection
-with connection.cursor() as cur:
-    cur.execute('SELECT COUNT(*) FROM site_details')
-    done = cur.fetchone()[0]
-    cur.execute('SELECT COUNT(*) FROM sites')
-    total = cur.fetchone()[0]
+from accounts.models import Site, SiteDetail
+done  = SiteDetail.objects.count()
+total = Site.objects.count()
 print(f'{done}/{total} enriched')
 "
 ```

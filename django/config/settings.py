@@ -114,9 +114,7 @@ TEMPLATES = [
 ]
 
 # ── Database ──────────────────────────────────────────────────────────────────
-# Points at the same Postgres instance as Streamlit/FastAPI.
-# Django only manages its own tables (accounts_*, django_*).
-# Existing tables (sites, visitors, etc.) are accessed via SQLAlchemy in db.py.
+# All application tables are managed via Django ORM (accounts/models.py).
 DATABASES = {
     "default": dj_database_url.config(
         default=os.environ.get("DATABASE_URL"),

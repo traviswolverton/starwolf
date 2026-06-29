@@ -1,7 +1,7 @@
 # Sky Object Catalog — Unified Data Model
 
-**Status:** Planned — not yet implemented  
-**Scoped:** 2026-06-28
+**Status:** Implemented  
+**Shipped:** 2026-06-28
 
 ---
 

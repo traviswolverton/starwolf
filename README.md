@@ -76,6 +76,7 @@ stargazing-app/
 | **Location** | `/location` | Geocode a home base; drives distance display and proximity filter |
 | **Preferences** | `/preferences` | Per-user timezone, thresholds, units — stored in DB, not session |
 | **Admin** | `/admin-panel` | Scoring weights, app settings, Bortle fill (requires admin role) |
+| **Django Admin** | `/django-admin/` | Full ORM-backed admin (Sites, Sky Catalog, Weights, Users) — requires Django staff/superuser |
 | **API** | `/api-guide` | Rendered docs/API_GUIDE.md with live endpoint tabs |
 | **Feedback** | `/feedback` | Submit bug reports / feature requests → GitHub issues |
 
@@ -140,7 +141,7 @@ Telescope weights are stored in the `scoring_weights` table and editable by Admi
 | Humidity | 10% | Open-Meteo `relative_humidity_2m` |
 | Lifted Index (stability) | 5% | Open-Meteo `lifted_index` |
 
-Naked eye weights are fixed constants (`NAKED_EYE_WEIGHTS` in `scorer.py`). After the weighted composite is calculated, a **Bortle class modifier** (0.55–1.0×) is applied based on the site's sky darkness rating to reflect light pollution impact on unaided viewing.
+Naked eye weights are stored in the `naked_eye_weights` table and editable by Admin (same interface as telescope weights). After the weighted composite is calculated, a **Bortle class modifier** (0.55–1.0×) is applied based on the site's sky darkness rating to reflect light pollution impact on unaided viewing.
 
 7timer seeing and transparency are displayed in result cards but do not affect either composite score.
 
@@ -160,9 +161,9 @@ Before scoring, each night is checked against three user-configurable thresholds
 
 ## Data Model
 
-All persistent state is stored in a PostgreSQL 16 database running as a Docker service. Three tables:
+All persistent state is stored in a PostgreSQL 16 database. Every table is managed via the Django ORM (`accounts/models.py`) — no raw SQL in application code.
 
-### `sites`
+### `sites` → `Site`
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -171,21 +172,73 @@ All persistent state is stored in a PostgreSQL 16 database running as a Docker s
 | `lat` / `lon` | REAL | WGS84 coordinates |
 | `bortle_class` | INTEGER | 1 (darkest) – 9 (inner city) |
 | `elevation_m` | REAL | Elevation in metres |
-| `notes` | TEXT | Free-form notes (can be enriched via `enrich_notes` management command) |
-| `site_type` | TEXT | Category: `ida_certified`, `national_park`, `national_forest`, `state_park`, `community`, `observatory` |
-| `country` | TEXT | ISO 3166-1 alpha-2 country code (e.g. `US`, `CA`) — populated by `populate_site_locations` |
+| `notes` | TEXT | Free-form notes (enriched via `enrich_notes`) |
+| `site_type` | TEXT | `ida_certified`, `national_park`, `state_park`, `public_land`, `private`, `other` |
+| `country` | TEXT | ISO 3166-1 alpha-2 (e.g. `US`, `CA`) — populated by `populate_site_locations` |
 | `state_province` | TEXT | State or province name — populated by `populate_site_locations` |
-| `active` | INTEGER | Default active state for new sessions (1 = on, 0 = off) |
+| `active` | INTEGER | 1 = active, 0 = hidden |
 
-### `scoring_weights`
+### `site_details` → `SiteDetail`
+
+One-to-one with `sites`. Populated by `enrich_site_details`.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `factor` | TEXT UNIQUE | Factor identifier (`cloud_cover`, `high_cloud`, `moon`, `lifted_index`, `humidity`) |
-| `weight` | REAL | Fraction of the composite score (must sum to 1.00) |
+| `site_id` | INTEGER PK/FK | References `sites.id` |
+| `wikipedia_url` | TEXT | Wikipedia article URL |
+| `wikipedia_summary` | TEXT | Wikipedia intro paragraph |
+| `image_url` | TEXT | Wikimedia Commons image URL |
+| `image_credit` | TEXT | Attribution string |
+| `narrative` | TEXT | Ollama-generated stargazer narrative |
+| `maps_url` | TEXT | Google Maps deep link |
+| `enriched_at` | TIMESTAMPTZ | When last enriched |
+
+### `site_daily_scores` → `SiteDailyScore`
+
+Pre-computed nightly scores for the heatmap. Unique on `(site_id, score_date)`.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | BIGINT PK | Auto-assigned (surrogate) |
+| `site_id` | INTEGER FK | References `sites.id` |
+| `score_date` | DATE | The night being scored |
+| `name` | TEXT | Denormalized site name |
+| `lat` / `lon` | REAL | Denormalized coordinates |
+| `score` | REAL | Composite score 0–100 (null if disqualified) |
+| `computed_at` | TIMESTAMPTZ | When score was last computed |
+
+### `sky_catalog` → `SkyObject`
+
+Unified catalog of observable objects. Category-specific fields live in `extra_data` (JSONB).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PK | Auto-assigned |
+| `name` | TEXT | Canonical name (e.g. Jupiter, M31, Sirius) |
+| `common_name` | TEXT | Popular name (e.g. Andromeda Galaxy) |
+| `category` | TEXT | `planet`, `star`, `dso`, `meteor_shower`, `satellite` |
+| `obj_type` | TEXT | Sub-type (galaxy, nebula, planet…) |
+| `magnitude` | REAL | Visual magnitude (null = computed at runtime) |
+| `ra_h` / `dec_d` | REAL | J2000 coordinates in hours/degrees (null = computed) |
+| `source` | TEXT | Data source (`messier_csv`, `yale_bsc`, `de421`, …) |
+| `active` | BOOLEAN | Whether to include in sky views |
+| `sort_order` | INTEGER | Display order within category |
+| `extra_data` | JSONB | Category-specific fields (e.g. `ephemeris_name`, `tle_source_url`, `peak_date`) |
+
+### `scoring_weights` → `ScoringWeight`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INTEGER PK | Auto-assigned |
+| `factor` | TEXT | Factor identifier (`cloud_cover`, `high_cloud`, `moon`, `lifted_index`, `humidity`) |
+| `weight` | REAL | Fraction of composite score (must sum to 1.00) |
 | `description` | TEXT | Human-readable label |
 
-### `app_settings`
+### `naked_eye_weights` → `NakedEyeWeight`
+
+Same schema as `scoring_weights`; applies to the naked eye composite score.
+
+### `app_settings` → `AppSetting`
 
 Key/value pairs for admin-configurable application settings.
 
