@@ -153,13 +153,13 @@
     <div class="sky-pick-row">
       <span class="sky-pick-name">
         {{ row.name }}{% if row.common_name %} <span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
+        {% if row.tier == 0 %}<span class="sky-pick-naked" title="Visible to the naked eye">👁</span>{% endif %}
       </span>
-      <span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span>
-      <span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span>
-      <span class="sky-pick-dur">
-        {% if row.vis_duration %}{{ row.vis_duration }}{% elif row.category == 'planet' %}Up at dark{% else %}—{% endif %}
+      <span class="sky-pick-meta">
+        <span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span>
+        <span class="sky-pick-dur">{% if row.vis_duration %}{{ row.vis_duration }}{% elif row.category == 'planet' %}Up all night{% else %}—{% endif %}</span>
+        <span class="sky-pick-peak">{% if row.peak_alt %}{{ row.peak_alt }}° {{ row.peak_az }}{% endif %}</span>
       </span>
-      <span class="sky-pick-peak">{% if row.peak_alt %}{{ row.peak_alt }}° {{ row.peak_az }}{% endif %}</span>
     </div>
     {% endfor %}
   </div>
