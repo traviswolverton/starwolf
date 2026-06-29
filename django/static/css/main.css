@@ -1858,6 +1858,19 @@ select.text-input { cursor: pointer; }
 }
 .sky-night-window strong { color: #888; }
 
+/* ISS card */
+.sky-iss-card {
+  background: #0f1420; border: 1px solid #2a3050; border-radius: 8px;
+  padding: 0.6rem 0.85rem; margin-bottom: 0.75rem;
+}
+.sky-iss-header {
+  display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+}
+.sky-iss-summary { font-size: 0.83rem; color: #c0c8d8; flex: 1; }
+.sky-iss-none    { font-size: 0.83rem; color: #444; }
+.sky-iss-toggle  { font-size: 0.75rem; color: #4caf96; white-space: nowrap; }
+.sky-iss-passes  { margin-top: 0.65rem; }
+
 /* Moon card */
 .sky-moon-card {
   display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;

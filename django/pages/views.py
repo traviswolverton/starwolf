@@ -1016,8 +1016,6 @@ def _flatten_sky(sky):
             "peak_str":       p.get("peak_str"),
             "low_alt":        (p.get("peak_alt") or 0) <= 15 and p.get("visible", True),
             "note":           p.get("note", ""),
-            "expandable":     False,
-            "passes":         [],
         })
 
     # Stars
@@ -1039,8 +1037,6 @@ def _flatten_sky(sky):
             "peak_str":       s.get("peak_str"),
             "low_alt":        (s.get("peak_alt") or 0) <= 15,
             "note":           s.get("notes", ""),
-            "expandable":     False,
-            "passes":         [],
         })
 
     # DSOs
@@ -1062,8 +1058,6 @@ def _flatten_sky(sky):
             "peak_str":       d.get("peak_str"),
             "low_alt":        (d.get("peak_alt") or 0) <= 15,
             "note":           "",
-            "expandable":     False,
-            "passes":         [],
         })
 
     # Meteor showers — always naked eye, no magnitude/position
@@ -1085,33 +1079,6 @@ def _flatten_sky(sky):
             "peak_str":       None,
             "low_alt":        False,
             "note":           f"{s.get('timing','').capitalize()} · ~{s.get('zhr',0)}/hr ZHR",
-            "expandable":     False,
-            "passes":         [],
-        })
-
-    # ISS — one row per satellite; passes expand inline
-    iss_passes = sky.get("iss_passes", [])
-    if iss_passes:
-        first = iss_passes[0]
-        rows.append({
-            "name":           "ISS",
-            "common_name":    "International Space Station",
-            "category":       "satellite",
-            "category_label": "Satellite",
-            "obj_type":       "Satellite",
-            "magnitude":      None,
-            "tier":           0,
-            "tier_label":     "Naked Eye",
-            "tier_emoji":     "🟢",
-            "vis_start":      first.get("rise_str"),
-            "vis_end":        None,
-            "peak_alt":       first.get("peak_alt"),
-            "peak_az":        None,
-            "peak_str":       None,
-            "low_alt":        False,
-            "note":           f"{len(iss_passes)} pass{'es' if len(iss_passes) != 1 else ''} tonight",
-            "expandable":     True,
-            "passes":         iss_passes,
         })
 
     rows.sort(key=lambda r: r["tier"])

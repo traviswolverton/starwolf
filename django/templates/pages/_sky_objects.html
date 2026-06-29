@@ -58,6 +58,39 @@
   {% if sky.moon.bright %}<span class="sky-moon-warning">⚠️ Bright moon may wash out faint DSOs</span>{% endif %}
 </div>
 
+{# ── ISS card ───────────────────────────────────────────────────────── #}
+<div class="sky-iss-card" {% if sky.iss_passes %}x-data="{ open: false }"{% endif %}>
+  <div class="sky-iss-header" {% if sky.iss_passes %}@click="open = !open" style="cursor:pointer"{% endif %}>
+    <span class="sky-cat-badge sky-cat-satellite">🛸 ISS</span>
+    {% if sky.iss_passes %}
+      <span class="sky-iss-summary">
+        {{ sky.iss_passes|length }} pass{% if sky.iss_passes|length != 1 %}es{% endif %} tonight
+        &nbsp;·&nbsp; Next: {{ sky.iss_passes.0.rise_str }}, {{ sky.iss_passes.0.duration_m }} min, {{ sky.iss_passes.0.peak_alt }}° max
+      </span>
+      <span class="sky-iss-toggle" x-text="open ? '▲ Hide passes' : '▼ Show passes'">▼ Show passes</span>
+    {% else %}
+      <span class="sky-iss-none">No visible passes tonight</span>
+    {% endif %}
+  </div>
+  {% if sky.iss_passes %}
+  <div class="sky-iss-passes" x-show="open" x-cloak x-transition>
+    <table class="sky-passes-table">
+      <thead><tr><th>Rise</th><th>Duration</th><th>Max Elevation</th><th>Direction</th></tr></thead>
+      <tbody>
+        {% for pass in sky.iss_passes %}
+        <tr>
+          <td>{{ pass.rise_str }}</td>
+          <td>{{ pass.duration_m }} min</td>
+          <td>{{ pass.peak_alt }}°</td>
+          <td>{{ pass.direction }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
 {# ── Unified object table ───────────────────────────────────────────── #}
 {% if sky_rows %}
 <div class="sky-table-wrap">
@@ -70,76 +103,48 @@
         <th>Mag</th>
         <th>Visible</th>
         <th>Peak</th>
-        <th></th>
       </tr>
     </thead>
+    <tbody>
       {% for row in sky_rows %}
-      <tbody {% if row.expandable %}x-data="{ open: false }"{% endif %}>
-        <tr class="sky-tr {% if row.tier == 4 %}sky-tr-dim{% endif %}{% if row.expandable %} sky-tr-expandable{% endif %}"
-            x-show="gear === 'all' || ({{ row.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3)"
-            {% if row.expandable %}@click="open = !open"{% endif %}>
+      <tr class="sky-tr {% if row.tier == 4 %}sky-tr-dim{% endif %}"
+          x-show="gear === 'all' || ({{ row.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3)">
 
-          {# Object name + type sub-label for DSOs #}
-          <td class="sky-td-name">
-            <span class="sky-obj-name">{{ row.name }}</span>
-            {% if row.common_name %}<span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
-            {% if row.category == 'dso' and row.obj_type %}<span class="sky-obj-type-sub">{{ row.obj_type }}</span>{% endif %}
-            {% if row.note %}<span class="sky-obj-note">{{ row.note }}</span>{% endif %}
-          </td>
+        {# Object name + type sub-label for DSOs #}
+        <td class="sky-td-name">
+          <span class="sky-obj-name">{{ row.name }}</span>
+          {% if row.common_name %}<span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
+          {% if row.category == 'dso' and row.obj_type %}<span class="sky-obj-type-sub">{{ row.obj_type }}</span>{% endif %}
+          {% if row.note %}<span class="sky-obj-note">{{ row.note }}</span>{% endif %}
+        </td>
 
-          {# Category badge #}
-          <td><span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span></td>
+        {# Category badge #}
+        <td><span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span></td>
 
-          {# Gear tier #}
-          <td><span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span></td>
+        {# Gear tier #}
+        <td><span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span></td>
 
-          {# Magnitude #}
-          <td class="sky-td-num">{% if row.magnitude is not None %}{{ row.magnitude }}{% else %}—{% endif %}</td>
+        {# Magnitude #}
+        <td class="sky-td-num">{% if row.magnitude is not None %}{{ row.magnitude }}{% else %}—{% endif %}</td>
 
-          {# Visibility window #}
-          <td class="sky-td-vis">
-            {% if row.vis_start and row.vis_end %}{{ row.vis_start }}–{{ row.vis_end }}
-            {% elif row.vis_start %}Rises {{ row.vis_start }}
-            {% elif row.category == 'planet' and row.tier != 4 %}Up at dark
-            {% else %}—{% endif %}
-          </td>
+        {# Visibility window #}
+        <td class="sky-td-vis">
+          {% if row.vis_start and row.vis_end %}{{ row.vis_start }}–{{ row.vis_end }}
+          {% elif row.vis_start %}Rises {{ row.vis_start }}
+          {% elif row.category == 'planet' and row.tier != 4 %}Up at dark
+          {% else %}—{% endif %}
+        </td>
 
-          {# Peak #}
-          <td class="sky-td-peak">
-            {% if row.peak_alt %}
-              {{ row.peak_alt }}°{% if row.peak_az %} {{ row.peak_az }}{% endif %}{% if row.peak_str %} · {{ row.peak_str }}{% endif %}
-              {% if row.low_alt %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ row.peak_alt }}° above the horizon — haze will significantly dim this object.</span></span>{% endif %}
-            {% else %}—{% endif %}
-          </td>
-
-          {# Expand toggle for ISS #}
-          <td class="sky-td-expand">
-            {% if row.expandable %}<span class="sky-expand-btn" x-text="open ? '▲' : '▼'">▼</span>{% endif %}
-          </td>
-        </tr>
-
-        {# ISS passes expansion row — shares x-data from parent tbody #}
-        {% if row.expandable %}
-        <tr class="sky-tr-passes" x-show="open" x-cloak x-transition>
-          <td colspan="7" class="sky-td-passes">
-            <table class="sky-passes-table">
-              <thead><tr><th>Rise</th><th>Duration</th><th>Max Elevation</th><th>Direction</th></tr></thead>
-              <tbody>
-                {% for pass in row.passes %}
-                <tr>
-                  <td>{{ pass.rise_str }}</td>
-                  <td>{{ pass.duration_m }} min</td>
-                  <td>{{ pass.peak_alt }}°</td>
-                  <td>{{ pass.direction }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </td>
-        </tr>
-        {% endif %}
-      </tbody>
+        {# Peak #}
+        <td class="sky-td-peak">
+          {% if row.peak_alt %}
+            {{ row.peak_alt }}°{% if row.peak_az %} {{ row.peak_az }}{% endif %}{% if row.peak_str %} · {{ row.peak_str }}{% endif %}
+            {% if row.low_alt %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ row.peak_alt }}° above the horizon — haze will significantly dim this object.</span></span>{% endif %}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
       {% endfor %}
+    </tbody>
   </table>
 </div>
 {% endif %}
