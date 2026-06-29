@@ -2246,8 +2246,9 @@ def sky_object_detail(request, name):
     # Tonight's visibility for this object (requires user location)
     visibility = None
     bortle = None
-    if request.user.is_authenticated and request.prefs and request.prefs.has_location:
-        prefs = request.prefs
+    _detail_prefs = request.prefs if (request.user.is_authenticated and request.prefs) else _GuestPrefs(request.session)
+    if _detail_prefs and _detail_prefs.has_location:
+        prefs = _detail_prefs
         lat, lon = prefs.location_lat, prefs.location_lon
         tz_name = getattr(prefs, "timezone", "America/Chicago")
         try:
