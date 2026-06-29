@@ -1898,12 +1898,15 @@ select.text-input { cursor: pointer; }
 .sky-tr-expandable:hover td { background: #1a1d27; }
 
 .sky-td-name  { min-width: 8rem; }
-.sky-td-type  { color: #555; }
 .sky-td-num   { text-align: right; color: #888; white-space: nowrap; }
 .sky-td-vis   { color: #777; white-space: nowrap; font-size: 0.78rem; }
 .sky-td-peak  { color: #777; white-space: nowrap; font-size: 0.78rem; }
 .sky-td-expand { width: 1.5rem; text-align: center; color: #555; }
 
+.sky-obj-type-sub {
+  display: inline; font-size: 0.72rem; color: #555; font-weight: 400;
+  margin-left: 0.3rem;
+}
 .sky-obj-note {
   display: block; font-size: 0.72rem; color: #555; font-weight: 400;
   margin-top: 0.1rem;

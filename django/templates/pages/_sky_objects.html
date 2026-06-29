@@ -66,7 +66,6 @@
       <tr>
         <th>Object</th>
         <th>Category</th>
-        <th>Type</th>
         <th>Gear</th>
         <th>Mag</th>
         <th>Visible</th>
@@ -80,18 +79,16 @@
             x-show="gear === 'all' || ({{ row.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3)"
             {% if row.expandable %}@click="open = !open"{% endif %}>
 
-          {# Object name #}
+          {# Object name + type sub-label for DSOs #}
           <td class="sky-td-name">
             <span class="sky-obj-name">{{ row.name }}</span>
             {% if row.common_name %}<span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
+            {% if row.category == 'dso' and row.obj_type %}<span class="sky-obj-type-sub">{{ row.obj_type }}</span>{% endif %}
             {% if row.note %}<span class="sky-obj-note">{{ row.note }}</span>{% endif %}
           </td>
 
           {# Category badge #}
           <td><span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span></td>
-
-          {# Type #}
-          <td class="sky-td-type">{{ row.obj_type }}</td>
 
           {# Gear tier #}
           <td><span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span></td>
@@ -102,7 +99,8 @@
           {# Visibility window #}
           <td class="sky-td-vis">
             {% if row.vis_start and row.vis_end %}{{ row.vis_start }}–{{ row.vis_end }}
-            {% elif row.vis_start %}From {{ row.vis_start }}
+            {% elif row.vis_start %}Rises {{ row.vis_start }}
+            {% elif row.category == 'planet' and row.tier != 4 %}Up at dark
             {% else %}—{% endif %}
           </td>
 
@@ -123,7 +121,7 @@
         {# ISS passes expansion row — shares x-data from parent tbody #}
         {% if row.expandable %}
         <tr class="sky-tr-passes" x-show="open" x-cloak x-transition>
-          <td colspan="8" class="sky-td-passes">
+          <td colspan="7" class="sky-td-passes">
             <table class="sky-passes-table">
               <thead><tr><th>Rise</th><th>Duration</th><th>Max Elevation</th><th>Direction</th></tr></thead>
               <tbody>
