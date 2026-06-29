@@ -13,7 +13,7 @@
   <header x-data="{ open: false }">
     <div class="nav-bar">
       <a href="/" class="nav-brand">🔭 StarWolf</a>
-      {% if has_new_notes %}<a href="/#whats-new" class="nav-whats-new">✨ new</a>{% endif %}
+      {% if has_new_notes %}<a href="{% url 'changelog' %}" class="nav-whats-new">✨ new</a>{% endif %}
       <a href="{% url 'moon_phase' %}" class="nav-moon" title="{{ moon.label }} (day {{ moon.phase }}/29.5)">{{ moon.emoji }}</a>
 
       <button class="nav-toggle" @click="open = !open" :aria-expanded="open.toString()" aria-label="Toggle menu">
@@ -97,6 +97,8 @@
       <a href="{% url 'about' %}">Full credits →</a>
     </div>
     <div class="footer-links">
+      <a href="{% url 'changelog' %}">What's new</a>
+      <span class="footer-sep">·</span>
       <a href="{% url 'feedback' %}">Submit feedback</a>
     </div>
   </footer>

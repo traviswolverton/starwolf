@@ -2,63 +2,85 @@
 {% block title %}StarWolf — Stargazing Trip Planner{% endblock %}
 
 {% block content %}
-<div class="welcome-hero">
-  <div class="welcome-tagline">Find your perfect stargazing night.</div>
-  <p class="welcome-sub">Score dark-sky sites near you across the next 10 days — cloud cover, moon, seeing, and more — so you know exactly when and where to go.</p>
-</div>
+<div class="hero-wrap">
 
-<div class="welcome-steps">
-
-  <div class="welcome-step {% if prefs and prefs.has_location %}done{% endif %}">
-    <div class="step-icon">📍</div>
-    <div class="step-body">
-      <div class="step-title">Set your location</div>
-      <div class="step-desc">
-        {% if prefs and prefs.has_location %}
-        {{ prefs.location_display }} — <a href="{% url 'location' %}">change</a>
-        {% else %}
-        Tell us where you're based so we can find nearby sites and show distances.
-        {% endif %}
-      </div>
-    </div>
-    {% if not prefs or not prefs.has_location %}
-    <a href="{% url 'location' %}" class="step-cta">Set location →</a>
-    {% endif %}
+  <div class="hero-headline">
+    <h1 class="hero-title">Find your perfect stargazing night.</h1>
+    <p class="hero-sub">Live conditions, sky picks, and dark-sky site scores — for your location, right now.</p>
+    <a href="{% url 'tonight' %}" class="hero-cta">See tonight's sky →</a>
+    <p class="hero-cta-note">No account needed — set your location and go.</p>
   </div>
 
-  <div class="welcome-step">
-    <div class="step-icon">🔭</div>
-    <div class="step-body">
-      <div class="step-title">Run the Planner</div>
-      <div class="step-desc">Score every dark-sky site within your radius for the next 10 nights. Ranked by telescope and naked-eye composite score.</div>
-    </div>
-    <a href="{% url 'planner' %}" class="step-cta">Open Planner →</a>
-  </div>
-
-  <div class="welcome-step">
-    <div class="step-icon">🗺️</div>
-    <div class="step-body">
-      <div class="step-title">Check tonight's map</div>
-      <div class="step-desc">See all 2,285+ sites scored for tonight on a single color-coded map — green is great, red is a bust.</div>
-    </div>
-    <a href="{% url 'heatmap' %}" class="step-cta">View map →</a>
-  </div>
-
-</div>
-
-{% if new_notes %}
-<details class="whats-new" id="whats-new" open>
-  <summary class="whats-new-summary">✨ What's new since your last visit</summary>
-  <div class="whats-new-body">
-    {% for entry in new_notes %}
-    <div class="whats-new-entry">
-      <span class="whats-new-date">{{ entry.date }}</span>
-      <ul class="whats-new-list">
-        {% for bullet in entry.bullets %}<li>{{ bullet }}</li>{% endfor %}
+  <div class="hero-split">
+    <div class="hero-col">
+      <div class="hero-col-label">Free · No account needed</div>
+      <ul class="hero-feature-list">
+        <li>
+          <span class="hero-feat-icon">🌠</span>
+          <div>
+            <strong>Tonight's verdict</strong>
+            <span>Worth the drive? Score, cloud cover, and conditions at a glance.</span>
+          </div>
+        </li>
+        <li>
+          <span class="hero-feat-icon">✦</span>
+          <div>
+            <strong>Top sky picks</strong>
+            <span>Best visible objects ranked for your location and gear level.</span>
+          </div>
+        </li>
+        <li>
+          <span class="hero-feat-icon">🗺️</span>
+          <div>
+            <strong>Site map</strong>
+            <span>All 2,300+ dark-sky sites scored and color-coded for tonight.</span>
+          </div>
+        </li>
+        <li>
+          <span class="hero-feat-icon">📍</span>
+          <div>
+            <strong>Nearest sites</strong>
+            <span>Top 3 dark-sky sites within 100 miles of you, ranked by score.</span>
+          </div>
+        </li>
+        <li>
+          <span class="hero-feat-icon">🌌</span>
+          <div>
+            <strong>Object catalog</strong>
+            <span>179 sky objects — planets, DSOs, stars, constellations — with images and detail pages.</span>
+          </div>
+        </li>
       </ul>
     </div>
-    {% endfor %}
+
+    <div class="hero-col hero-col--signin">
+      <div class="hero-col-label">Sign in to unlock</div>
+      <ul class="hero-feature-list">
+        <li>
+          <span class="hero-feat-icon">💾</span>
+          <div>
+            <strong>Saved location</strong>
+            <span>Your location persists across sessions and devices — set it once.</span>
+          </div>
+        </li>
+        <li>
+          <span class="hero-feat-icon">🔭</span>
+          <div>
+            <strong>10-night Planner</strong>
+            <span>Rank every dark-sky site in your radius across the next 10 nights.</span>
+          </div>
+        </li>
+        <li>
+          <span class="hero-feat-icon">⚙️</span>
+          <div>
+            <strong>Preferences</strong>
+            <span>Units, timezone, equipment tier, and Bortle thresholds — all configurable.</span>
+          </div>
+        </li>
+      </ul>
+      <a href="{% url 'account_login' %}" class="btn-primary hero-signin-btn">Sign in →</a>
+    </div>
   </div>
-</details>
-{% endif %}
+
+</div>
 {% endblock %}

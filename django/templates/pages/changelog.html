@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}What's New — StarWolf{% endblock %}
+
+{% block content %}
+<h1>✨ What's New</h1>
+
+{% for entry in entries %}
+<div class="changelog-entry">
+  <div class="changelog-date">{{ entry.date }}</div>
+  <ul class="changelog-list">
+    {% for bullet in entry.bullets %}<li>{{ bullet }}</li>{% endfor %}
+  </ul>
+</div>
+{% empty %}
+<p class="field-hint">No release notes yet.</p>
+{% endfor %}
+{% endblock %}

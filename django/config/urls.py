@@ -64,9 +64,15 @@ def home(request):
     })
 
 
+def changelog(request):
+    notes = _load_release_notes_since(date(2000, 1, 1))
+    return render(request, "pages/changelog.html", {"entries": notes})
+
+
 urlpatterns = [
     path("django-admin/", admin.site.urls),
     path("", home, name="home"),
+    path("changelog", changelog, name="changelog"),
     path("about", page_views.about, name="about"),
     path("moon", page_views.moon_phase_page, name="moon_phase"),
     path("sites", page_views.sites, name="sites"),
