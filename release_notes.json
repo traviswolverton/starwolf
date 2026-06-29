@@ -3,6 +3,12 @@
     {
       "date": "2026-06-28",
       "features": [
+        "Messier catalog common names expanded — 20 additional objects now show their popular names in the sky table (e.g. M2 → Aquarius Cluster, M3 → Great Globular Cluster, M74 → Phantom Galaxy, M99 → Coma Pinwheel). Coverage up from 31 to 51 of 110 objects; the remaining 59 have no widely recognized common name."
+      ]
+    },
+    {
+      "date": "2026-06-28",
+      "features": [
         "Bortle context banner on sky object pages — shows your site's Bortle class, naked-eye limiting magnitude, plain-English sky quality description, and a count of objects that need darker skies than your current site.",
         "Magnitude confidence indicator — each object's mag value now has a colored dot (green = easy, yellow = marginal, grey = needs equipment) and a hover tooltip explaining the margin above or below your sky's naked-eye limit.",
         "Sky visibility linked to Bortle — the engine's Bortle-to-limiting-magnitude heuristics (based on the John Bortle scale) now surface directly in the UI so you can judge at a glance whether an object is a sure thing or a stretch."
