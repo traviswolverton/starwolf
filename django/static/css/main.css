@@ -1897,9 +1897,25 @@ select.text-input { cursor: pointer; }
 .sky-cat-satellite{ background: #1a1a2a; color: #7090b8; border: 1px solid #2a2a40; }
 .sky-cat-moon     { background: #202030; color: #c0b8e8; border: 1px solid #383850; }
 
-/* Sky table filter bar */
+/* Sky section header + filter bar */
+.sky-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 0.5rem;
+  margin: 1.25rem 0 0.5rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid #1e3a2e;
+}
+.sky-section-title {
+  display: flex; align-items: center; gap: 0.45rem;
+  font-size: 1rem; font-weight: 700; color: #e8eaf0; letter-spacing: 0.02em;
+}
+.sky-section-icon { color: #4caf96; font-size: 0.8rem; }
+.sky-section-count {
+  background: #1a2e20; color: #4caf96; font-size: 0.7rem; font-weight: 600;
+  padding: 0.1rem 0.45rem; border-radius: 10px; border: 1px solid #2a5a40;
+}
 .sky-filter-bar {
-  display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
 }
 
 /* Unified sky table */

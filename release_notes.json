@@ -3,6 +3,13 @@
     {
       "date": "2026-06-28",
       "features": [
+        "Sky object table — moved Category and Gear filter dropdowns to sit just above the table (below Moon/ISS/Shower cards) where they belong; added a 'Tonight's Objects' section label with object count.",
+        "Column header tooltips on sky table — hovering any column header shows a plain-English explanation of what the column means and how to interpret values (e.g. why magnitude can be negative)."
+      ]
+    },
+    {
+      "date": "2026-06-28",
+      "features": [
         "Unified sky object table — Tonight's Sky and What's Up now display all objects (planets, stars, DSOs, meteor showers, ISS) in a single sortable table with category badges, visibility window, peak altitude, and gear tier; ISS row expands to show individual passes.",
         "Equipment filter on Tonight's Sky and What's Up — filter objects by what gear you brought (Naked Eye, Binoculars, Small Scope, Large Scope) directly on the page; removed the separate Equipment setting from Preferences."
       ]
