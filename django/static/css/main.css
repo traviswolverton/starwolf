@@ -1992,18 +1992,18 @@ select.text-input { cursor: pointer; }
 .sky-iss-summary { font-size: 0.83rem; color: #c0c8d8; flex: 1; }
 .sky-iss-none    { font-size: 0.83rem; color: #444; }
 .sky-iss-no-pass { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.sky-iss-toggle  { font-size: 0.75rem; color: #4caf96; white-space: nowrap; }
+.sky-iss-toggle  { font-size: 0.75rem; color: #6070a0; white-space: nowrap; }
 .sky-iss-passes  { margin-top: 0.65rem; }
 
 /* Meteor shower card */
 .sky-shower-card {
-  background: #0f1a14; border: 1px solid #1a5030; border-radius: 8px;
+  background: #0f1220; border: 1px solid #242840; border-radius: 8px;
   padding: 0.6rem 0.85rem; margin-bottom: 0.75rem;
 }
 .sky-shower-header { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0; }
 .sky-shower-summary { font-size: 0.83rem; color: #c0c8d8; }
 .sky-shower-none    { font-size: 0.83rem; color: #444; }
-.sky-next-hint      { font-size: 0.75rem; color: #4a6a58; }
+.sky-next-hint      { font-size: 0.75rem; color: #5a6080; }
 .sky-shower-list    { margin-top: 0.55rem; display: flex; flex-direction: column; gap: 0.3rem; }
 .sky-shower-row     { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.82rem; flex-wrap: wrap; }
 .sky-shower-detail  { color: #666; font-size: 0.78rem; }
@@ -2038,7 +2038,7 @@ select.text-input { cursor: pointer; }
   flex-wrap: wrap; gap: 0.5rem;
   margin: 1.25rem 0 0.5rem;
   padding-bottom: 0.6rem;
-  border-bottom: 1px solid #1e3a2e;
+  border-bottom: 1px solid #1e2035;
 }
 .sky-section-title {
   display: flex; align-items: center; gap: 0.45rem;
@@ -2185,12 +2185,12 @@ select.text-input { cursor: pointer; }
 /* Bortle context banner */
 .sky-bortle-banner {
   display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem;
-  background: #0c1a10; border: 1px solid #1e3a2e; border-radius: 6px;
+  background: #0c1020; border: 1px solid #222840; border-radius: 6px;
   padding: 0.55rem 0.85rem; margin-bottom: 0.5rem; font-size: 0.78rem;
 }
 .sky-bortle-pill {
-  background: #1a2e20; color: #4caf96; font-weight: 700; font-size: 0.72rem;
-  border: 1px solid #2a5a40; border-radius: 20px; padding: 0.15rem 0.6rem;
+  background: #1a1e36; color: #8090c8; font-weight: 700; font-size: 0.72rem;
+  border: 1px solid #2a3060; border-radius: 20px; padding: 0.15rem 0.6rem;
   cursor: help; white-space: nowrap;
 }
 .sky-bortle-limit { color: #aaa; white-space: nowrap; }
