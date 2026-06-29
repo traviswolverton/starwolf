@@ -14,7 +14,6 @@ import markdown as md
 import requests as http
 from django.conf import settings
 from django.core.cache import cache
-from django.db import connection
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
@@ -1297,11 +1296,9 @@ def planner(request):
         "cloud_cover": "Cloud Cover", "high_cloud": "High Cloud",
         "moon": "Moon", "lifted_index": "Stability (LI)", "humidity": "Humidity",
     }
-    with connection.cursor() as cur:
-        cur.execute("SELECT factor, weight, description FROM scoring_weights ORDER BY weight DESC")
-        tel_weights = cur.fetchall()
-        cur.execute("SELECT factor, weight FROM naked_eye_weights ORDER BY weight DESC")
-        eye_weights = cur.fetchall()
+    from accounts.models import NakedEyeWeight, ScoringWeight
+    tel_weights = list(ScoringWeight.objects.order_by("-weight").values_list("factor", "weight", "description"))
+    eye_weights = list(NakedEyeWeight.objects.order_by("-weight").values_list("factor", "weight"))
     tel_rows = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": r[2]} for r in tel_weights]
     eye_desc  = {r[0]: r[2] for r in tel_weights}
     eye_rows  = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": eye_desc.get(r[0], "")} for r in eye_weights]
@@ -1592,12 +1589,9 @@ def admin_panel(request):
     if not request.user.is_authenticated or not request.user.is_admin():
         return redirect("home")
 
-    from accounts.models import AppSetting, Site
-    with connection.cursor() as cur:
-        cur.execute("SELECT id, factor, weight, description FROM scoring_weights ORDER BY weight DESC")
-        tel_weights = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
-        cur.execute("SELECT id, factor, weight, description FROM naked_eye_weights ORDER BY weight DESC")
-        eye_weights = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
+    from accounts.models import AppSetting, NakedEyeWeight, Site, ScoringWeight
+    tel_weights = list(ScoringWeight.objects.order_by("-weight").values("id", "factor", "weight", "description"))
+    eye_weights = list(NakedEyeWeight.objects.order_by("-weight").values("id", "factor", "weight", "description"))
     bortle_null_count = Site.objects.filter(bortle_class__isnull=True).count()
     app_settings = list(AppSetting.objects.order_by("key").values("key", "value", "description"))
 
@@ -1631,8 +1625,10 @@ def admin_save_weights(request):
     if not request.user.is_authenticated or not request.user.is_admin():
         return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
 
+    from accounts.models import NakedEyeWeight, ScoringWeight
     table = request.POST.get("table", "scoring_weights")
-    if table not in ("scoring_weights", "naked_eye_weights"):
+    model = {"scoring_weights": ScoringWeight, "naked_eye_weights": NakedEyeWeight}.get(table)
+    if not model:
         return HttpResponse('<div class="alert error">Invalid table.</div>', status=400)
 
     factors      = request.POST.getlist("factor")
@@ -1648,16 +1644,11 @@ def admin_save_weights(request):
     if abs(total - 1.0) > 0.001:
         return HttpResponse(f'<div class="alert error">Weights sum to {total:.3f} — must equal 1.00.</div>')
 
-    rows = [{"factor": f, "weight": w, "desc": d}
+    rows = [{"factor": f, "weight": w, "description": d}
             for f, w, d in zip(factors, weights, descriptions) if f.strip()]
 
-    with connection.cursor() as cur:
-        cur.execute(f"DELETE FROM {table}")
-        for row in rows:
-            cur.execute(
-                f"INSERT INTO {table} (factor, weight, description) VALUES (%s, %s, %s)",
-                [row["factor"], row["weight"], row["desc"]]
-            )
+    model.objects.all().delete()
+    model.objects.bulk_create([model(**r) for r in rows])
 
     return HttpResponse('<div class="alert success">Weights saved.</div>')
 

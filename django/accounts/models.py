@@ -141,6 +141,32 @@ class SiteDetail(models.Model):
         return f"Details for {self.site_id}"
 
 
+class ScoringWeight(models.Model):
+    factor      = models.TextField()
+    weight      = models.FloatField()
+    description = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "scoring_weights"
+        ordering = ["-weight"]
+
+    def __str__(self):
+        return f"{self.factor} ({self.weight:.2f})"
+
+
+class NakedEyeWeight(models.Model):
+    factor      = models.TextField()
+    weight      = models.FloatField()
+    description = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "naked_eye_weights"
+        ordering = ["-weight"]
+
+    def __str__(self):
+        return f"{self.factor} ({self.weight:.2f})"
+
+
 class SiteDailyScore(models.Model):
     site        = models.ForeignKey(Site, on_delete=models.CASCADE, related_name="daily_scores")
     score_date  = models.DateField()

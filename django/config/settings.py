@@ -203,7 +203,9 @@ UNFOLD = {
             {
                 "title": "Configuration",
                 "items": [
-                    {"title": "App Settings", "icon": "tune", "link": reverse_lazy("admin:accounts_appsetting_changelist")},
+                    {"title": "App Settings",       "icon": "tune",        "link": reverse_lazy("admin:accounts_appsetting_changelist")},
+                    {"title": "Scoring Weights",    "icon": "scale",       "link": reverse_lazy("admin:accounts_scoringweight_changelist")},
+                    {"title": "Naked Eye Weights",  "icon": "visibility",  "link": reverse_lazy("admin:accounts_nakedeyeweight_changelist")},
                 ],
             },
             {

@@ -6,7 +6,6 @@ from astral import LocationInfo
 from astral.moon import phase as moon_phase, moonrise
 from astral.sun import night as astral_night
 
-from django.db import connection
 
 
 # ── per-factor scorers (each returns 0–100) ────────────────────────────────────
@@ -107,15 +106,13 @@ def _7timer_by_night(seven_timer_data: dict, tz_str: str) -> dict:
 
 
 def _load_weights() -> dict:
-    with connection.cursor() as cur:
-        cur.execute("SELECT factor, weight FROM scoring_weights")
-        return dict(cur.fetchall())
+    from accounts.models import ScoringWeight
+    return dict(ScoringWeight.objects.values_list("factor", "weight"))
 
 
 def _load_naked_eye_weights() -> dict:
-    with connection.cursor() as cur:
-        cur.execute("SELECT factor, weight FROM naked_eye_weights")
-        return dict(cur.fetchall())
+    from accounts.models import NakedEyeWeight
+    return dict(NakedEyeWeight.objects.values_list("factor", "weight"))
 
 
 def _avg(values: list) -> float | None:

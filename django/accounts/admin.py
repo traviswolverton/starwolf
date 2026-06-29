@@ -1,7 +1,19 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from .models import AppSetting, Site, SiteDetail, SiteDailyScore, SkyObject, User, UserPreferences
+from .models import AppSetting, NakedEyeWeight, Site, SiteDetail, SiteDailyScore, ScoringWeight, SkyObject, User, UserPreferences
+
+
+@admin.register(ScoringWeight)
+class ScoringWeightAdmin(ModelAdmin):
+    list_display  = ("factor", "weight", "description")
+    list_editable = ("weight",)
+
+
+@admin.register(NakedEyeWeight)
+class NakedEyeWeightAdmin(ModelAdmin):
+    list_display  = ("factor", "weight", "description")
+    list_editable = ("weight",)
 
 
 @admin.register(AppSetting)
