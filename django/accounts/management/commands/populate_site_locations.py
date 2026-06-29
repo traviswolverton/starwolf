@@ -42,14 +42,11 @@ class Command(BaseCommand):
         redo = options["all"]
         limit = options["limit"]
 
-        with connection.cursor() as cur:
-            if redo:
-                cur.execute("SELECT id, name, lat, lon FROM sites ORDER BY id")
-            else:
-                cur.execute(
-                    "SELECT id, name, lat, lon FROM sites WHERE country IS NULL ORDER BY id"
-                )
-            sites = cur.fetchall()
+        from accounts.models import Site
+        qs = Site.objects.order_by("id")
+        if not redo:
+            qs = qs.filter(country__isnull=True)
+        sites = list(qs.values_list("id", "name", "lat", "lon"))
 
         total = len(sites)
         if limit:
@@ -61,11 +58,7 @@ class Command(BaseCommand):
         for i, (site_id, name, lat, lon) in enumerate(sites, 1):
             try:
                 country, state = _reverse(lat, lon)
-                with connection.cursor() as cur:
-                    cur.execute(
-                        "UPDATE sites SET country=%s, state_province=%s WHERE id=%s",
-                        [country, state, site_id],
-                    )
+                Site.objects.filter(id=site_id).update(country=country, state_province=state)
                 ok += 1
                 self.stdout.write(
                     f"[{i}/{len(sites)}] {name[:40]:<40} → {country or '?'}, {state or '?'}"

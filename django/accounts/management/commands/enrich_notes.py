@@ -144,21 +144,12 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR(f"Cannot reach Ollama at {ollama_url}: {e}"))
             return
 
-        with connection.cursor() as cur:
-            if force:
-                cur.execute(
-                    "SELECT id, name, site_type, bortle_class, state_province, country, notes "
-                    "FROM sites ORDER BY id"
-                )
-            else:
-                # Skip sites that already have a rich note (> 200 chars, no "—" admin pattern)
-                cur.execute(
-                    "SELECT id, name, site_type, bortle_class, state_province, country, notes "
-                    "FROM sites "
-                    "WHERE notes IS NULL OR LENGTH(notes) < 200 OR notes LIKE '%— %' "
-                    "ORDER BY id"
-                )
-            sites = cur.fetchall()
+        from accounts.models import Site
+        from django.db.models import Q
+        qs = Site.objects.order_by("id")
+        if not force:
+            qs = qs.filter(Q(notes__isnull=True) | Q(notes__regex=r'^.{0,199}$') | Q(notes__contains="— "))
+        sites = list(qs.values_list("id", "name", "site_type", "bortle_class", "state_province", "country", "notes"))
 
         if offset:
             sites = sites[offset:]
@@ -197,8 +188,8 @@ class Command(BaseCommand):
                     self.stdout.write(f"[{i}/{total}] {name[:45]:<45} → (empty response, skipped)")
                     continue
 
-                with connection.cursor() as cur:
-                    cur.execute("UPDATE sites SET notes=%s WHERE id=%s", [new_note, sid])
+                from accounts.models import Site
+                Site.objects.filter(id=sid).update(notes=new_note)
 
                 ok += 1
                 self.stdout.write(f"[{i}/{total}] {name[:45]:<45} → {new_note[:80]}")

@@ -175,19 +175,7 @@ def _ollama_narrative(site, model, base_url):
 
 
 def _ensure_table():
-    with connection.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS site_details (
-                site_id         INTEGER PRIMARY KEY REFERENCES sites(id) ON DELETE CASCADE,
-                wikipedia_url   TEXT,
-                wikipedia_summary TEXT,
-                image_url       TEXT,
-                image_credit    TEXT,
-                narrative       TEXT,
-                maps_url        TEXT,
-                enriched_at     TIMESTAMP WITH TIME ZONE
-            )
-        """)
+    pass  # table is now managed by Django ORM migration
 
 
 class Command(BaseCommand):
@@ -228,40 +216,28 @@ class Command(BaseCommand):
                 self.stderr.write("Run with --no-ollama to skip narrative generation.")
                 return
 
-        with connection.cursor() as cur:
-            if site_id:
-                cur.execute(
-                    "SELECT id, name, site_type, bortle_class, elevation_m, lat, lon, state_province, country "
-                    "FROM sites WHERE id=%s", [site_id]
-                )
-            elif near_houston:
+        from accounts.models import Site, SiteDetail
+        fields = ["id", "name", "site_type", "bortle_class", "elevation_m", "lat", "lon", "state_province", "country"]
+        if site_id:
+            qs = Site.objects.filter(id=site_id)
+        elif near_houston:
+            # Distance sort not easily expressible in ORM — keep raw SQL for this one
+            with connection.cursor() as cur:
                 cur.execute(
                     "SELECT id, name, site_type, bortle_class, elevation_m, lat, lon, state_province, country "
                     "FROM sites ORDER BY ((lat-29.7604)*(lat-29.7604) + (lon+95.3698)*(lon+95.3698)) LIMIT 20"
                 )
-            elif force:
-                cur.execute(
-                    "SELECT id, name, site_type, bortle_class, elevation_m, lat, lon, state_province, country "
-                    "FROM sites ORDER BY id"
-                )
-            elif missing_narrative:
-                cur.execute(
-                    "SELECT s.id, s.name, s.site_type, s.bortle_class, s.elevation_m, s.lat, s.lon, s.state_province, s.country "
-                    "FROM sites s "
-                    "JOIN site_details sd ON sd.site_id = s.id "
-                    "WHERE sd.narrative IS NULL ORDER BY s.id"
-                )
-            else:
-                cur.execute(
-                    "SELECT s.id, s.name, s.site_type, s.bortle_class, s.elevation_m, s.lat, s.lon, s.state_province, s.country "
-                    "FROM sites s "
-                    "LEFT JOIN site_details sd ON sd.site_id = s.id "
-                    "WHERE sd.site_id IS NULL ORDER BY s.id"
-                )
-            rows = cur.fetchall()
+                rows = cur.fetchall()
+            sites = [dict(zip(fields, r)) for r in rows]
+        elif force:
+            qs = Site.objects.all().order_by("id")
+        elif missing_narrative:
+            qs = Site.objects.filter(detail__narrative__isnull=True).order_by("id")
+        else:
+            qs = Site.objects.filter(detail__isnull=True).order_by("id")
 
-        cols = ["id", "name", "site_type", "bortle_class", "elevation_m", "lat", "lon", "state_province", "country"]
-        sites = [dict(zip(cols, r)) for r in rows]
+        if not near_houston:
+            sites = list(qs.values(*fields))
 
         if offset:
             sites = sites[offset:]
@@ -277,13 +253,15 @@ class Command(BaseCommand):
             try:
                 if missing_narrative:
                     # Reuse already-stored Wikipedia data; only generate the narrative
-                    with connection.cursor() as cur:
-                        cur.execute(
-                            "SELECT wikipedia_url, wikipedia_summary, image_url, image_credit, maps_url "
-                            "FROM site_details WHERE site_id=%s", [site["id"]]
-                        )
-                        row = cur.fetchone()
-                    wiki_url, wiki_summary, image_url, image_credit, maps_url = row if row else ("", "", "", "", "")
+                    try:
+                        sd = SiteDetail.objects.get(site_id=site["id"])
+                        wiki_url      = sd.wikipedia_url or ""
+                        wiki_summary  = sd.wikipedia_summary or ""
+                        image_url     = sd.image_url or ""
+                        image_credit  = sd.image_credit or ""
+                        maps_url      = sd.maps_url or ""
+                    except SiteDetail.DoesNotExist:
+                        wiki_url = wiki_summary = image_url = image_credit = maps_url = ""
                     maps_url = maps_url or f"https://www.google.com/maps/search/?api=1&query={site['lat']},{site['lon']}"
                 else:
                     # Wikipedia summary + URL
@@ -307,24 +285,18 @@ class Command(BaseCommand):
                     narrative = _ollama_narrative(site, model, ollama_url)
 
                 now = datetime.now(timezone.utc)
-                with connection.cursor() as cur:
-                    cur.execute("""
-                        INSERT INTO site_details
-                            (site_id, wikipedia_url, wikipedia_summary, image_url, image_credit, narrative, maps_url, enriched_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (site_id) DO UPDATE SET
-                            wikipedia_url     = EXCLUDED.wikipedia_url,
-                            wikipedia_summary = EXCLUDED.wikipedia_summary,
-                            image_url         = EXCLUDED.image_url,
-                            image_credit      = EXCLUDED.image_credit,
-                            narrative         = EXCLUDED.narrative,
-                            maps_url          = EXCLUDED.maps_url,
-                            enriched_at       = EXCLUDED.enriched_at
-                    """, [
-                        site["id"], wiki_url or None, wiki_summary or None,
-                        image_url or None, image_credit or None,
-                        narrative or None, maps_url, now,
-                    ])
+                SiteDetail.objects.update_or_create(
+                    site_id=site["id"],
+                    defaults={
+                        "wikipedia_url":     wiki_url or None,
+                        "wikipedia_summary": wiki_summary or None,
+                        "image_url":         image_url or None,
+                        "image_credit":      image_credit or None,
+                        "narrative":         narrative or None,
+                        "maps_url":          maps_url or None,
+                        "enriched_at":       now,
+                    },
+                )
 
                 ok += 1
                 wiki_indicator  = "✓wiki" if wiki_summary else "✗wiki"

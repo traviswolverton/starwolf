@@ -65,14 +65,10 @@ def sites(request):
     if _rate_limit(f"sites:{_ip(request)}", limit=10, window=60):
         return JsonResponse({"detail": "Rate limit exceeded (10/min)."}, status=429)
 
-    with connection.cursor() as cur:
-        cur.execute(
-            "SELECT id, name, lat, lon, bortle_class, elevation_m, notes, active, site_type "
-            "FROM sites ORDER BY name"
-        )
-        cols = [d[0] for d in cur.description]
-        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
-
+    from accounts.models import Site
+    rows = list(Site.objects.order_by("name").values(
+        "id", "name", "lat", "lon", "bortle_class", "elevation_m", "notes", "active", "site_type"
+    ))
     return JsonResponse({"count": len(rows), "sites": rows})
 
 

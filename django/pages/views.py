@@ -422,30 +422,21 @@ def sites(request):
         page = 1
 
     # ── DB query ──────────────────────────────────────────────────────────────
-    sql = "SELECT id, name, lat, lon, bortle_class, elevation_m, notes, site_type, country, state_province FROM sites WHERE active=1"
-    params = []
+    from accounts.models import Site, SiteDetail
+    qs = Site.objects.filter(active=1)
     if type_filters:
-        placeholders = ",".join(["%s"] * len(type_filters))
-        sql += f" AND site_type IN ({placeholders})"
-        params.extend(type_filters)
+        qs = qs.filter(site_type__in=type_filters)
     if country_filters:
-        placeholders = ",".join(["%s"] * len(country_filters))
-        sql += f" AND country IN ({placeholders})"
-        params.extend(country_filters)
+        qs = qs.filter(country__in=country_filters)
     if bortle_max < 9:
-        sql += " AND bortle_class <= %s"
-        params.append(bortle_max)
-    sql += " ORDER BY name"
-
-    with connection.cursor() as cur:
-        cur.execute(sql, params)
-        cols = [d[0] for d in cur.description]
-        rows = [dict(zip(cols, row)) for row in cur.fetchall()]
+        qs = qs.filter(bortle_class__lte=bortle_max)
+    rows = list(qs.order_by("name").values(
+        "id", "name", "lat", "lon", "bortle_class", "elevation_m",
+        "notes", "site_type", "country", "state_province",
+    ))
 
     # Which sites have enriched detail pages
-    with connection.cursor() as cur:
-        cur.execute("SELECT site_id FROM site_details")
-        enriched_ids = {r[0] for r in cur.fetchall()}
+    enriched_ids = set(SiteDetail.objects.values_list("site_id", flat=True))
 
     # ── Distance + display enrichment ─────────────────────────────────────────
     for row in rows:
@@ -497,23 +488,26 @@ def sites(request):
         "ZA": "South Africa", "NA": "Namibia", "KE": "Kenya",
         "JO": "Jordan", "IL": "Israel", "IN": "India", "JP": "Japan",
     }
-    with connection.cursor() as cur:
-        cur.execute(
-            "SELECT country, COUNT(*) FROM sites WHERE active=1 AND country IS NOT NULL "
-            "GROUP BY country ORDER BY COUNT(*) DESC"
-        )
-        countries = [
-            {
-                "code": row[0],
-                "name": _COUNTRY_NAMES.get(row[0], row[0]),
-                "flag": (
-                    chr(0x1F1E6 + ord(row[0][0]) - 65) + chr(0x1F1E6 + ord(row[0][1]) - 65)
-                    if len(row[0]) == 2 else ""
-                ),
-                "count": row[1],
-            }
-            for row in cur.fetchall()
-        ]
+    from django.db.models import Count
+    country_qs = (
+        Site.objects.filter(active=1)
+        .exclude(country__isnull=True)
+        .values("country")
+        .annotate(count=Count("id"))
+        .order_by("-count")
+    )
+    countries = [
+        {
+            "code": r["country"],
+            "name": _COUNTRY_NAMES.get(r["country"], r["country"]),
+            "flag": (
+                chr(0x1F1E6 + ord(r["country"][0]) - 65) + chr(0x1F1E6 + ord(r["country"][1]) - 65)
+                if len(r["country"]) == 2 else ""
+            ),
+            "count": r["count"],
+        }
+        for r in country_qs
+    ]
 
     ctx = {
         "rows": page_rows,
@@ -543,28 +537,33 @@ def site_detail(request, site_id):
     prefs = request.prefs
     is_imperial = prefs and prefs.units == "imperial"
 
-    with connection.cursor() as cur:
-        cur.execute(
-            "SELECT s.id, s.name, s.lat, s.lon, s.bortle_class, s.elevation_m, "
-            "       s.notes, s.site_type, s.country, s.state_province, "
-            "       sd.wikipedia_url, sd.wikipedia_summary, sd.image_url, "
-            "       sd.image_credit, sd.narrative, sd.maps_url, sd.enriched_at "
-            "FROM sites s "
-            "LEFT JOIN site_details sd ON sd.site_id = s.id "
-            "WHERE s.id = %s AND s.active = 1",
-            [site_id],
-        )
-        row = cur.fetchone()
-
-    if not row:
-        from django.http import Http404
+    from django.http import Http404
+    from accounts.models import Site
+    try:
+        obj = Site.objects.select_related("detail").get(id=site_id, active=1)
+    except Site.DoesNotExist:
         raise Http404
 
-    cols = ["id", "name", "lat", "lon", "bortle_class", "elevation_m",
-            "notes", "site_type", "country", "state_province",
-            "wikipedia_url", "wikipedia_summary", "image_url",
-            "image_credit", "narrative", "maps_url", "enriched_at"]
-    site = dict(zip(cols, row))
+    d = getattr(obj, "detail", None)
+    site = {
+        "id":                obj.id,
+        "name":              obj.name,
+        "lat":               obj.lat,
+        "lon":               obj.lon,
+        "bortle_class":      obj.bortle_class,
+        "elevation_m":       obj.elevation_m,
+        "notes":             obj.notes,
+        "site_type":         obj.site_type,
+        "country":           obj.country,
+        "state_province":    obj.state_province,
+        "wikipedia_url":     d.wikipedia_url     if d else None,
+        "wikipedia_summary": d.wikipedia_summary if d else None,
+        "image_url":         d.image_url         if d else None,
+        "image_credit":      d.image_credit      if d else None,
+        "narrative":         d.narrative         if d else None,
+        "maps_url":          d.maps_url          if d else None,
+        "enriched_at":       d.enriched_at       if d else None,
+    }
 
     site["type_label"] = _SITE_TYPE_LABELS.get(site["site_type"] or "", site["site_type"] or "—")
     site["bortle_color"] = _BORTLE_COLOR.get(site["bortle_class"] or 5, "#555")
@@ -638,8 +637,10 @@ def _run_compute(today, tz, only_missing=False):
     """Background thread: score all sites and upsert into site_daily_scores."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    with connection.cursor() as cur:
-        if only_missing:
+    from accounts.models import Site
+    if only_missing:
+        # Keep raw SQL for the LEFT JOIN against site_daily_scores (not an ORM model)
+        with connection.cursor() as cur:
             cur.execute("""
                 SELECT s.id, s.name, s.lat, s.lon, s.bortle_class
                 FROM sites s
@@ -647,12 +648,10 @@ def _run_compute(today, tz, only_missing=False):
                     ON sd.site_id = s.id AND sd.score_date = %s
                 WHERE s.active = 1 AND sd.score IS NULL
             """, [today])
-        else:
-            cur.execute(
-                "SELECT id, name, lat, lon, bortle_class FROM sites WHERE active = 1"
-            )
-        cols = [d[0] for d in cur.description]
-        sites = [dict(zip(cols, row)) for row in cur.fetchall()]
+            cols = [d[0] for d in cur.description]
+            sites = [dict(zip(cols, row)) for row in cur.fetchall()]
+    else:
+        sites = list(Site.objects.filter(active=1).values("id", "name", "lat", "lon", "bortle_class"))
 
     total = len(sites)
     done = 0
@@ -843,17 +842,13 @@ def sky_objects(request, site_id):
     from engine.sky_objects import compute_sky
     from engine.cache import cache_get, cache_set
 
-    with connection.cursor() as cur:
-        cur.execute(
-            "SELECT id, name, lat, lon, bortle_class FROM sites WHERE id = %s AND active = 1",
-            [site_id],
-        )
-        row = cur.fetchone()
-    if not row:
+    from accounts.models import Site
+    try:
+        s = Site.objects.get(id=site_id, active=1)
+    except Site.DoesNotExist:
         return HttpResponse('<p class="field-hint">Site not found.</p>', status=404)
 
-    site_id, site_name, lat, lon, bortle = row
-    bortle = bortle or 5
+    site_name, lat, lon, bortle = s.name, s.lat, s.lon, s.bortle_class or 5
 
     # Date: default to today, clamped to next 10 days
     today = date_type.today()
@@ -1216,10 +1211,8 @@ def _build_heatmap(nights, threshold, score_key="composite", dist_lookup=None, h
 
 
 def _load_planner_sites(prefs, max_dist_km=None):
-    with connection.cursor() as cur:
-        cur.execute("SELECT id, name, lat, lon, bortle_class, site_type FROM sites WHERE active=1")
-        cols = [d[0] for d in cur.description]
-        all_sites = [dict(zip(cols, r)) for r in cur.fetchall()]
+    from accounts.models import Site
+    all_sites = list(Site.objects.filter(active=1).values("id", "name", "lat", "lon", "bortle_class", "site_type"))
     if prefs and prefs.has_location and max_dist_km:
         return [
             s for s in all_sites
@@ -1437,15 +1430,11 @@ def _render_results(request, nights):
     low_raw       = [n for n in future if not n.get("disqualified") and (n.get("composite") or 0) < threshold]
 
     # Enrich scored nights
-    with connection.cursor() as cur:
-        cur.execute("SELECT id, name, lat, lon FROM sites WHERE active=1")
-        rows_sites = cur.fetchall()
-    site_coords = {r[1]: (r[2], r[3]) for r in rows_sites}
-    site_ids    = {r[1]: r[0]         for r in rows_sites}
-
-    with connection.cursor() as cur:
-        cur.execute("SELECT site_id FROM site_details")
-        enriched_site_ids = {r[0] for r in cur.fetchall()}
+    from accounts.models import Site, SiteDetail
+    active_sites = Site.objects.filter(active=1).values("id", "name", "lat", "lon")
+    site_coords  = {s["name"]: (s["lat"], s["lon"]) for s in active_sites}
+    site_ids     = {s["name"]: s["id"]              for s in active_sites}
+    enriched_site_ids = set(SiteDetail.objects.values_list("site_id", flat=True))
 
     enriched = [_enrich_night(n, prefs, site_coords, site_ids, enriched_site_ids) for n in scored_raw]
 
@@ -1594,14 +1583,13 @@ def admin_panel(request):
     if not request.user.is_authenticated or not request.user.is_admin():
         return redirect("home")
 
-    from accounts.models import AppSetting
+    from accounts.models import AppSetting, Site
     with connection.cursor() as cur:
         cur.execute("SELECT id, factor, weight, description FROM scoring_weights ORDER BY weight DESC")
         tel_weights = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
         cur.execute("SELECT id, factor, weight, description FROM naked_eye_weights ORDER BY weight DESC")
         eye_weights = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
-        cur.execute("SELECT COUNT(*) FROM sites WHERE bortle_class IS NULL")
-        bortle_null_count = cur.fetchone()[0]
+    bortle_null_count = Site.objects.filter(bortle_class__isnull=True).count()
     app_settings = list(AppSetting.objects.order_by("key").values("key", "value", "description"))
 
     from accounts.models import User as StarWolfUser
@@ -1688,10 +1676,8 @@ def admin_bortle_fill(request):
     if not request.user.is_authenticated or not request.user.is_admin():
         return HttpResponse('<div class="alert error">Admin only.</div>', status=403)
 
-    with connection.cursor() as cur:
-        cur.execute("SELECT id, name, lat, lon FROM sites WHERE bortle_class IS NULL ORDER BY name")
-        cols = [d[0] for d in cur.description]
-        null_sites = [dict(zip(cols, r)) for r in cur.fetchall()]
+    from accounts.models import Site
+    null_sites = list(Site.objects.filter(bortle_class__isnull=True).order_by("name"))
 
     if not null_sites:
         return HttpResponse('<div class="alert success">No sites missing Bortle — nothing to do.</div>')
@@ -1699,13 +1685,12 @@ def admin_bortle_fill(request):
     ok, failed = 0, []
     for site in null_sites:
         try:
-            result = lookup_bortle(site["lat"], site["lon"])
-            with connection.cursor() as cur:
-                cur.execute("UPDATE sites SET bortle_class = %s WHERE id = %s",
-                            [result["bortle"], site["id"]])
+            result = lookup_bortle(site.lat, site.lon)
+            site.bortle_class = result["bortle"]
+            site.save(update_fields=["bortle_class"])
             ok += 1
         except Exception as e:
-            failed.append(f"{site['name']}: {e}")
+            failed.append(f"{site.name}: {e}")
 
     msg = f'<div class="alert success">Updated {ok} site(s).</div>'
     if failed:
