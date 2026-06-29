@@ -158,7 +158,7 @@
         <td><span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span></td>
 
         {# Magnitude #}
-        <td class="sky-td-num">{% if row.magnitude is not None %}{{ row.magnitude }}{% else %}—{% endif %}</td>
+        <td class="sky-td-num">{% if row.magnitude is not None %}{{ row.magnitude|floatformat:1 }}{% else %}—{% endif %}</td>
 
         {# Visibility window #}
         <td class="sky-td-vis">
