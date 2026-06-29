@@ -1428,12 +1428,15 @@ def planner(request):
         "cloud_cover": "Cloud Cover", "high_cloud": "High Cloud",
         "moon": "Moon", "lifted_index": "Stability (LI)", "humidity": "Humidity",
     }
-    from accounts.models import NakedEyeWeight, ScoringWeight
+    from accounts.models import BortleModifier, NakedEyeWeight, ScoringWeight
     tel_weights = list(ScoringWeight.objects.order_by("-weight").values_list("factor", "weight", "description"))
     eye_weights = list(NakedEyeWeight.objects.order_by("-weight").values_list("factor", "weight"))
     tel_rows = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": r[2]} for r in tel_weights]
     eye_desc  = {r[0]: r[2] for r in tel_weights}
     eye_rows  = [{"factor": _factor_labels.get(r[0], r[0]), "weight": f"{r[1]*100:.0f}%", "notes": eye_desc.get(r[0], "")} for r in eye_weights]
+    bortle_rows = list(BortleModifier.objects.order_by("bortle_class").values(
+        "bortle_class", "composite_modifier", "naked_eye_modifier", "description"
+    ))
 
     return render(request, "pages/planner.html", {
         "prefs":           prefs,
@@ -1449,6 +1452,7 @@ def planner(request):
         "compute_state":   compute_state,
         "tel_rows":        tel_rows,
         "eye_rows":        eye_rows,
+        "bortle_rows":     bortle_rows,
     })
 
 

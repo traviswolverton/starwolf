@@ -106,7 +106,38 @@
             {% endfor %}
           </tbody>
         </table>
-        <p class="field-hint" style="margin-top:0.5rem;">Plus Bortle modifier (0.55–1.0×) applied to total.</p>
+      </div>
+    </div>
+
+    {% if bortle_rows %}
+    <div style="margin-top:1.25rem;">
+      <h4 style="margin-bottom:0.5rem;">🌑 Bortle Penalty</h4>
+      <p class="field-hint" style="margin-bottom:0.6rem;">
+        Applied as a final multiplier to each score after weather factors are combined.
+        Configurable in the Admin panel.
+      </p>
+      <table class="weights-table">
+        <thead>
+          <tr>
+            <th>Bortle</th>
+            <th title="Multiplier on the composite (telescope) score">Telescope ×</th>
+            <th title="Multiplier on the naked-eye score">Naked Eye ×</th>
+            <th class="notes-col">Sky quality</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in bortle_rows %}
+          <tr>
+            <td><strong>{{ row.bortle_class }}</strong></td>
+            <td class="bortle-mod-cell bortle-comp-{{ row.bortle_class }}">{{ row.composite_modifier }}</td>
+            <td class="bortle-mod-cell bortle-ne-{{ row.bortle_class }}">{{ row.naked_eye_modifier }}</td>
+            <td class="notes-col">{{ row.description }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
       </div>
     </div>
   </div>

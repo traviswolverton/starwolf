@@ -1673,6 +1673,18 @@ select.text-input { cursor: pointer; }
 .weights-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #2a2d3e; }
 .weights-table .notes-col { color: #777; font-size: 0.8rem; }
 
+/* Bortle modifier value cells — color by penalty severity */
+.bortle-mod-cell { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bortle-comp-1, .bortle-comp-2,
+.bortle-ne-1,   .bortle-ne-2   { color: #4caf96; }          /* no penalty */
+.bortle-comp-3, .bortle-comp-4,
+.bortle-ne-3,   .bortle-ne-4   { color: #8bc34a; }          /* mild */
+.bortle-comp-5, .bortle-ne-5   { color: #cddc39; }          /* moderate */
+.bortle-comp-6, .bortle-ne-6   { color: #ffc107; }          /* heavy */
+.bortle-comp-7, .bortle-ne-7   { color: #ff9800; }          /* severe */
+.bortle-comp-8, .bortle-ne-8   { color: #f44336; }          /* near-zero */
+.bortle-comp-9, .bortle-ne-9   { color: #b71c1c; }          /* extreme */
+
 /* ── Bortle Scorer ───────────────────────────────────────────────────────── */
 .bortle-form-wrap { max-width: 680px; }
 
