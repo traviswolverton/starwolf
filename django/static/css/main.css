@@ -291,28 +291,91 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .nav-links a.nav-active { color: #4caf96; border-bottom-color: #4caf96; }
 .nav-secondary { opacity: 0.7; transition: opacity 0.15s !important; }
 .nav-secondary:hover { opacity: 1; }
-/* Mobile: stack links vertically when .is-open */
+/* Mobile: slide-down panel */
 @media (max-width: 640px) {
   .nav-bar { padding: 0 1rem; }
-
   .nav-toggle { display: flex; }
 
   .nav-links {
     display: none;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 0;
-    padding: 0 1rem 0.5rem;
+    padding: 0.5rem 0 0.75rem;
     height: auto;
+    background: #0d1220;
+    border-top: 1px solid #1e2535;
+    border-bottom: 1px solid #1e2535;
   }
   .nav-links.is-open { display: flex; }
 
-  .nav-links a {
-    width: 100%;
-    padding: 0.65rem 0;
-    border-bottom: 1px solid #2a2d3e;
+  .nav-links > a {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid #1a2030;
     border-left: none;
+    font-size: 0.95rem;
+    width: 100%;
+    box-sizing: border-box;
   }
+  .nav-links > a:last-of-type { border-bottom: none; }
+
+  /* dropdown trigger rows */
+  .nav-links .nav-dropdown-wrap {
+    border-bottom: 1px solid #1a2030;
+  }
+  .nav-links .nav-dropdown-trigger {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+  }
+  .nav-links .nav-dropdown-panel {
+    background: #0a0e18;
+    border-top: 1px solid #1a2030;
+    padding: 0.25rem 0;
+  }
+  .nav-links .nav-dropdown-item {
+    padding: 0.6rem 1.75rem !important;
+    font-size: 0.88rem !important;
+  }
+
+  /* user-menu */
+  .nav-links .user-menu {
+    margin-left: 0;
+    border-bottom: 1px solid #1a2030;
+  }
+  .nav-links .user-trigger {
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    justify-content: flex-start;
+    gap: 0.6rem;
+  }
+  .nav-links .user-dropdown {
+    position: static;
+    box-shadow: none;
+    border: none;
+    border-top: 1px solid #1a2030;
+    border-radius: 0;
+    padding: 0.25rem 0;
+    background: #0a0e18;
+  }
+  .nav-links .user-dropdown a,
+  .nav-links .user-dropdown button { padding: 0.6rem 1.75rem; }
+
+  /* Sign in — styled as a button */
+  .nav-signin {
+    display: block;
+    margin: 0.75rem 1.25rem 0.25rem;
+    text-align: center;
+    background: #4caf96;
+    color: #0a0e18 !important;
+    font-weight: 700;
+    border-radius: 7px;
+    padding: 0.65rem 1rem !important;
+    border-bottom: none !important;
+  }
+  .nav-signin:hover { background: #5dc8aa; }
+
   .nav-secondary { opacity: 1; }
   .nav-divider { display: none; }
 }
