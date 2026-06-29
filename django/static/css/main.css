@@ -763,6 +763,7 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   flex-wrap: wrap;
   gap: 1.25rem;
   margin-top: 0.85rem;
+  margin-bottom: 1.25rem;
   font-size: 0.83rem;
   color: #888;
   align-items: center;
