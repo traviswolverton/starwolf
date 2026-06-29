@@ -145,10 +145,12 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 .moon-page-sub { color: #8090a8; font-size: 0.95rem; max-width: 540px; }
 
 .moon-phase-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
-  max-width: 600px;
+}
+@media (max-width: 640px) {
+  .moon-phase-list { grid-template-columns: 1fr; }
 }
 
 .moon-phase-card {
