@@ -163,7 +163,6 @@
     </div>
     {% endfor %}
   </div>
-  <a href="#sky-all-objects" class="sky-picks-see-all">See all {{ sky_rows|length }} objects ↓</a>
 </div>
 {% endif %}
 {% endwith %}
@@ -172,34 +171,28 @@
 {% if sky_rows %}
 <details class="sky-all-objects-details" id="sky-all-objects">
   <summary class="sky-all-objects-summary">
-    <div class="sky-section-header" style="margin-bottom:0;">
-      <div class="sky-section-title">
-        <span class="sky-section-icon">☰</span>
-        All objects tonight
-        <span class="sky-section-count">{{ sky_rows|length }}</span>
-      </div>
-      <div class="sky-filter-bar">
-        <div class="multi-filter" @click.outside="catOpen = false">
-          <button type="button" class="filter-btn" @click.prevent.stop="catOpen = !catOpen">
-            Category <span class="filter-btn-arrow">▾</span>
-          </button>
-          <div class="multi-dropdown" x-show="catOpen" x-cloak @click.stop>
-            <label class="multi-option"><input type="checkbox" checked @change="toggleCat('planet')"><span class="sky-cat-badge sky-cat-planet" style="font-size:0.68rem">Planet</span></label>
-            <label class="multi-option"><input type="checkbox" checked @change="toggleCat('star')"><span class="sky-cat-badge sky-cat-star" style="font-size:0.68rem">Star</span></label>
-            <label class="multi-option"><input type="checkbox" checked @change="toggleCat('dso')"><span class="sky-cat-badge sky-cat-dso" style="font-size:0.68rem">DSO</span></label>
-          </div>
+    <span class="sky-all-objects-toggle">Show all {{ sky_rows|length }} objects</span>
+    <div class="sky-filter-bar sky-all-objects-filters" @click.stop>
+      <div class="multi-filter" @click.outside="catOpen = false">
+        <button type="button" class="filter-btn" @click.prevent.stop="catOpen = !catOpen">
+          Category <span class="filter-btn-arrow">▾</span>
+        </button>
+        <div class="multi-dropdown" x-show="catOpen" x-cloak @click.stop>
+          <label class="multi-option"><input type="checkbox" checked @change="toggleCat('planet')"><span class="sky-cat-badge sky-cat-planet" style="font-size:0.68rem">Planet</span></label>
+          <label class="multi-option"><input type="checkbox" checked @change="toggleCat('star')"><span class="sky-cat-badge sky-cat-star" style="font-size:0.68rem">Star</span></label>
+          <label class="multi-option"><input type="checkbox" checked @change="toggleCat('dso')"><span class="sky-cat-badge sky-cat-dso" style="font-size:0.68rem">DSO</span></label>
         </div>
-        <div class="multi-filter" @click.outside="gearOpen = false">
-          <button type="button" class="filter-btn" @click.prevent.stop="gearOpen = !gearOpen">
-            Gear <span class="filter-btn-arrow">▾</span>
-          </button>
-          <div class="multi-dropdown" x-show="gearOpen" x-cloak @click.stop>
-            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(0)"><span class="sky-tier sky-tier-0">🟢 Naked Eye</span></label>
-            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(1)"><span class="sky-tier sky-tier-1">🔵 Binoculars</span></label>
-            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(2)"><span class="sky-tier sky-tier-2">🔭 Small Scope</span></label>
-            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(3)"><span class="sky-tier sky-tier-3">🔭🔭 Large Scope</span></label>
-            <label class="multi-option"><input type="checkbox" checked @change="toggleGear(4)"><span class="sky-tier sky-tier-4">⛔ Not Tonight</span></label>
-          </div>
+      </div>
+      <div class="multi-filter" @click.outside="gearOpen = false">
+        <button type="button" class="filter-btn" @click.prevent.stop="gearOpen = !gearOpen">
+          Gear <span class="filter-btn-arrow">▾</span>
+        </button>
+        <div class="multi-dropdown" x-show="gearOpen" x-cloak @click.stop>
+          <label class="multi-option"><input type="checkbox" checked @change="toggleGear(0)"><span class="sky-tier sky-tier-0">🟢 Naked Eye</span></label>
+          <label class="multi-option"><input type="checkbox" checked @change="toggleGear(1)"><span class="sky-tier sky-tier-1">🔵 Binoculars</span></label>
+          <label class="multi-option"><input type="checkbox" checked @change="toggleGear(2)"><span class="sky-tier sky-tier-2">🔭 Small Scope</span></label>
+          <label class="multi-option"><input type="checkbox" checked @change="toggleGear(3)"><span class="sky-tier sky-tier-3">🔭🔭 Large Scope</span></label>
+          <label class="multi-option"><input type="checkbox" checked @change="toggleGear(4)"><span class="sky-tier sky-tier-4">⛔ Not Tonight</span></label>
         </div>
       </div>
     </div>
