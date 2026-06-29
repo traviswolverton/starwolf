@@ -134,6 +134,12 @@ _WIKI_OVERRIDES = {
     "Lyrids":         "Lyrid meteor shower",
     "Taurids":        "Taurid meteor shower",
     "Ursids":         "Ursid meteor shower",
+    # Stars that need disambiguation
+    "Regulus":   "Regulus (star)",
+    "Castor":    "Castor (star)",
+    "Bellatrix": "Bellatrix (star)",
+    "Adhara":    "Adhara",
+    "Shaula":    "Shaula",
     # Planets and stars use their common name directly
     "Mercury": "Mercury (planet)",
     "Venus":   "Venus",
