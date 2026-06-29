@@ -167,6 +167,20 @@ class NakedEyeWeight(models.Model):
         return f"{self.factor} ({self.weight:.2f})"
 
 
+class BortleModifier(models.Model):
+    bortle_class        = models.IntegerField(unique=True)
+    composite_modifier  = models.FloatField(help_text="Multiplier applied to the composite (telescope) score (0–1).")
+    naked_eye_modifier  = models.FloatField(help_text="Multiplier applied to the naked-eye score (0–1).")
+    description         = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "bortle_modifiers"
+        ordering = ["bortle_class"]
+
+    def __str__(self):
+        return f"Bortle {self.bortle_class} (composite×{self.composite_modifier}, naked eye×{self.naked_eye_modifier})"
+
+
 class SiteDailyScore(models.Model):
     site        = models.ForeignKey(Site, on_delete=models.CASCADE, related_name="daily_scores")
     score_date  = models.DateField()

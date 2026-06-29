@@ -33,16 +33,20 @@ def _score_night_hours(hours: int) -> float:
     return min(100.0, (hours / 9.0) * 100.0)
 
 
-def _bortle_naked_eye_modifier(bortle_class: int | None) -> float:
-    """
-    Returns a multiplier (0.7–1.0) applied to the naked eye composite.
-    Bortle 1–2 → no penalty; Bortle 3–4 → mild; Bortle 5–6 → moderate; Bortle 7+ → heavy.
-    Returns 1.0 if bortle_class is None (unknown site).
-    """
+def _load_bortle_modifiers() -> dict[int, tuple[float, float]]:
+    """Return {bortle_class: (composite_modifier, naked_eye_modifier)} from DB."""
+    from accounts.models import BortleModifier
+    return {
+        row.bortle_class: (row.composite_modifier, row.naked_eye_modifier)
+        for row in BortleModifier.objects.all()
+    }
+
+
+def _bortle_modifiers(bortle_class: int | None, table: dict) -> tuple[float, float]:
+    """Return (composite_modifier, naked_eye_modifier) for a given Bortle class."""
     if bortle_class is None:
-        return 1.0
-    modifiers = {1: 1.0, 2: 1.0, 3: 0.92, 4: 0.84, 5: 0.75, 6: 0.70, 7: 0.65, 8: 0.60, 9: 0.55}
-    return modifiers.get(bortle_class, 1.0)
+        return 1.0, 1.0
+    return table.get(bortle_class, (1.0, 1.0))
 
 
 def _score_moon(obs_date: date, lat: float, lon: float, tz_str: str) -> float:
@@ -155,6 +159,7 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
 
     weights = _load_weights()
     naked_eye_weights = _load_naked_eye_weights()
+    bortle_table = _load_bortle_modifiers()
 
     hourly = om["hourly"]
     times = hourly["time"]
@@ -200,16 +205,17 @@ def score_forecast(forecast: dict, tz_str: str, disqualifiers: dict | None = Non
         }
 
         bortle = site.get("bortle_class")
+        comp_mod, ne_mod = _bortle_modifiers(bortle, bortle_table)
 
         composite = sum(
             factor_scores.get(factor, 50.0) * weight
             for factor, weight in weights.items()
-        )
+        ) * comp_mod
 
         naked_eye_composite = sum(
             factor_scores.get(factor, 50.0) * weight
             for factor, weight in naked_eye_weights.items()
-        ) * _bortle_naked_eye_modifier(bortle)
+        ) * ne_mod
 
         # 7timer supplemental seeing + transparency (not in composite score)
         st7_slots = st7_nights.get(night_date, [])

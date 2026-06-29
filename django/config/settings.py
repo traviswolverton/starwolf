@@ -204,6 +204,7 @@ UNFOLD = {
                     {"title": "App Settings",       "icon": "tune",        "link": reverse_lazy("admin:accounts_appsetting_changelist")},
                     {"title": "Scoring Weights",    "icon": "scale",       "link": reverse_lazy("admin:accounts_scoringweight_changelist")},
                     {"title": "Naked Eye Weights",  "icon": "visibility",  "link": reverse_lazy("admin:accounts_nakedeyeweight_changelist")},
+                    {"title": "Bortle Modifiers",   "icon": "nights_stay", "link": reverse_lazy("admin:accounts_bortlemodifier_changelist")},
                 ],
             },
             {

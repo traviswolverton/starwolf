@@ -1,7 +1,7 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from .models import AppSetting, NakedEyeWeight, Site, SiteDetail, SiteDailyScore, ScoringWeight, SkyObject, User, UserPreferences
+from .models import AppSetting, BortleModifier, NakedEyeWeight, Site, SiteDetail, SiteDailyScore, ScoringWeight, SkyObject, User, UserPreferences
 
 
 @admin.register(ScoringWeight)
@@ -14,6 +14,13 @@ class ScoringWeightAdmin(ModelAdmin):
 class NakedEyeWeightAdmin(ModelAdmin):
     list_display  = ("factor", "weight", "description")
     list_editable = ("weight",)
+
+
+@admin.register(BortleModifier)
+class BortleModifierAdmin(ModelAdmin):
+    list_display  = ("bortle_class", "composite_modifier", "naked_eye_modifier", "description")
+    list_editable = ("composite_modifier", "naked_eye_modifier")
+    ordering      = ("bortle_class",)
 
 
 @admin.register(AppSetting)

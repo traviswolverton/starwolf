@@ -1,6 +1,13 @@
 {
   "releases": [
     {
+      "date": "2026-06-29",
+      "features": [
+        "Stiffer, non-linear Bortle penalty on site scores — composite (telescope) score now scales from ×1.0 at Bortle 1–2 down to ×0.12 at Bortle 9; naked-eye score drops far faster (×0.65 at Bortle 5, ×0.03 at Bortle 9), reflecting the practical reality that bright suburban skies ruin naked-eye observing well before they hurt planetary views.",
+        "Bortle modifiers are now DB-configurable — new 'Bortle Modifiers' table in Django admin (sidebar: Configuration → Bortle Modifiers) lets you tune both curves per Bortle class without a code change or redeploy."
+      ]
+    },
+    {
       "date": "2026-06-28",
       "features": [
         "Sky object enrichment — new sky_object_details table stores Wikipedia summary, CC-licensed image, constellation, distance (light-years), angular size, discovery year, and discoverer for each catalog object. Management command enrich_sky_catalog populates it. 109 DSOs, 7 planets, and 20 bright stars enriched on first run."
