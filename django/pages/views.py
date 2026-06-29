@@ -637,19 +637,17 @@ def _run_compute(today, tz, only_missing=False):
     """Background thread: score all sites and upsert into site_daily_scores."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    from accounts.models import Site
+    from accounts.models import Site, SiteDailyScore
     if only_missing:
-        # Keep raw SQL for the LEFT JOIN against site_daily_scores (not an ORM model)
-        with connection.cursor() as cur:
-            cur.execute("""
-                SELECT s.id, s.name, s.lat, s.lon, s.bortle_class
-                FROM sites s
-                LEFT JOIN site_daily_scores sd
-                    ON sd.site_id = s.id AND sd.score_date = %s
-                WHERE s.active = 1 AND sd.score IS NULL
-            """, [today])
-            cols = [d[0] for d in cur.description]
-            sites = [dict(zip(cols, row)) for row in cur.fetchall()]
+        scored_ids = set(
+            SiteDailyScore.objects.filter(score_date=today, score__isnull=False)
+            .values_list("site_id", flat=True)
+        )
+        sites = list(
+            Site.objects.filter(active=1)
+            .exclude(id__in=scored_ids)
+            .values("id", "name", "lat", "lon", "bortle_class")
+        )
     else:
         sites = list(Site.objects.filter(active=1).values("id", "name", "lat", "lon", "bortle_class"))
 
@@ -671,16 +669,22 @@ def _run_compute(today, tz, only_missing=False):
                 "score": score, "date": today,
             })
             if len(batch) >= 50 or done == total:
-                with connection.cursor() as cur:
-                    for row in batch:
-                        cur.execute("""
-                            INSERT INTO site_daily_scores
-                                (site_id, score_date, name, lat, lon, score)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                            ON CONFLICT (site_id, score_date) DO UPDATE SET
-                                score = EXCLUDED.score, computed_at = NOW()
-                        """, [row["site_id"], row["date"], row["name"],
-                              row["lat"], row["lon"], row["score"]])
+                from accounts.models import SiteDailyScore
+                from django.utils import timezone as dj_tz
+                now = dj_tz.now()
+                SiteDailyScore.objects.bulk_create(
+                    [
+                        SiteDailyScore(
+                            site_id=r["site_id"], score_date=r["date"],
+                            name=r["name"], lat=r["lat"], lon=r["lon"],
+                            score=r["score"], computed_at=now,
+                        )
+                        for r in batch
+                    ],
+                    update_conflicts=True,
+                    unique_fields=["site_id", "score_date"],
+                    update_fields=["score", "computed_at"],
+                )
                 batch = []
             if done % 50 == 0 or done == total:
                 cache.set(_COMPUTE_STATE_KEY, {"running": True, "done": done, "total": total}, 600)
@@ -693,29 +697,31 @@ def _today_local():
 
 
 def _load_heatmap_data(today):
-    with connection.cursor() as cur:
-        cur.execute("""
-            SELECT name, lat, lon, score, computed_at
-            FROM site_daily_scores
-            WHERE score_date = %s
-            ORDER BY score DESC NULLS LAST
-        """, [today])
-        rows = cur.fetchall()
+    from accounts.models import SiteDailyScore
+    qs = (
+        SiteDailyScore.objects
+        .filter(score_date=today)
+        .order_by("-score")
+        .values("name", "lat", "lon", "score", "computed_at")
+    )
+    rows = list(qs)
     if not rows:
         return None, None
     sites = []
     scored = 0
     computed_at = None
-    for name, lat, lon, score, ts in rows:
+    for r in rows:
         sites.append({
-            "name": name, "lat": lat, "lon": lon,
-            "score": round(score) if score is not None else None,
-            "color": _score_to_color(score),
+            "name":  r["name"],
+            "lat":   r["lat"],
+            "lon":   r["lon"],
+            "score": round(r["score"]) if r["score"] is not None else None,
+            "color": _score_to_color(r["score"]),
         })
-        if score is not None:
+        if r["score"] is not None:
             scored += 1
-        if computed_at is None and ts is not None:
-            computed_at = ts
+        if computed_at is None and r["computed_at"] is not None:
+            computed_at = r["computed_at"]
     return sites, {"total": len(sites), "scored": scored, "computed_at": computed_at}
 
 
@@ -734,21 +740,24 @@ def heatmap(request):
 
     top10 = []
     if sites:
-        with connection.cursor() as cur:
-            cur.execute("""
-                SELECT sd.name, sd.score, s.bortle_class, s.state_province, s.country
-                FROM site_daily_scores sd
-                JOIN sites s ON s.id = sd.site_id
-                WHERE sd.score_date = %s AND sd.score IS NOT NULL
-                ORDER BY sd.score DESC
-                LIMIT 10
-            """, [today])
-            top10 = [
-                {"name": n, "score": round(sc), "bortle": b,
-                 "state": sp, "country": c,
-                 "color": _score_to_color(sc)}
-                for n, sc, b, sp, c in cur.fetchall()
-            ]
+        from accounts.models import SiteDailyScore
+        top10 = [
+            {
+                "name":    r["name"],
+                "score":   round(r["score"]),
+                "bortle":  r["site__bortle_class"],
+                "state":   r["site__state_province"],
+                "country": r["site__country"],
+                "color":   _score_to_color(r["score"]),
+            }
+            for r in (
+                SiteDailyScore.objects
+                .filter(score_date=today, score__isnull=False)
+                .select_related("site")
+                .order_by("-score")
+                .values("name", "score", "site__bortle_class", "site__state_province", "site__country")[:10]
+            )
+        ]
         for i, site in enumerate(sites[:10]):
             site["rank"] = i + 1
 

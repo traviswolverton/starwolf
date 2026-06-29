@@ -141,6 +141,24 @@ class SiteDetail(models.Model):
         return f"Details for {self.site_id}"
 
 
+class SiteDailyScore(models.Model):
+    site        = models.ForeignKey(Site, on_delete=models.CASCADE, related_name="daily_scores")
+    score_date  = models.DateField()
+    name        = models.TextField()
+    lat         = models.FloatField()
+    lon         = models.FloatField()
+    score       = models.FloatField(null=True, blank=True)
+    computed_at = models.DateTimeField()
+
+    class Meta:
+        db_table = "site_daily_scores"
+        unique_together = [("site", "score_date")]
+        ordering = ["-score_date", "-score"]
+
+    def __str__(self):
+        return f"{self.name} {self.score_date} ({self.score})"
+
+
 class SkyObject(models.Model):
     CATEGORY_PLANET   = "planet"
     CATEGORY_STAR     = "star"

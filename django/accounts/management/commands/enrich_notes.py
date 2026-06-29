@@ -22,7 +22,6 @@ import urllib.parse
 import urllib.error
 
 from django.core.management.base import BaseCommand
-from django.db import connection
 
 OLLAMA_DEFAULT = "http://host.docker.internal:11434"
 MODEL_DEFAULT = "llama3.1:8b"

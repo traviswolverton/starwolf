@@ -1,7 +1,7 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from .models import AppSetting, Site, SiteDetail, SkyObject, User, UserPreferences
+from .models import AppSetting, Site, SiteDetail, SiteDailyScore, SkyObject, User, UserPreferences
 
 
 @admin.register(AppSetting)
@@ -25,6 +25,14 @@ class SiteAdmin(ModelAdmin):
     search_fields  = ("name", "country", "state_province", "notes")
     ordering       = ("name",)
     inlines        = [SiteDetailInline]
+
+
+@admin.register(SiteDailyScore)
+class SiteDailyScoreAdmin(ModelAdmin):
+    list_display   = ("name", "score_date", "score", "computed_at")
+    list_filter    = ("score_date",)
+    search_fields  = ("name",)
+    readonly_fields = ("computed_at",)
 
 
 @admin.register(SiteDetail)

@@ -9,7 +9,6 @@ Usage:
   python manage.py compute_heatmap --force        # recompute even if already done today
 """
 from django.core.management.base import BaseCommand
-from django.db import connection
 
 from django.core.cache import cache
 from pages.views import _run_compute, _today_local, _COMPUTE_STATE_KEY
@@ -35,12 +34,8 @@ class Command(BaseCommand):
 
         # Check if already done today (unless --force)
         if not options["force"] and not options["only_missing"]:
-            with connection.cursor() as cur:
-                cur.execute(
-                    "SELECT COUNT(*) FROM site_daily_scores WHERE score_date = %s AND score IS NOT NULL",
-                    [today]
-                )
-                already = cur.fetchone()[0]
+            from accounts.models import SiteDailyScore
+            already = SiteDailyScore.objects.filter(score_date=today, score__isnull=False).count()
             if already > 0:
                 self.stdout.write(
                     f"Already have {already} scores for {today}. Use --force to recompute."

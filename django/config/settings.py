@@ -191,6 +191,7 @@ UNFOLD = {
                 "items": [
                     {"title": "Sites", "icon": "location_on", "link": reverse_lazy("admin:accounts_site_changelist")},
                     {"title": "Site Details", "icon": "article", "link": reverse_lazy("admin:accounts_sitedetail_changelist")},
+                    {"title": "Daily Scores", "icon": "bar_chart", "link": reverse_lazy("admin:accounts_sitedailyscore_changelist")},
                 ],
             },
             {

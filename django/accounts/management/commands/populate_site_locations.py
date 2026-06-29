@@ -2,7 +2,6 @@ import time
 
 import requests
 from django.core.management.base import BaseCommand
-from django.db import connection
 
 NOMINATIM = "https://nominatim.openstreetmap.org/reverse"
 HEADERS = {"User-Agent": "StarWolf-App/1.0 (stargazing site geocoder)"}
