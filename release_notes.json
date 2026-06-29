@@ -3,6 +3,12 @@
     {
       "date": "2026-06-29",
       "features": [
+        "Tonight page now combines the site forecast map and 'What's Up Tonight' sky objects into a single page — the old 'Tonight's Sky Map' nav link is removed; /heatmap redirects to /tonight. The page shows the scored site map, Top 10 sites, and your personal sky objects list all in one place."
+      ]
+    },
+    {
+      "date": "2026-06-29",
+      "features": [
         "Sky object detail pages at /objects/<name>/ — each catalog object now has a dedicated page with hero image, stat pills (magnitude, constellation, distance, angular size, discovery year), Wikipedia summary, and a live 'Tonight's Visibility' card showing rise/set times, duration, peak altitude, and magnitude confidence based on the user's location and local Bortle class.",
         "Catalog cards on /objects are now clickable links to their detail pages."
       ]

@@ -1,110 +1,266 @@
 {% extends "base.html" %}
-{% block title %}Tonight's Sky — StarWolf{% endblock %}
+{% block title %}Tonight — StarWolf{% endblock %}
 
 {% block content %}
-<h1>🌠 Tonight's Sky</h1>
-
-{% if not has_location %}
-<div class="alert warning">
-  Set your <a href="{% url 'location' %}">location</a> to see what's visible tonight near you.
-</div>
-{% else %}
-
-<div class="tonight-header">
-  <div class="tonight-location">
-    <span class="tonight-location-label">Near</span>
-    <strong>{{ location_name }}</strong>
-    {% if bortle %}<span class="sky-bortle-badge">Bortle {{ bortle }}</span>{% endif %}
-    {% if bortle_source %}<span class="field-hint" style="font-size:0.75rem;">({{ bortle_source }})</span>{% endif %}
-  </div>
-
-  {# Date picker #}
-  <div class="tonight-date-picker">
-    {% for d in date_options %}
-    <a href="?date={{ d|date:'Y-m-d' }}"
-       class="date-nav-btn {% if d == target_date %}active{% endif %} {% if d == date_options.0 %}date-nav-best{% endif %}">
-      {% if d == date_options.0 %}Tonight{% else %}{{ d|date:"D j M" }}{% endif %}
-    </a>
-    {% endfor %}
-  </div>
-</div>
-
-{% if sky %}
-
-{# ── Conditions banner ───────────────────────────────────────────────── #}
-{% if forecast_scores %}
-<div class="sky-conditions-banner
-  {% if forecast_scores.composite >= 70 %}sky-cond-good
-  {% elif forecast_scores.composite >= 40 %}sky-cond-marginal
-  {% else %}sky-cond-poor{% endif %}">
-  <div class="sky-cond-scores">
-    <span class="sky-cond-item">
-      <span class="sky-cond-label">Overall</span>
-      <span class="sky-cond-value">{{ forecast_scores.composite }}</span>
-    </span>
-    {% if forecast_scores.naked_eye is not None %}
-    <span class="sky-cond-item">
-      <span class="sky-cond-label">👁 Naked Eye</span>
-      <span class="sky-cond-value">{{ forecast_scores.naked_eye }}</span>
-    </span>
-    {% endif %}
-    <span class="sky-cond-item">
-      <span class="sky-cond-label">☁️ Cloud</span>
-      <span class="sky-cond-value">{{ forecast_scores.cloud_pct }}%</span>
-    </span>
-    <span class="sky-cond-item">
-      <span class="sky-cond-label">🌙 Moon</span>
-      <span class="sky-cond-value">{{ forecast_scores.moon_score }}</span>
-    </span>
-    <span class="sky-cond-item">
-      <span class="sky-cond-label">💧 Humidity</span>
-      <span class="sky-cond-value">{{ forecast_scores.humidity }}%</span>
-    </span>
-  </div>
-  <p class="sky-cond-note">
-    {% if forecast_scores.composite >= 70 %}
-      ✅ Good conditions tonight — visibility tiers below should be achievable.
-    {% elif forecast_scores.composite >= 40 %}
-      ⚠️ Marginal conditions (score {{ forecast_scores.composite }}) — bright objects like Venus are still visible, but faint DSOs may be washed out. Check the <a href="{% url 'planner' %}">Planner</a> for a clearer night.
+<div class="tonight-page-header">
+  <h1>🌠 Tonight</h1>
+  {% if is_admin %}
+  <div class="heatmap-controls" id="heatmap-controls">
+    {% if not heatmap_has_data %}
+    <button class="btn-primary" onclick="startCompute(false)">🔄 Compute forecast</button>
+    {% elif missing_count > 0 %}
+    <button class="btn-secondary" onclick="startCompute(true)">🔄 Retry {{ missing_count }} missing</button>
+    <button class="btn-secondary" onclick="startCompute(false)" style="margin-left:0.5rem;">↺ Recompute all</button>
     {% else %}
-      ❌ Poor conditions tonight (score {{ forecast_scores.composite }}) — visibility tiers below assume clear skies, which isn't the forecast. Brighter objects may still be visible between clouds.
+    <button class="btn-secondary" onclick="startCompute(false)">↺ Recompute all</button>
     {% endif %}
-  </p>
-</div>
-{% endif %}
-
-{% include "pages/_sky_objects.html" %}
-
-{# ── Drive to dark site nudge ────────────────────────────────────────── #}
-{% if sky.dsos_drive and bortle >= 4 %}
-<div class="sky-section sky-drive-section">
-  <div class="sky-section-header">🚗 Worth the drive tonight</div>
-  <p class="field-hint" style="margin-bottom:0.75rem;">
-    These objects are above the horizon but washed out by light pollution from your location (Bortle {{ bortle }}).
-    Head to a dark site (Bortle ≤ 3) to unlock them:
-  </p>
-  <div class="sky-object-list">
-    {% for d in sky.dsos_drive|slice:":10" %}
-    <div class="sky-object-row sky-object-dim">
-      <span class="sky-obj-name">
-        {{ d.name }}
-        {% if d.common_name %}<span class="sky-obj-common">{{ d.common_name }}</span>{% endif %}
-      </span>
-      <span class="sky-obj-type">{{ d.obj_type }}</span>
-      <span class="sky-obj-mag">mag {{ d.magnitude }}</span>
-      <span class="sky-obj-detail">Visible {{ d.vis_start }}–{{ d.vis_end }} · Peak {{ d.peak_alt }}°</span>
-    </div>
-    {% endfor %}
+    <div id="compute-status" class="compute-status" style="display:none;"></div>
   </div>
-  <p style="margin-top:0.75rem;">
-    <a href="{% url 'planner' %}" class="btn-primary" style="display:inline-block;text-decoration:none;">Find a dark site nearby →</a>
-  </p>
+  {% endif %}
+</div>
+
+{% if heatmap_has_data %}
+<div class="heatmap-stat-bar">
+  <span>{{ heatmap_meta.scored }}/{{ heatmap_meta.total }} sites scored</span>
+  {% if ts_str %}<span class="heatmap-timestamp">Updated <strong>{{ ts_str }}</strong></span>{% endif %}
+</div>
+{% if is_stale %}
+<div class="alert info heatmap-stale-banner">
+  ⏳ Tonight's forecast hasn't been computed yet — showing data from <strong>{{ date_used|date:"N j" }}</strong>.
+  {% if is_admin %}Next run at noon CDT, or <button class="btn-link" onclick="startCompute(false)">compute now</button>.
+  {% else %}Check back after noon CDT.{% endif %}
+</div>
+{% endif %}
+{% endif %}
+
+{# ── Site Map ──────────────────────────────────────────────────────────── #}
+{% if heatmap_has_data %}
+<div id="heatmap" class="heatmap-map"></div>
+<div class="heatmap-legend">
+  <span class="legend-dot" style="background:#32c837;"></span> ≥ 70 — Worth the drive
+  <span class="legend-dot" style="background:#87c800;"></span> 40–69 — Marginal
+  <span class="legend-dot" style="background:#dc3232;"></span> &lt; 40 — Likely a bust
+  <span class="legend-dot" style="background:#969696;"></span> No data
+</div>
+{% else %}
+<div class="alert warning">
+  {% if is_admin %}
+  Click <strong>Compute forecast</strong> above to generate the site map. Takes 2–3 minutes.
+  {% else %}
+  Site forecast map hasn't been computed yet. Check back after noon CDT.
+  {% endif %}
 </div>
 {% endif %}
 
-{% else %}
-<p class="field-hint">Could not compute sky data for this date. Please try again.</p>
+{# ── Top 10 Sites ─────────────────────────────────────────────────────── #}
+{% if top10 %}
+<div class="top10-section">
+  <h3>Top 10 Sites Tonight</h3>
+  <table class="top10-table">
+    <thead>
+      <tr><th>#</th><th>Site</th><th>Score</th><th>Bortle</th><th>Location</th></tr>
+    </thead>
+    <tbody>
+      {% for site in top10 %}
+      <tr>
+        <td class="top10-rank">{{ forloop.counter }}</td>
+        <td class="top10-name">{{ site.name }}</td>
+        <td class="top10-score">
+          <span class="legend-dot" style="background:{{ site.color }};"></span>
+          {{ site.score }}
+        </td>
+        <td class="top10-bortle">{% if site.bortle %}{{ site.bortle }}{% else %}—{% endif %}</td>
+        <td class="top10-location">
+          {% if site.state %}{{ site.state }}{% if site.country %}, {{ site.country }}{% endif %}
+          {% elif site.country %}{{ site.country }}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endif %}
 
+{# ── What's Up Tonight (user location) ───────────────────────────────── #}
+<div class="tonight-sky-section">
+  <h2 class="tonight-sky-heading">What's Up Tonight</h2>
+
+  {% if not has_location %}
+  <div class="alert warning">
+    <a href="{% url 'location' %}">Set your location</a> to see what's visible in the sky tonight near you.
+  </div>
+  {% else %}
+
+  <div class="tonight-header">
+    <div class="tonight-location">
+      <span class="tonight-location-label">Near</span>
+      <strong>{{ location_name }}</strong>
+      {% if bortle %}<span class="sky-bortle-badge">Bortle {{ bortle }}</span>{% endif %}
+      {% if bortle_source %}<span class="field-hint" style="font-size:0.75rem;">({{ bortle_source }})</span>{% endif %}
+    </div>
+    <div class="tonight-date-picker">
+      {% for d in date_options %}
+      <a href="?date={{ d|date:'Y-m-d' }}"
+         class="date-nav-btn {% if d == target_date %}active{% endif %} {% if d == date_options.0 %}date-nav-best{% endif %}">
+        {% if d == date_options.0 %}Tonight{% else %}{{ d|date:"D j M" }}{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if sky %}
+  {% if forecast_scores %}
+  <div class="sky-conditions-banner
+    {% if forecast_scores.composite >= 70 %}sky-cond-good
+    {% elif forecast_scores.composite >= 40 %}sky-cond-marginal
+    {% else %}sky-cond-poor{% endif %}">
+    <div class="sky-cond-scores">
+      <span class="sky-cond-item">
+        <span class="sky-cond-label">Overall</span>
+        <span class="sky-cond-value">{{ forecast_scores.composite }}</span>
+      </span>
+      {% if forecast_scores.naked_eye is not None %}
+      <span class="sky-cond-item">
+        <span class="sky-cond-label">👁 Naked Eye</span>
+        <span class="sky-cond-value">{{ forecast_scores.naked_eye }}</span>
+      </span>
+      {% endif %}
+      <span class="sky-cond-item">
+        <span class="sky-cond-label">☁️ Cloud</span>
+        <span class="sky-cond-value">{{ forecast_scores.cloud_pct }}%</span>
+      </span>
+      <span class="sky-cond-item">
+        <span class="sky-cond-label">🌙 Moon</span>
+        <span class="sky-cond-value">{{ forecast_scores.moon_score }}</span>
+      </span>
+      <span class="sky-cond-item">
+        <span class="sky-cond-label">💧 Humidity</span>
+        <span class="sky-cond-value">{{ forecast_scores.humidity }}%</span>
+      </span>
+    </div>
+    <p class="sky-cond-note">
+      {% if forecast_scores.composite >= 70 %}
+        ✅ Good conditions tonight — visibility tiers below should be achievable.
+      {% elif forecast_scores.composite >= 40 %}
+        ⚠️ Marginal conditions (score {{ forecast_scores.composite }}) — bright objects are still visible, but faint DSOs may be washed out. Check the <a href="{% url 'planner' %}">Planner</a> for a clearer night.
+      {% else %}
+        ❌ Poor conditions tonight (score {{ forecast_scores.composite }}) — visibility tiers assume clear skies, which isn't the forecast.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+
+  {% include "pages/_sky_objects.html" %}
+
+  {% if sky.dsos_drive and bortle >= 4 %}
+  <div class="sky-section sky-drive-section">
+    <div class="sky-section-header">🚗 Worth the drive tonight</div>
+    <p class="field-hint" style="margin-bottom:0.75rem;">
+      These objects are above the horizon but washed out by light pollution from your location (Bortle {{ bortle }}).
+      Head to a dark site (Bortle ≤ 3) to unlock them:
+    </p>
+    <div class="sky-object-list">
+      {% for d in sky.dsos_drive|slice:":10" %}
+      <div class="sky-object-row sky-object-dim">
+        <span class="sky-obj-name">
+          {{ d.name }}
+          {% if d.common_name %}<span class="sky-obj-common">{{ d.common_name }}</span>{% endif %}
+        </span>
+        <span class="sky-obj-type">{{ d.obj_type }}</span>
+        <span class="sky-obj-mag">mag {{ d.magnitude }}</span>
+        <span class="sky-obj-detail">Visible {{ d.vis_start }}–{{ d.vis_end }} · Peak {{ d.peak_alt }}°</span>
+      </div>
+      {% endfor %}
+    </div>
+    <p style="margin-top:0.75rem;">
+      <a href="{% url 'planner' %}" class="btn-primary" style="display:inline-block;text-decoration:none;">Find a dark site nearby →</a>
+    </p>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <p class="field-hint">Could not compute sky data for this date. Please try again.</p>
+  {% endif %}
+  {% endif %}
+</div>
+
+{# ── Leaflet ──────────────────────────────────────────────────────────── #}
+{% if heatmap_has_data %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  var sites = {{ sites_json|safe }};
+  var isMobile = window.innerWidth < 640;
+  var map = L.map('heatmap', { preferCanvas: true }).setView([39.5, -98.5], isMobile ? 3 : 4);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18,
+  }).addTo(map);
+  sites.forEach(function (s) {
+    var popup = '<strong>' + s.name + '</strong><br>Score: <strong>' +
+      (s.score !== null ? s.score : 'n/a') + '</strong>' +
+      (s.rank ? '<br><span style="color:#aaa">#' + s.rank + ' tonight</span>' : '');
+    if (s.rank) {
+      L.marker([s.lat, s.lon], {
+        icon: L.divIcon({
+          className: '',
+          html: '<div style="position:relative;width:22px;height:22px;">' +
+            '<span style="position:absolute;top:0;left:0;font-size:22px;line-height:1;color:' + s.color + ';text-shadow:0 0 6px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.9);">★</span>' +
+            '<span style="position:absolute;top:0;left:0;width:22px;text-align:center;font-size:8px;font-weight:700;color:#fff;line-height:22px;">' + s.rank + '</span>' +
+            '</div>',
+          iconSize: [22, 22], iconAnchor: [11, 11],
+        }), zIndexOffset: 1000,
+      }).bindPopup(popup).addTo(map);
+    } else {
+      L.circleMarker([s.lat, s.lon], {
+        radius: 6, fillColor: s.color, color: 'rgba(0,0,0,0.3)',
+        weight: 1, fillOpacity: 0.85,
+      }).bindPopup(popup).addTo(map);
+    }
+  });
+})();
+</script>
+{% endif %}
+
+{% if is_admin %}
+<script>
+var _pollTimer = null;
+function startCompute(onlyMissing) {
+  var btn = document.querySelectorAll('#heatmap-controls button');
+  btn.forEach(function(b) { b.disabled = true; });
+  var status = document.getElementById('compute-status');
+  status.style.display = 'block';
+  status.textContent = 'Starting…';
+  fetch('{% url "heatmap_compute" %}', {
+    method: 'POST',
+    headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded'},
+    body: 'only_missing=' + (onlyMissing ? '1' : '0'),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.status === 'started' || data.status === 'already_running') {
+      _pollTimer = setInterval(pollStatus, 2000);
+    } else {
+      status.textContent = 'Error: ' + JSON.stringify(data);
+    }
+  });
+}
+function pollStatus() {
+  fetch('{% url "heatmap_status" %}')
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var status = document.getElementById('compute-status');
+    if (data.running) {
+      var pct = data.total > 0 ? Math.round(data.done / data.total * 100) : 0;
+      status.textContent = 'Scoring sites… ' + data.done + '/' + data.total + ' (' + pct + '%)';
+    } else {
+      clearInterval(_pollTimer);
+      status.textContent = 'Done! Reloading…';
+      setTimeout(function() { window.location.reload(); }, 800);
+    }
+  });
+}
+</script>
 {% endif %}
 {% endblock %}

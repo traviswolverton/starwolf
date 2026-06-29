@@ -35,7 +35,6 @@
           <a href="{% url 'sites' %}" class="nav-dropdown-item {% if request.resolver_match.url_name in 'sites,site_detail' %}nav-active{% endif %}">📍 Sites</a>
         </div>
       </div>
-      <a href="{% url 'heatmap' %}" @click="open = false" class="{% if request.resolver_match.url_name == 'heatmap' %}nav-active{% endif %}">Tonight's Sky Map</a>
       <a href="{% url 'bortle_scorer' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'bortle_scorer' %}nav-active{% endif %}">Bortle Scorer</a>
       <a href="{% url 'about' %}" @click="open = false" class="nav-secondary {% if request.resolver_match.url_name == 'about' %}nav-active{% endif %}">About</a>
       <div class="nav-divider"></div>

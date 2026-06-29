@@ -85,7 +85,7 @@ urlpatterns = [
     path("admin-panel/prompts", page_views.admin_save_prompts, name="admin_save_prompts"),
     path("admin-panel/users/<int:user_id>/role", page_views.admin_user_role, name="admin_user_role"),
     path("admin-panel/users/<int:user_id>/active", page_views.admin_user_active, name="admin_user_active"),
-    path("heatmap", page_views.heatmap, name="heatmap"),
+    path("heatmap", lambda r: __import__('django.shortcuts', fromlist=['redirect']).redirect('tonight', permanent=True), name="heatmap"),
     path("heatmap/compute", page_views.heatmap_compute, name="heatmap_compute"),
     path("heatmap/status", page_views.heatmap_status, name="heatmap_status"),
     path("bortle", page_views.bortle_scorer, name="bortle_scorer"),

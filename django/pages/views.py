@@ -1007,6 +1007,39 @@ def tonight(request):
     from engine.sky_objects import BORTLE_LIMITING_MAG
     sky_rows = _flatten_sky(sky, bortle or 5) if sky else []
     date_options = [(today + timedelta(days=i)) for i in range(11)]
+
+    # ── Heatmap data ──────────────────────────────────────────────────────────
+    heatmap_sites, heatmap_meta = _load_heatmap_data(today)
+    is_admin = request.user.is_authenticated and request.user.is_admin()
+    ts_str = None
+    if heatmap_meta and heatmap_meta["computed_at"]:
+        ts = heatmap_meta["computed_at"]
+        if hasattr(ts, "astimezone"):
+            ts_str = ts.astimezone(_CDT).strftime("%-I:%M %p CDT")
+    top10 = []
+    if heatmap_sites:
+        from accounts.models import SiteDailyScore
+        top10 = [
+            {
+                "name":    r["name"],
+                "score":   round(r["score"]),
+                "bortle":  r["site__bortle_class"],
+                "state":   r["site__state_province"],
+                "country": r["site__country"],
+                "color":   _score_to_color(r["score"]),
+            }
+            for r in (
+                SiteDailyScore.objects
+                .filter(score_date=today, score__isnull=False)
+                .select_related("site")
+                .order_by("-score")
+                .values("name", "score", "site__bortle_class", "site__state_province", "site__country")[:10]
+            )
+        ]
+        for i, site in enumerate(heatmap_sites[:10]):
+            site["rank"] = i + 1
+    compute_state = cache.get(_COMPUTE_STATE_KEY)
+
     return render(request, "pages/tonight.html", {
         "sky":                    sky,
         "sky_rows":               sky_rows,
@@ -1019,6 +1052,16 @@ def tonight(request):
         "forecast_scores":        forecast_scores,
         "target_date":            target_date,
         "date_options":           date_options,
+        "sites_json":             json.dumps(heatmap_sites or []),
+        "heatmap_has_data":       bool(heatmap_sites),
+        "is_stale":               heatmap_meta["is_stale"] if heatmap_meta else False,
+        "date_used":              heatmap_meta["date_used"] if heatmap_meta else today,
+        "ts_str":                 ts_str,
+        "top10":                  top10,
+        "is_admin":               is_admin,
+        "compute_state":          compute_state,
+        "missing_count":          (heatmap_meta["total"] - heatmap_meta["scored"]) if heatmap_meta else 0,
+        "heatmap_meta":           heatmap_meta,
     })
 
 

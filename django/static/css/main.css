@@ -2240,3 +2240,9 @@ a.catalog-card:hover { border-color: #3a4a6a; }
 .obj-vis-stat-val { font-size: 0.95rem; font-weight: 600; color: #b0bcd0; }
 .obj-vis-warn { font-size: 0.82rem; color: #c08030; margin: 0.5rem 0 0; }
 .obj-vis-note { font-size: 0.82rem; color: #708090; margin: 0.4rem 0 0; }
+
+/* ── Consolidated Tonight page ───────────────────────────────────────── */
+.tonight-page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+.tonight-page-header h1 { margin: 0; }
+.tonight-sky-section { margin-top: 2.5rem; }
+.tonight-sky-heading { font-size: 1.25rem; color: #c0c8d8; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #1e2535; }
