@@ -154,14 +154,36 @@
 </details>
 
 <details open>
-  <summary>🌌 Deep Sky Object Catalog — Messier Catalog</summary>
+  <summary>🌌 Sky Object Catalog — Messier, Yale BSC &amp; IAU</summary>
   <div class="details-body">
-    <p>StarWolf bundles a catalog of all 110 Messier objects (galaxies, nebulae, star clusters)
-    with coordinates, magnitudes, and common names. Object visibility is computed against each
-    site's limiting magnitude derived from its Bortle class.</p>
+    <p>StarWolf bundles a curated sky catalog used to compute what's visible each night:</p>
     <ul>
-      <li><strong>Data:</strong> Compiled from public-domain astronomical literature; no license restrictions</li>
-      <li><strong>Coverage:</strong> All 110 Messier objects (M1–M110)</li>
+      <li><strong>110 Messier objects</strong> (galaxies, nebulae, star clusters) — compiled from
+        public-domain astronomical literature; no license restrictions</li>
+      <li><strong>25 named stars</strong> — coordinates and magnitudes from the
+        <a href="http://tdc-www.harvard.edu/catalogs/bsc5.html" target="_blank">Yale Bright Star Catalogue (BSC5)</a>,
+        a standard public-domain reference published by the Yale University Observatory</li>
+      <li><strong>20 constellations + 4 asterisms</strong> — centroid coordinates compiled from
+        standard IAU constellation boundaries and common astronomical references;
+        public-domain data</li>
+      <li><strong>Meteor showers</strong> — peak dates and ZHR rates from the
+        <a href="https://www.imo.net/resources/calendar/" target="_blank">International Meteor Organization (IMO)</a>
+        working shower list; free for non-commercial use</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>🗺️ Maps — Leaflet + CARTO</summary>
+  <div class="details-body">
+    <p><strong>Library:</strong> <a href="https://leafletjs.com" target="_blank">Leaflet</a> by Volodymyr Agafonkin</p>
+    <p><strong>Map tiles:</strong> <a href="https://carto.com" target="_blank">CARTO</a> (Dark Matter basemap)</p>
+    <p>The Tonight page and site maps use Leaflet for interactive rendering with CARTO's
+    dark basemap tiles. Tiles are loaded directly from CARTO's CDN.</p>
+    <ul>
+      <li><strong>Leaflet license:</strong> <a href="https://opensource.org/licenses/BSD-2-Clause" target="_blank">BSD 2-Clause</a></li>
+      <li><strong>Tile data:</strong> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions" target="_blank">CARTO</a></li>
+      <li><strong>CARTO tiles:</strong> Free tier; attribution required</li>
     </ul>
   </div>
 </details>
@@ -262,8 +284,9 @@ Here's what's running under the hood:</p>
 
     <p><strong><code>sky_objects.py</code></strong><br>
     Computes what's visible in the sky for any lat/lon and date using skyfield
-    and the JPL DE421 ephemeris. Covers planets, Moon, Messier DSOs, meteor
-    showers, and ISS passes. Results are cached 1 hour per site/date/equipment combination.</p>
+    and the JPL DE421 ephemeris. Covers planets, Moon, named stars, Messier DSOs,
+    constellations &amp; asterisms, meteor showers, and ISS passes. Results are cached
+    1 hour per location/date/Bortle combination.</p>
 
     <p><strong><code>bortle_lookup.py</code></strong><br>
     Reads a single pixel from the 2.9 GB Falchi et al. 2016 GeoTIFF using
