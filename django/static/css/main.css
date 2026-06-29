@@ -1917,10 +1917,12 @@ select.text-input { cursor: pointer; }
 .sky-table thead th {
   text-align: left; font-size: 0.7rem; font-weight: 700; color: #4caf96;
   text-transform: uppercase; letter-spacing: 0.08em;
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.6rem;
   border-bottom: 2px solid #1e3a2e;
-  background: #0d1410;
+  border-top: 1px solid #1e3a2e;
+  background: #0a120e;
 }
+.sky-th-num { text-align: right; }
 .sky-tr td { padding: 0.45rem 0.6rem; border-bottom: 1px solid #1a1d27; vertical-align: middle; }
 .sky-tr:last-child td { border-bottom: none; }
 .sky-tr-dim td { opacity: 0.4; }
@@ -1930,8 +1932,21 @@ select.text-input { cursor: pointer; }
 .sky-td-name  { min-width: 8rem; }
 .sky-td-num   { text-align: right; color: #e8eaf0; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .sky-td-vis   { color: #777; white-space: nowrap; font-size: 0.78rem; }
+.sky-td-dur   { white-space: nowrap; min-width: 7rem; }
 .sky-td-peak  { color: #777; white-space: nowrap; font-size: 0.78rem; }
 .sky-td-expand { width: 1.5rem; text-align: center; color: #555; }
+
+.sky-dur-label   { font-size: 0.75rem; color: #888; display: block; margin-bottom: 0.2rem; }
+.sky-dur-bar-wrap {
+  display: block; width: 100%; height: 3px;
+  background: #1e2436; border-radius: 2px; overflow: hidden;
+}
+.sky-dur-bar {
+  display: block; height: 100%;
+  background: linear-gradient(to right, #2a5a40, #4caf96);
+  border-radius: 2px;
+  max-width: 100%;
+}
 
 .sky-obj-type-sub {
   display: inline; font-size: 0.72rem; color: #555; font-weight: 400;

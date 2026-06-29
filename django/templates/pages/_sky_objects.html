@@ -133,8 +133,9 @@
         <th>Object</th>
         <th>Category</th>
         <th>Gear</th>
-        <th>Mag</th>
+        <th class="sky-th-num">Mag</th>
         <th>Visible</th>
+        <th>Duration</th>
         <th>Peak</th>
       </tr>
     </thead>
@@ -165,6 +166,14 @@
           {% if row.vis_start and row.vis_end %}{{ row.vis_start }}–{{ row.vis_end }}
           {% elif row.vis_start %}Rises {{ row.vis_start }}
           {% elif row.category == 'planet' and row.tier != 4 %}Up at dark
+          {% else %}—{% endif %}
+        </td>
+
+        {# Duration bar #}
+        <td class="sky-td-dur">
+          {% if row.vis_minutes %}
+            <span class="sky-dur-label">{{ row.vis_duration }}</span>
+            <span class="sky-dur-bar-wrap"><span class="sky-dur-bar" style="width:min(100%, calc({{ row.vis_minutes }} / 600 * 100%))"></span></span>
           {% else %}—{% endif %}
         </td>
 

@@ -990,6 +990,32 @@ def tonight(request):
     })
 
 
+def _parse_sky_time(s):
+    """Parse '10:01p' → minutes since midnight."""
+    if not s:
+        return None
+    ampm = s[-1]
+    h, m = map(int, s[:-1].split(':'))
+    if ampm == 'p' and h != 12:
+        h += 12
+    elif ampm == 'a' and h == 12:
+        h = 0
+    return h * 60 + m
+
+
+def _vis_duration(vis_start, vis_end):
+    """Return (minutes, display_str) or (None, None) if not computable."""
+    s, e = _parse_sky_time(vis_start), _parse_sky_time(vis_end)
+    if s is None or e is None:
+        return None, None
+    mins = e - s
+    if mins < 0:
+        mins += 24 * 60
+    h, m = divmod(mins, 60)
+    label = f"{h}h {m:02d}m" if h else f"{m}m"
+    return mins, label
+
+
 def _flatten_sky(sky):
     """Merge all sky categories into a single list sorted by visibility tier."""
     rows = []
@@ -999,6 +1025,7 @@ def _flatten_sky(sky):
 
     # Planets
     for p in sky.get("planets", []):
+        mins, dur = _vis_duration(p.get("rise_str"), p.get("set_str"))
         rows.append({
             "name":           p["name"],
             "common_name":    "",
@@ -1011,6 +1038,8 @@ def _flatten_sky(sky):
             "tier_emoji":     p.get("tier_emoji", ""),
             "vis_start":      p.get("rise_str"),
             "vis_end":        p.get("set_str"),
+            "vis_minutes":    mins,
+            "vis_duration":   dur,
             "peak_alt":       p.get("peak_alt"),
             "peak_az":        p.get("peak_az"),
             "peak_str":       p.get("peak_str"),
@@ -1020,6 +1049,7 @@ def _flatten_sky(sky):
 
     # Stars
     for s in sky.get("stars", []):
+        mins, dur = _vis_duration(s.get("vis_start"), s.get("vis_end"))
         rows.append({
             "name":           s["name"],
             "common_name":    s.get("common_name", ""),
@@ -1032,6 +1062,8 @@ def _flatten_sky(sky):
             "tier_emoji":     s.get("tier_emoji", ""),
             "vis_start":      s.get("vis_start"),
             "vis_end":        s.get("vis_end"),
+            "vis_minutes":    mins,
+            "vis_duration":   dur,
             "peak_alt":       s.get("peak_alt"),
             "peak_az":        s.get("peak_az"),
             "peak_str":       s.get("peak_str"),
@@ -1041,6 +1073,7 @@ def _flatten_sky(sky):
 
     # DSOs
     for d in sky.get("dsos", []):
+        mins, dur = _vis_duration(d.get("vis_start"), d.get("vis_end"))
         rows.append({
             "name":           d["name"],
             "common_name":    d.get("common_name", ""),
@@ -1053,6 +1086,8 @@ def _flatten_sky(sky):
             "tier_emoji":     d.get("tier_emoji", ""),
             "vis_start":      d.get("vis_start"),
             "vis_end":        d.get("vis_end"),
+            "vis_minutes":    mins,
+            "vis_duration":   dur,
             "peak_alt":       d.get("peak_alt"),
             "peak_az":        d.get("peak_az"),
             "peak_str":       d.get("peak_str"),
