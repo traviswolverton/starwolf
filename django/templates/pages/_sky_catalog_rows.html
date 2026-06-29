@@ -25,7 +25,7 @@
 
       <div class="catalog-card-meta">
         <span class="catalog-badge catalog-badge--{{ obj.category }}">{{ obj.cat_label }}</span>
-        {% if obj.obj_type %}<span class="catalog-card-type">{{ obj.obj_type }}</span>{% endif %}
+        {% if obj.obj_type and obj.obj_type != obj.category %}<span class="catalog-card-type">{{ obj.obj_type|title }}</span>{% endif %}
         {% if obj.magnitude is not None %}
         <span class="catalog-card-mag" title="Apparent magnitude">mag {{ obj.magnitude|floatformat:1 }}</span>
         {% endif %}
