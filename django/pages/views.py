@@ -1044,6 +1044,8 @@ def tonight(request):
         "sky":                    sky,
         "sky_rows":               sky_rows,
         "has_location":           has_location,
+        "location_lat":           prefs.location_lat if has_location else None,
+        "location_lon":           prefs.location_lon if has_location else None,
         "location_name":          getattr(prefs, "location_display", "") or getattr(prefs, "location_text", ""),
         "bortle":                 bortle,
         "bortle_source":          bortle_source,

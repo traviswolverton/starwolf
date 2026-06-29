@@ -33,9 +33,18 @@
 {% endif %}
 {% endif %}
 
-{# ── Site Map ──────────────────────────────────────────────────────────── #}
+{# ── Dual Maps ─────────────────────────────────────────────────────────── #}
 {% if heatmap_has_data %}
-<div id="heatmap" class="heatmap-map"></div>
+<div class="tonight-maps-row">
+  <div class="tonight-map-col">
+    <div class="tonight-map-label">All Sites</div>
+    <div id="map-all" class="tonight-map"></div>
+  </div>
+  <div class="tonight-map-col">
+    <div class="tonight-map-label">Near You{% if not has_location %} <span class="tonight-map-hint">— <a href="{% url 'location' %}">set location</a></span>{% endif %}</div>
+    <div id="map-local" class="tonight-map"></div>
+  </div>
+</div>
 <div class="heatmap-legend">
   <span class="legend-dot" style="background:#32c837;"></span> ≥ 70 — Worth the drive
   <span class="legend-dot" style="background:#87c800;"></span> 40–69 — Marginal
@@ -49,36 +58,6 @@
   {% else %}
   Site forecast map hasn't been computed yet. Check back after noon CDT.
   {% endif %}
-</div>
-{% endif %}
-
-{# ── Top 10 Sites ─────────────────────────────────────────────────────── #}
-{% if top10 %}
-<div class="top10-section">
-  <h3>Top 10 Sites Tonight</h3>
-  <table class="top10-table">
-    <thead>
-      <tr><th>#</th><th>Site</th><th>Score</th><th>Bortle</th><th>Location</th></tr>
-    </thead>
-    <tbody>
-      {% for site in top10 %}
-      <tr>
-        <td class="top10-rank">{{ forloop.counter }}</td>
-        <td class="top10-name">{{ site.name }}</td>
-        <td class="top10-score">
-          <span class="legend-dot" style="background:{{ site.color }};"></span>
-          {{ site.score }}
-        </td>
-        <td class="top10-bortle">{% if site.bortle %}{{ site.bortle }}{% else %}—{% endif %}</td>
-        <td class="top10-location">
-          {% if site.state %}{{ site.state }}{% if site.country %}, {{ site.country }}{% endif %}
-          {% elif site.country %}{{ site.country }}
-          {% else %}—{% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 {% endif %}
 
@@ -193,32 +172,40 @@
 (function () {
   var sites = {{ sites_json|safe }};
   var isMobile = window.innerWidth < 640;
-  var map = L.map('heatmap', { preferCanvas: true }).setView([39.5, -98.5], isMobile ? 3 : 4);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18,
-  }).addTo(map);
-  sites.forEach(function (s) {
-    var popup = '<strong>' + s.name + '</strong><br>Score: <strong>' +
-      (s.score !== null ? s.score : 'n/a') + '</strong>' +
-      (s.rank ? '<br><span style="color:#aaa">#' + s.rank + ' tonight</span>' : '');
-    if (s.rank) {
-      L.marker([s.lat, s.lon], {
-        icon: L.divIcon({
-          className: '',
-          html: '<div style="position:relative;width:22px;height:22px;">' +
-            '<span style="position:absolute;top:0;left:0;font-size:22px;line-height:1;color:' + s.color + ';text-shadow:0 0 6px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.9);">★</span>' +
-            '<span style="position:absolute;top:0;left:0;width:22px;text-align:center;font-size:8px;font-weight:700;color:#fff;line-height:22px;">' + s.rank + '</span>' +
-            '</div>',
-          iconSize: [22, 22], iconAnchor: [11, 11],
-        }), zIndexOffset: 1000,
-      }).bindPopup(popup).addTo(map);
-    } else {
+  var userLat = {{ has_location|yesno:"1,0" }} ? {{ location_lat|default:"null" }} : null;
+  var userLon = {{ has_location|yesno:"1,0" }} ? {{ location_lon|default:"null" }} : null;
+
+  var tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  var tileOpts = { attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18 };
+
+  function addSites(map) {
+    sites.forEach(function (s) {
+      var popup = '<strong>' + s.name + '</strong><br>Score: <strong>' +
+        (s.score !== null ? s.score : 'n/a') + '</strong>';
       L.circleMarker([s.lat, s.lon], {
         radius: 6, fillColor: s.color, color: 'rgba(0,0,0,0.3)',
         weight: 1, fillOpacity: 0.85,
       }).bindPopup(popup).addTo(map);
-    }
-  });
+    });
+  }
+
+  // All-sites map
+  var mapAll = L.map('map-all', { preferCanvas: true }).setView([39.5, -98.5], isMobile ? 3 : 4);
+  L.tileLayer(tileUrl, tileOpts).addTo(mapAll);
+  addSites(mapAll);
+
+  // Local map — centered on user location if available, else same as all-sites
+  var localCenter = userLat ? [userLat, userLon] : [39.5, -98.5];
+  var localZoom   = userLat ? (isMobile ? 6 : 7) : (isMobile ? 3 : 4);
+  var mapLocal = L.map('map-local', { preferCanvas: true }).setView(localCenter, localZoom);
+  L.tileLayer(tileUrl, tileOpts).addTo(mapLocal);
+  addSites(mapLocal);
+  if (userLat) {
+    L.circleMarker([userLat, userLon], {
+      radius: 8, fillColor: '#4caf96', color: '#fff',
+      weight: 2, fillOpacity: 1,
+    }).bindPopup('<strong>Your location</strong>').addTo(mapLocal);
+  }
 })();
 </script>
 {% endif %}

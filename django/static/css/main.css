@@ -2246,3 +2246,26 @@ a.catalog-card:hover { border-color: #3a4a6a; }
 .tonight-page-header h1 { margin: 0; }
 .tonight-sky-section { margin-top: 2.5rem; }
 .tonight-sky-heading { font-size: 1.25rem; color: #c0c8d8; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #1e2535; }
+
+/* ── Dual maps layout ────────────────────────────────────────────────── */
+.tonight-maps-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.tonight-map-col { display: flex; flex-direction: column; gap: 0.4rem; }
+.tonight-map-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #8090b0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.tonight-map-hint { font-weight: 400; text-transform: none; letter-spacing: 0; }
+.tonight-map-hint a { color: #4caf96; text-decoration: none; }
+.tonight-map { height: 340px; border-radius: 8px; overflow: hidden; border: 1px solid #1e2535; }
+@media (max-width: 640px) {
+  .tonight-maps-row { grid-template-columns: 1fr; }
+  .tonight-map { height: 240px; }
+}
