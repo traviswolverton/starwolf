@@ -3,6 +3,13 @@
     {
       "date": "2026-06-29",
       "features": [
+        "Sky object detail pages at /objects/<name>/ — each catalog object now has a dedicated page with hero image, stat pills (magnitude, constellation, distance, angular size, discovery year), Wikipedia summary, and a live 'Tonight's Visibility' card showing rise/set times, duration, peak altitude, and magnitude confidence based on the user's location and local Bortle class.",
+        "Catalog cards on /objects are now clickable links to their detail pages."
+      ]
+    },
+    {
+      "date": "2026-06-29",
+      "features": [
         "New 'Objects' catalog page (/objects) — browse all 155 objects in the sky catalog: 110 Messier deep-sky objects, 25 bright stars, 7 planets, 12 meteor showers, and the ISS. Filter by category, sort by name or magnitude, and search by name. Each card shows the CC-licensed photo from Wikimedia Commons, a Wikipedia excerpt, type, and magnitude.",
         "Sky catalog enrichment: all 110 DSOs now have Wikimedia Commons images (up from 54) using a Commons direct-search fallback when Wikipedia has no lead image. All 12 meteor showers are now enriched with Wikipedia summaries and images. All 25 bright stars are enriched."
       ]

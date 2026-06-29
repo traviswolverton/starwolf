@@ -2006,3 +2006,99 @@ def sky_catalog(request):
     if request.headers.get("HX-Request"):
         return render(request, "pages/_sky_catalog_rows.html", ctx)
     return render(request, "pages/sky_catalog.html", ctx)
+
+
+# ── Sky Object detail page ────────────────────────────────────────────────────
+
+_GEAR_TIER_LABELS = {
+    0: ("Naked Eye", "👁"),
+    1: ("Binoculars", "🔭"),
+    2: ("Small Scope", "🔭"),
+    3: ("Large Scope", "🔭"),
+}
+
+def _fmt_distance(ly):
+    if ly is None:
+        return None
+    if ly < 1:
+        return f"{ly * 63241:.0f} AU"
+    if ly < 1000:
+        return f"{ly:,.0f} ly"
+    if ly < 1_000_000:
+        return f"{ly/1000:,.1f} kly"
+    return f"{ly/1_000_000:,.2f} Mly"
+
+
+@require_http_methods(["GET"])
+def sky_object_detail(request, name):
+    from django.http import Http404
+    from accounts.models import SkyObject
+
+    try:
+        obj = SkyObject.objects.select_related("detail").get(name__iexact=name, active=True)
+    except SkyObject.DoesNotExist:
+        raise Http404
+
+    detail = getattr(obj, "detail", None)
+
+    # Build context dict
+    ctx_obj = {
+        "id":           obj.id,
+        "name":         obj.name,
+        "common_name":  obj.common_name,
+        "category":     obj.category,
+        "cat_label":    _CAT_LABELS.get(obj.category, obj.category),
+        "obj_type":     obj.obj_type if obj.obj_type != obj.category else "",
+        "magnitude":    obj.magnitude,
+        "notes":        obj.notes,
+        "image_url":    detail.image_url if detail else "",
+        "image_credit": detail.image_credit if detail else "",
+        "wiki_url":     detail.wikipedia_url if detail else "",
+        "wiki_summary": detail.wikipedia_summary if detail else "",
+        "constellation":     detail.constellation if detail else "",
+        "distance_ly":       detail.distance_ly if detail else None,
+        "distance_display":  _fmt_distance(detail.distance_ly if detail else None),
+        "angular_size":      detail.angular_size_arcmin if detail else None,
+        "discovery_year":    detail.discovery_year if detail else None,
+        "discoverer":        detail.discoverer if detail else "",
+    }
+
+    # Tonight's visibility for this object (requires user location)
+    visibility = None
+    bortle = None
+    if request.user.is_authenticated and request.prefs and request.prefs.has_location:
+        prefs = request.prefs
+        lat, lon = prefs.location_lat, prefs.location_lon
+        tz_name = getattr(prefs, "timezone", "America/Chicago")
+        try:
+            from engine.bortle_lookup import lookup_bortle
+            result = lookup_bortle(lat, lon)
+            bortle = (result.get("bortle") if isinstance(result, dict) else result) or 5
+        except Exception:
+            bortle = 5
+
+        try:
+            from engine.sky_objects import compute_sky, BORTLE_LIMITING_MAG
+            from engine.cache import cache_get, cache_set
+            from datetime import date as date_type
+            today = date_type.today()
+            cache_key = f"sky:tonight:{lat:.4f}:{lon:.4f}:{today.isoformat()}:{bortle}"
+            sky = cache_get(cache_key)
+            if sky is None:
+                sky = compute_sky(lat, lon, date=today, tz_str=tz_name)
+                cache_set(cache_key, sky, 3600)
+
+            # Find this object in the flattened sky result
+            all_rows = _flatten_sky(sky, bortle=bortle)
+            for row in all_rows:
+                if row["name"].lower() == obj.name.lower():
+                    visibility = row
+                    break
+        except Exception as e:
+            _log.debug("Object detail sky lookup failed: %s", e)
+
+    return render(request, "pages/sky_object_detail.html", {
+        "obj":        ctx_obj,
+        "visibility": visibility,
+        "bortle":     bortle,
+    })

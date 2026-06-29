@@ -4,7 +4,7 @@
 <p class="catalog-count">{{ total }} object{{ total|pluralize }}</p>
 <div class="catalog-grid">
   {% for obj in rows %}
-  <div class="catalog-card">
+  <a href="{% url 'sky_object_detail' obj.name %}" class="catalog-card">
     {% if obj.image_url %}
     <div class="catalog-card-img-wrap">
       <img src="{{ obj.image_url }}" alt="{{ obj.name }}" class="catalog-card-img" loading="lazy">
@@ -37,7 +37,7 @@
       <p class="catalog-card-summary">{{ obj.notes }}</p>
       {% endif %}
     </div>
-  </div>
+  </a>
   {% endfor %}
 </div>
 {% endif %}

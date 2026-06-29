@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}{{ obj.name }}{% if obj.common_name %} — {{ obj.common_name }}{% endif %} — StarWolf{% endblock %}
+
+{% block content %}
+
+{% if obj.image_url %}
+<div class="site-hero" style="background-image: url('{{ obj.image_url }}');">
+  <div class="site-hero-overlay"></div>
+  <div class="site-hero-title">
+    <h1>{{ obj.name }}</h1>
+    {% if obj.common_name %}<p class="site-hero-subtitle">{{ obj.common_name }}</p>{% endif %}
+    {% if obj.image_credit %}<p class="site-hero-credit">{{ obj.image_credit }}</p>{% endif %}
+  </div>
+</div>
+{% else %}
+<h1>{{ obj.name }}{% if obj.common_name %} <span class="obj-common-inline">{{ obj.common_name }}</span>{% endif %}</h1>
+{% endif %}
+
+<div class="site-detail-wrap">
+
+  <!-- Stat pills -->
+  <div class="site-stat-row">
+    <span class="site-stat">
+      <span class="catalog-badge catalog-badge--{{ obj.category }}">{{ obj.cat_label }}</span>
+    </span>
+    {% if obj.obj_type %}
+    <span class="site-stat">
+      <span class="site-stat-val">{{ obj.obj_type|title }}</span>
+    </span>
+    {% endif %}
+    {% if obj.magnitude is not None %}
+    <span class="site-stat">
+      <span class="site-stat-label">Magnitude</span>
+      <span class="site-stat-val">{{ obj.magnitude|floatformat:1 }}</span>
+    </span>
+    {% endif %}
+    {% if obj.constellation %}
+    <span class="site-stat">
+      <span class="site-stat-label">Constellation</span>
+      <span class="site-stat-val">{{ obj.constellation }}</span>
+    </span>
+    {% endif %}
+    {% if obj.distance_display %}
+    <span class="site-stat">
+      <span class="site-stat-label">Distance</span>
+      <span class="site-stat-val">{{ obj.distance_display }}</span>
+    </span>
+    {% endif %}
+    {% if obj.angular_size %}
+    <span class="site-stat">
+      <span class="site-stat-label">Angular Size</span>
+      <span class="site-stat-val">{{ obj.angular_size|floatformat:1 }}′</span>
+    </span>
+    {% endif %}
+    {% if obj.discovery_year %}
+    <span class="site-stat">
+      <span class="site-stat-label">Discovered</span>
+      <span class="site-stat-val">{{ obj.discovery_year }}{% if obj.discoverer %} · {{ obj.discoverer }}{% endif %}</span>
+    </span>
+    {% endif %}
+  </div>
+
+  {% if obj.notes %}
+  <div class="site-narrative">{{ obj.notes }}</div>
+  {% endif %}
+
+  {% if obj.wiki_summary %}
+  <div class="site-section">
+    <h2 class="site-section-title">About</h2>
+    <p class="site-wiki-summary">{{ obj.wiki_summary }}</p>
+    {% if obj.wiki_url %}
+    <a href="{{ obj.wiki_url }}" target="_blank" rel="noopener" class="obj-wiki-more">Read more on Wikipedia →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Tonight's Visibility -->
+  <div class="site-section">
+    <h2 class="site-section-title">Tonight's Visibility</h2>
+    {% if not request.user.is_authenticated %}
+    <p class="field-hint"><a href="{% url 'account_login' %}">Sign in</a> and set your location to see tonight's visibility for this object.</p>
+    {% elif not request.prefs.has_location %}
+    <p class="field-hint"><a href="{% url 'location' %}">Set your location</a> to see tonight's visibility.</p>
+    {% elif visibility %}
+    <div class="obj-vis-card obj-vis-card--{{ visibility.tier }}">
+      <div class="obj-vis-tier">
+        <span class="obj-vis-emoji">{{ visibility.tier_emoji }}</span>
+        <span class="obj-vis-label">{{ visibility.tier_label }}</span>
+        {% if bortle %}
+        <span class="obj-vis-bortle">Bortle {{ bortle }} sky</span>
+        {% endif %}
+      </div>
+      <div class="obj-vis-stats">
+        {% if visibility.vis_start and visibility.vis_end %}
+        <div class="obj-vis-stat">
+          <span class="obj-vis-stat-label">Visible</span>
+          <span class="obj-vis-stat-val">{{ visibility.vis_start }} – {{ visibility.vis_end }}</span>
+        </div>
+        {% endif %}
+        {% if visibility.vis_duration %}
+        <div class="obj-vis-stat">
+          <span class="obj-vis-stat-label">Duration</span>
+          <span class="obj-vis-stat-val">{{ visibility.vis_duration }}</span>
+        </div>
+        {% endif %}
+        {% if visibility.peak_alt %}
+        <div class="obj-vis-stat">
+          <span class="obj-vis-stat-label">Peak altitude</span>
+          <span class="obj-vis-stat-val">{{ visibility.peak_alt }}°{% if visibility.peak_str %} at {{ visibility.peak_str }}{% endif %}</span>
+        </div>
+        {% endif %}
+        {% if visibility.conf_tip %}
+        <div class="obj-vis-stat">
+          <span class="obj-vis-stat-label">Visibility</span>
+          <span class="obj-vis-stat-val sky-conf-{{ visibility.conf_class }}">{{ visibility.conf_tip }}</span>
+        </div>
+        {% endif %}
+      </div>
+      {% if visibility.low_alt %}
+      <p class="obj-vis-warn">⚠️ Low in the sky — best viewed from an unobstructed horizon.</p>
+      {% endif %}
+      {% if visibility.note %}
+      <p class="obj-vis-note">{{ visibility.note }}</p>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="obj-vis-card obj-vis-card--4">
+      <div class="obj-vis-tier">
+        <span class="obj-vis-emoji">🌅</span>
+        <span class="obj-vis-label">Not visible tonight</span>
+        {% if bortle %}<span class="obj-vis-bortle">Bortle {{ bortle }} sky</span>{% endif %}
+      </div>
+      <p class="obj-vis-note">This object is below the horizon or not computed for tonight from your location.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Links -->
+  <div class="site-links">
+    <a href="{% url 'sky_catalog' %}" class="site-link-btn site-link-btn--secondary">← All Objects</a>
+    {% if obj.wiki_url %}
+    <a href="{{ obj.wiki_url }}" target="_blank" rel="noopener" class="site-link-btn">📖 Wikipedia</a>
+    {% endif %}
+    <a href="{% url 'tonight' %}" class="site-link-btn">🌠 Tonight's Sky</a>
+  </div>
+
+</div>
+{% endblock %}

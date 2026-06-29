@@ -70,6 +70,7 @@ urlpatterns = [
     path("sites/<int:site_id>/sky", page_views.sky_objects, name="sky_objects"),
     path("tonight", page_views.tonight, name="tonight"),
     path("objects", page_views.sky_catalog, name="sky_catalog"),
+    path("objects/<str:name>", page_views.sky_object_detail, name="sky_object_detail"),
     path("location", page_views.location, name="location"),
     path("preferences", page_views.preferences, name="preferences"),
     path("preferences/reset", page_views.preferences_reset, name="preferences_reset"),

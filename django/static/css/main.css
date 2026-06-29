@@ -2200,3 +2200,41 @@ select.text-input { cursor: pointer; }
 .catalog-badge--dso           { background: #1a2a1a; color: #70c070; }
 .catalog-badge--meteor_shower { background: #2a1a2a; color: #d080e0; }
 .catalog-badge--satellite     { background: #1a2a2a; color: #70d0d0; }
+
+/* catalog card as link */
+a.catalog-card { text-decoration: none; cursor: pointer; }
+a.catalog-card:hover { border-color: #3a4a6a; }
+
+/* object detail hero sub-title */
+.site-hero-subtitle { font-size: 1.1rem; color: #b0c0e0; margin: 0.25rem 0 0; }
+.obj-common-inline { font-size: 1rem; font-weight: 400; color: #8090b0; margin-left: 0.5rem; }
+.obj-wiki-more { display: inline-block; margin-top: 0.5rem; font-size: 0.85rem; color: #5a8abf; text-decoration: none; }
+.obj-wiki-more:hover { text-decoration: underline; }
+
+/* Tonight's visibility card */
+.obj-vis-card {
+  border: 1px solid #2a3550;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  background: #111620;
+}
+.obj-vis-card--0 { border-color: #2a6b4a; background: #0d2218; }
+.obj-vis-card--1 { border-color: #2a5a4a; background: #0d1e18; }
+.obj-vis-card--2 { border-color: #2a4a3a; background: #0d1a14; }
+.obj-vis-card--3 { border-color: #3a3a20; background: #181810; }
+.obj-vis-card--4 { border-color: #3a2020; background: #180e0e; }
+.obj-vis-tier {
+  display: flex; align-items: center; gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+.obj-vis-emoji { font-size: 1.4rem; }
+.obj-vis-label { font-size: 1rem; font-weight: 700; color: #c0c8d8; }
+.obj-vis-bortle { font-size: 0.78rem; color: #607080; margin-left: auto; }
+.obj-vis-stats {
+  display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 0.5rem;
+}
+.obj-vis-stat { display: flex; flex-direction: column; }
+.obj-vis-stat-label { font-size: 0.7rem; color: #556070; text-transform: uppercase; letter-spacing: 0.04em; }
+.obj-vis-stat-val { font-size: 0.95rem; font-weight: 600; color: #b0bcd0; }
+.obj-vis-warn { font-size: 0.82rem; color: #c08030; margin: 0.5rem 0 0; }
+.obj-vis-note { font-size: 0.82rem; color: #708090; margin: 0.4rem 0 0; }
