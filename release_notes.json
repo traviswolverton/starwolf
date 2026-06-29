@@ -3,6 +3,12 @@
     {
       "date": "2026-06-28",
       "features": [
+        "Equipment filter on Tonight's Sky and What's Up — filter objects by what gear you brought (Naked Eye, Binoculars, Small Scope, Large Scope) directly on the page; removed the separate Equipment setting from Preferences."
+      ]
+    },
+    {
+      "date": "2026-06-28",
+      "features": [
         "Django admin (Unfold theme) — all major tables now manageable at /django-admin/: Sites (with inline detail view), App Settings, Sky Objects, Users.",
         "Bright Stars section — Tonight's Sky and What's Up now include the 25 brightest named stars (Sirius, Vega, Arcturus, etc.) with visibility tiers, rise/set times, and peak altitude.",
         "Sky catalog API — new `GET /v1/sky-catalog` endpoint returns all 155 catalogued objects (planets, stars, DSOs, meteor showers, ISS) with flat per-category fields; filterable by `category` and `active`.",

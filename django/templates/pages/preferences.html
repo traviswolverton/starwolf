@@ -95,22 +95,6 @@
         </td>
       </tr>
 
-      <tr>
-        <td class="pref-label">
-          <span class="pref-label-with-hint" title="Used by the Tonight's Sky page and site detail What's Up section to determine which objects are visible for you.">
-            My Equipment <span class="pref-hint-icon">?</span>
-          </span>
-        </td>
-        <td class="pref-control">
-          <select name="equipment" class="text-input" style="padding:0.3rem 0.5rem;">
-            <option value="" {% if not prefs.equipment %}selected{% endif %}>Not set (assumes large telescope)</option>
-            <option value="naked_eye"   {% if prefs.equipment == "naked_eye"   %}selected{% endif %}>👁 Naked Eye</option>
-            <option value="binoculars"  {% if prefs.equipment == "binoculars"  %}selected{% endif %}>🔵 Binoculars (7×50)</option>
-            <option value="small_scope" {% if prefs.equipment == "small_scope" %}selected{% endif %}>🔭 Small Telescope (4–6")</option>
-            <option value="large_scope" {% if prefs.equipment == "large_scope" %}selected{% endif %}>🔭🔭 Large Telescope (10"+)</option>
-          </select>
-        </td>
-      </tr>
 
       <tr class="pref-section-header">
         <td colspan="2">Hard Disqualifiers <span class="pref-section-sub">— nights exceeding these are excluded regardless of score; drag to max to disable</span></td>

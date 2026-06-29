@@ -1,4 +1,4 @@
-{# Shared partial: renders the "What's Up" sky object list for a given site/date/equipment. #}
+{# Shared partial: renders the "What's Up" sky object list for a given site/date. #}
 {# Consumed by site_detail (via HTMX) and tonight.html (directly). #}
 
 {# Date nav — only rendered when site_id is present (site detail HTMX context) #}
@@ -21,13 +21,6 @@
 <p class="field-hint">Could not compute sky data. Please try again.</p>
 {% else %}
 
-{# ── Equipment nudge ────────────────────────────────────────────────── #}
-{% if not has_equipment %}
-<div class="sky-nudge">
-  🔭 Set your <a href="{% url 'preferences' %}">equipment preference</a> to personalise visibility tiers — results below assume a large telescope.
-</div>
-{% endif %}
-
 {# ── Weather banner ─────────────────────────────────────────────────── #}
 {% if sky.weather_note %}
 <div class="sky-weather-note sky-weather-{{ sky.weather_note.level }}">
@@ -36,11 +29,21 @@
 </div>
 {% endif %}
 
-{# ── Night window ───────────────────────────────────────────────────── #}
+{# ── Night window + equipment filter ───────────────────────────────── #}
+<div x-data="{ gear: 'all' }">
 <p class="sky-night-window">
   🌃 Astronomical night: <strong>{{ sky.night_start }} – {{ sky.night_end }}</strong>
-  &nbsp;·&nbsp; Bortle {{ sky.bortle }} site &nbsp;·&nbsp; {{ equipment_label }}
+  &nbsp;·&nbsp; Bortle {{ sky.bortle }} site
 </p>
+
+<div class="sky-equip-filter">
+  <span class="sky-equip-label">Show objects for:</span>
+  <button class="sky-equip-btn" :class="{ active: gear === 'all' }"         @click="gear = 'all'">All</button>
+  <button class="sky-equip-btn" :class="{ active: gear === 'naked_eye' }"   @click="gear = 'naked_eye'">👁 Naked Eye</button>
+  <button class="sky-equip-btn" :class="{ active: gear === 'binoculars' }"  @click="gear = 'binoculars'">🔵 Binoculars</button>
+  <button class="sky-equip-btn" :class="{ active: gear === 'small_scope' }" @click="gear = 'small_scope'">🔭 Small Scope</button>
+  <button class="sky-equip-btn" :class="{ active: gear === 'large_scope' }" @click="gear = 'large_scope'">🔭🔭 Large Scope</button>
+</div>
 
 {# ── Moon ───────────────────────────────────────────────────────────── #}
 <div class="sky-section">
@@ -65,7 +68,8 @@
   <div class="sky-section-header">🪐 Planets visible tonight</div>
   <div class="sky-object-list">
     {% for p in sky.planets %}
-    <div class="sky-object-row {% if not p.visible %}sky-object-dim{% endif %}">
+    <div class="sky-object-row {% if not p.visible %}sky-object-dim{% endif %}"
+         x-show="gear === 'all' || ({{ p.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3)">
       <span class="sky-obj-name">{{ p.name }}</span>
       {% if p.visible %}
         <span class="sky-tier sky-tier-{{ p.tier }}">{{ p.tier_emoji }} {{ p.tier_label }}</span>
@@ -96,7 +100,8 @@
   </div>
   <div class="sky-object-list">
     {% for s in sky.stars %}
-    <div class="sky-object-row" x-show="showAll || {{ forloop.counter }} <= 8">
+    <div class="sky-object-row"
+         x-show="(showAll || {{ forloop.counter }} <= 8) && (gear === 'all' || ({{ s.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3))">
       <span class="sky-obj-name">
         {{ s.name }}
         {% if s.common_name %}<span class="sky-obj-common">{{ s.common_name }}</span>{% endif %}
@@ -123,7 +128,8 @@
   </div>
   <div class="sky-object-list">
     {% for d in sky.dsos %}
-    <div class="sky-object-row" x-show="showAll || {{ forloop.counter }} <= 8">
+    <div class="sky-object-row"
+         x-show="(showAll || {{ forloop.counter }} <= 8) && (gear === 'all' || ({{ d.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3))">
       <span class="sky-obj-name">
         {{ d.name }}
         {% if d.common_name %}<span class="sky-obj-common">{{ d.common_name }}</span>{% endif %}
@@ -177,4 +183,5 @@
 </div>
 {% endif %}
 
+</div>{# end x-data gear filter #}
 {% endif %}{# end if sky #}

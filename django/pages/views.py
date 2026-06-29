@@ -48,7 +48,6 @@ class _GuestPrefs:
     disq_max_precip_prob  = 40
     disq_min_visibility_km = 10
     best_metric           = "combined"
-    equipment             = None
 
 
 def _planner_key_prefix(request):
@@ -312,9 +311,6 @@ def preferences(request):
             bm = request.POST.get("best_metric", "combined")
             if bm in ("telescope", "naked_eye", "combined"):
                 prefs.best_metric = bm
-            eq = request.POST.get("equipment", "")
-            if eq in ("naked_eye", "binoculars", "small_scope", "large_scope", ""):
-                prefs.equipment = eq or None
             prefs.save()
             return HttpResponse('<div class="alert success">Preferences saved.</div>')
         except Exception as e:
@@ -869,7 +865,6 @@ def sky_objects(request, site_id):
     target_date = max(today, min(target_date, max_date))
 
     prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
-    equipment = getattr(prefs, "equipment", None) or "large_scope"
     tz_name = getattr(prefs, "timezone", "America/Chicago")
 
     # Weather: pull cloud score from planner cache if available
@@ -883,11 +878,11 @@ def sky_objects(request, site_id):
     except Exception:
         pass
 
-    cache_key = f"sky:{site_id}:{target_date.isoformat()}:{equipment}:{bortle}"
+    cache_key = f"sky:{site_id}:{target_date.isoformat()}:{bortle}"
     result = cache_get(cache_key)
     if result is None:
         try:
-            result = compute_sky(lat, lon, target_date, bortle, equipment, cloud_score, tz_name)
+            result = compute_sky(lat, lon, target_date, bortle, "large_scope", cloud_score, tz_name)
         except Exception as e:
             import logging
             logging.getLogger(__name__).error("sky_objects compute error: %s", e, exc_info=True)
@@ -901,13 +896,6 @@ def sky_objects(request, site_id):
         "site_name":    site_name,
         "target_date":  target_date,
         "date_options": date_options,
-        "has_equipment": getattr(prefs, "equipment", None) is not None,
-        "equipment_label": dict([
-            ("naked_eye",   "Naked Eye"),
-            ("binoculars",  "Binoculars"),
-            ("small_scope", "Small Telescope"),
-            ("large_scope", "Large Telescope"),
-        ]).get(equipment, "Large Telescope"),
     })
 
 
@@ -920,7 +908,6 @@ def tonight(request):
 
     prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
     has_location = prefs.has_location
-    equipment = getattr(prefs, "equipment", None) or "large_scope"
     tz_name = getattr(prefs, "timezone", "America/Chicago")
 
     today = date_type.today()
@@ -978,11 +965,11 @@ def tonight(request):
         except Exception as e:
             _log.debug("Tonight forecast fetch failed: %s", e)
 
-        cache_key = f"sky:tonight:{lat:.4f}:{lon:.4f}:{target_date.isoformat()}:{equipment}:{bortle}"
+        cache_key = f"sky:tonight:{lat:.4f}:{lon:.4f}:{target_date.isoformat()}:{bortle}"
         sky = cache_get(cache_key)
         if sky is None:
             try:
-                sky = compute_sky(lat, lon, target_date, bortle, equipment, cloud_score, tz_name)
+                sky = compute_sky(lat, lon, target_date, bortle, "large_scope", cloud_score, tz_name)
                 cache_set(cache_key, sky, 3600)
             except Exception as e:
                 import logging
@@ -998,13 +985,6 @@ def tonight(request):
         "forecast_scores": forecast_scores,
         "target_date":     target_date,
         "date_options":    date_options,
-        "has_equipment":   getattr(prefs, "equipment", None) is not None,
-        "equipment_label": dict([
-            ("naked_eye",   "Naked Eye"),
-            ("binoculars",  "Binoculars"),
-            ("small_scope", "Small Telescope"),
-            ("large_scope", "Large Telescope"),
-        ]).get(equipment, "Large Telescope"),
     })
 
 
