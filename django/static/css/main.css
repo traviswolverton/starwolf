@@ -1868,6 +1868,7 @@ select.text-input { cursor: pointer; }
 }
 .sky-iss-summary { font-size: 0.83rem; color: #c0c8d8; flex: 1; }
 .sky-iss-none    { font-size: 0.83rem; color: #444; }
+.sky-iss-no-pass { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
 .sky-iss-toggle  { font-size: 0.75rem; color: #4caf96; white-space: nowrap; }
 .sky-iss-passes  { margin-top: 0.65rem; }
 
@@ -1879,6 +1880,7 @@ select.text-input { cursor: pointer; }
 .sky-shower-header { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0; }
 .sky-shower-summary { font-size: 0.83rem; color: #c0c8d8; }
 .sky-shower-none    { font-size: 0.83rem; color: #444; }
+.sky-next-hint      { font-size: 0.75rem; color: #4a6a58; }
 .sky-shower-list    { margin-top: 0.55rem; display: flex; flex-direction: column; gap: 0.3rem; }
 .sky-shower-row     { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.82rem; flex-wrap: wrap; }
 .sky-shower-detail  { color: #666; font-size: 0.78rem; }

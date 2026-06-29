@@ -70,6 +70,9 @@
       <span class="sky-iss-toggle" x-text="open ? '▲ Hide passes' : '▼ Show passes'">▼ Show passes</span>
     {% else %}
       <span class="sky-iss-none">No visible passes tonight</span>
+      {% if sky.next_iss %}
+        <span class="sky-next-hint">Next: {{ sky.next_iss.rise_str }} in {{ sky.next_iss.days_ahead }} day{% if sky.next_iss.days_ahead != 1 %}s{% endif %} · {{ sky.next_iss.duration_m }} min · {{ sky.next_iss.peak_alt }}° max</span>
+      {% endif %}
     {% endif %}
   </div>
   {% if sky.iss_passes %}
@@ -101,6 +104,9 @@
       </span>
     {% else %}
       <span class="sky-shower-none">No active meteor showers tonight</span>
+      {% if sky.next_shower %}
+        <span class="sky-next-hint">Next: {{ sky.next_shower.name }} — {{ sky.next_shower.peak_date|date:"M j" }} ({{ sky.next_shower.days }} day{% if sky.next_shower.days != 1 %}s{% endif %}) · ~{{ sky.next_shower.zhr }}/hr ZHR</span>
+      {% endif %}
     {% endif %}
   </div>
   {% if sky.showers %}

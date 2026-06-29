@@ -79,6 +79,60 @@ def _fmt_time(t, tz: ZoneInfo) -> str:
     return f"{hour}:{dt.minute:02d}{suffix}"
 
 
+def _next_shower(target_date: date) -> dict | None:
+    """Return the next upcoming meteor shower peak after target_date (up to 365 days ahead)."""
+    from accounts.models import SkyObject
+    showers = list(SkyObject.objects.filter(category="meteor_shower", active=True))
+    best = None
+    for s in showers:
+        ed = s.extra_data
+        pm, pd = ed.get("peak_month"), ed.get("peak_day")
+        if not pm or not pd:
+            continue
+        days = _days_to_peak(target_date, pm, pd)
+        if days <= 0:
+            continue
+        if best is None or days < best["days"]:
+            best = {"name": s.name, "days": days,
+                    "peak_date": date(target_date.year if days <= 365 else target_date.year + 1, pm, pd),
+                    "zhr": ed.get("zhr", 0)}
+    return best
+
+
+def _next_iss_pass(sat, lat: float, lon: float, target_date: date, ts, tz: ZoneInfo, days: int = 7) -> dict | None:
+    """Search up to `days` ahead for the next ISS pass; return first result or None."""
+    from skyfield.api import wgs84
+    observer = wgs84.latlon(lat, lon)
+    for offset in range(1, days + 1):
+        d = target_date + timedelta(days=offset)
+        t0 = ts.utc(d.year, d.month, d.day, 0)
+        t1 = ts.utc(d.year, d.month, d.day, 23, 59)
+        try:
+            times, events = sat.find_events(observer, t0, t1, altitude_degrees=10.0)
+        except Exception:
+            continue
+        current = {}
+        for t, e in zip(times, events):
+            e = int(e)
+            t = ts.tt_jd(float(t.tt))
+            if e == 0:
+                current = {"rise": t}
+            elif e == 1 and current:
+                diff = sat - observer
+                alt, az, _ = diff.at(t).altaz()
+                current["peak_alt"] = round(alt.degrees)
+            elif e == 2 and "rise" in current:
+                rise_t = current["rise"]
+                duration_s = (float(t.tt) - float(rise_t.tt)) * 86400
+                return {
+                    "rise_str":   _fmt_time(rise_t, tz),
+                    "duration_m": max(1, round(duration_s / 60)),
+                    "peak_alt":   current.get("peak_alt", 0),
+                    "days_ahead": offset,
+                }
+    return None
+
+
 def _days_to_peak(target_date: date, peak_month: int, peak_day: int) -> int:
     """Return signed days from target_date to the shower peak in the same year (or next)."""
     peak = date(target_date.year, peak_month, peak_day)
@@ -484,6 +538,7 @@ def compute_sky(
 
     # ── Satellites ────────────────────────────────────────────────────────────
     all_passes = []
+    iss_sat = None
     for sat_row in _load_catalog("satellite"):
         ed = sat_row.extra_data
         tle_url  = ed.get("tle_source_url")
@@ -495,10 +550,15 @@ def compute_sky(
         if not tle:
             continue
         sat = EarthSatellite(tle[0], tle[1], sat_row.name, ts)
+        if sat_row.name == "ISS":
+            iss_sat = sat
         passes = _compute_satellite_passes(sat, lat, lon, t_start, t_end, ts, tz)
         all_passes.extend(passes)
 
     all_passes.sort(key=lambda p: p["rise_str"])
+
+    next_iss  = _next_iss_pass(iss_sat, lat, lon, target_date, ts, tz) if iss_sat and not all_passes else None
+    next_shower = _next_shower(target_date) if not showers else None
 
     # ── Weather note ─────────────────────────────────────────────────────────
     weather_note = None
@@ -517,7 +577,9 @@ def compute_sky(
         "dsos":         dsos,
         "dsos_drive":   dsos_drive,
         "showers":      showers,
+        "next_shower":  next_shower,
         "iss_passes":   all_passes,
+        "next_iss":     next_iss,
         "weather_note": weather_note,
         "bortle":       bortle,
         "limiting_mag": limiting_mag,
