@@ -21,6 +21,9 @@ timezonefinder
 astral
 skyfield
 
+# Admin
+django-unfold
+
 # Misc
 requests
 markdown

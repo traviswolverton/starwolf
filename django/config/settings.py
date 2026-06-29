@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.urls import reverse_lazy
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,6 +17,8 @@ USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
     "django.contrib.admin",
     "django.contrib.contenttypes",
     "django.contrib.auth",
@@ -156,6 +159,49 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+UNFOLD = {
+    "SITE_TITLE": "Starwolf Admin",
+    "SITE_HEADER": "Starwolf",
+    "SITE_URL": "/",
+    "SITE_SYMBOL": "star",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": False,
+    "COLORS": {
+        "primary": {
+            "50":  "240 249 255",
+            "100": "224 242 254",
+            "200": "186 230 253",
+            "300": "125 211 252",
+            "400": "56 189 248",
+            "500": "14 165 233",
+            "600": "2 132 199",
+            "700": "3 105 161",
+            "800": "7 89 133",
+            "900": "12 74 110",
+            "950": "8 47 73",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Sky Catalog",
+                "items": [
+                    {"title": "Sky Objects", "icon": "star", "link": reverse_lazy("admin:accounts_skyobject_changelist")},
+                ],
+            },
+            {
+                "title": "Users",
+                "items": [
+                    {"title": "Users", "icon": "person", "link": reverse_lazy("admin:accounts_user_changelist")},
+                    {"title": "Preferences", "icon": "settings", "link": reverse_lazy("admin:accounts_userpreferences_changelist")},
+                ],
+            },
+        ],
+    },
+}
 
 LOGGING = {
     "version": 1,
