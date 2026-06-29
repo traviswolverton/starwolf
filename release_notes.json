@@ -3,7 +3,19 @@
     {
       "date": "2026-06-29",
       "features": [
-        "Guests can now set their location without logging in — use browser geolocation or search by city on the Tonight page. Location is stored for the session. A nudge banner prompts sign-in to save it permanently."
+        "Major UX overhaul: Tonight page now leads with a verdict header (Worth the drive / Marginal / Poor) and a chip showing the next good night when conditions aren't great.",
+        "Top Picks Tonight shows the 10 best sky objects for your location, ranked by naked-eye visibility, duration, and peak altitude. Each pick links to its enriched detail page.",
+        "Top Picks use a card layout on mobile and a compact table on desktop. Naked-eye objects are marked with a 👁 icon; the confusing 'Visible' badge has been removed.",
+        "Object detail pages now show tonight's visibility for guests with a session location — fixes a bug where objects appeared in Top Picks but showed 'Not visible' on their detail page.",
+        "New hero page clearly shows what's free (Tonight verdict, sky picks, site map, object catalog) vs. what requires sign-in (saved location, Planner, preferences).",
+        "Release notes moved to /changelog, linked from the footer. The ✨ badge in the nav now points there.",
+        "Guests can now set their location without logging in — use browser geolocation or search by city on the Tonight page. Location is stored for the session.",
+        "Event cards on What's Up Tonight (Meteor Showers, Bortle, ISS) switched from green to a neutral slate color — green is now reserved exclusively for good-conditions scores.",
+        "Moon phase page expanded to a 2-column grid that fills the full page width.",
+        "Mobile nav improved: opens as a styled panel with row separators, indented sub-menus, and a Sign in button.",
+        "About page: added attributions for Leaflet, CARTO, Yale Bright Star Catalog, and IMO meteor shower data.",
+        "Nearest sites (Top 3 within 100 miles) now shown directly on the Tonight page — no login required.",
+        "Planner guest banner no longer says 'fixed to Houston' since guests can now set their own location."
       ]
     },
     {
