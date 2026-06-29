@@ -91,6 +91,33 @@
   {% endif %}
 </div>
 
+{# ── Meteor shower card ─────────────────────────────────────────────── #}
+<div class="sky-shower-card">
+  <div class="sky-shower-header">
+    <span class="sky-cat-badge sky-cat-shower">☄️ Meteor Showers</span>
+    {% if sky.showers %}
+      <span class="sky-shower-summary">
+        {{ sky.showers|length }} shower{% if sky.showers|length != 1 %}s{% endif %} active
+      </span>
+    {% else %}
+      <span class="sky-shower-none">No active meteor showers tonight</span>
+    {% endif %}
+  </div>
+  {% if sky.showers %}
+  <div class="sky-shower-list">
+    {% for s in sky.showers %}
+    <div class="sky-shower-row {% if not s.active %}sky-shower-dim{% endif %}">
+      <span class="sky-obj-name">{{ s.name }}</span>
+      <span class="sky-shower-detail">
+        {{ s.timing|capfirst }} &nbsp;·&nbsp; ~{{ s.zhr }}/hr ZHR
+        {% if s.radiant_up %} &nbsp;·&nbsp; Radiant {{ s.radiant_alt }}° up{% else %} &nbsp;·&nbsp; Radiant below horizon{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
 {# ── Unified object table ───────────────────────────────────────────── #}
 {% if sky_rows %}
 <div class="sky-table-wrap">

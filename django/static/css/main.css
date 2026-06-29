@@ -1871,6 +1871,19 @@ select.text-input { cursor: pointer; }
 .sky-iss-toggle  { font-size: 0.75rem; color: #4caf96; white-space: nowrap; }
 .sky-iss-passes  { margin-top: 0.65rem; }
 
+/* Meteor shower card */
+.sky-shower-card {
+  background: #0f1a14; border: 1px solid #1a5030; border-radius: 8px;
+  padding: 0.6rem 0.85rem; margin-bottom: 0.75rem;
+}
+.sky-shower-header { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0; }
+.sky-shower-summary { font-size: 0.83rem; color: #c0c8d8; }
+.sky-shower-none    { font-size: 0.83rem; color: #444; }
+.sky-shower-list    { margin-top: 0.55rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.sky-shower-row     { display: flex; align-items: baseline; gap: 0.6rem; font-size: 0.82rem; flex-wrap: wrap; }
+.sky-shower-detail  { color: #666; font-size: 0.78rem; }
+.sky-shower-dim     { opacity: 0.45; }
+
 /* Moon card */
 .sky-moon-card {
   display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;

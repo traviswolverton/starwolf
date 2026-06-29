@@ -1060,26 +1060,6 @@ def _flatten_sky(sky):
             "note":           "",
         })
 
-    # Meteor showers — always naked eye, no magnitude/position
-    for s in sky.get("showers", []):
-        rows.append({
-            "name":           s["name"],
-            "common_name":    "",
-            "category":       "shower",
-            "category_label": "Meteor Shower",
-            "obj_type":       "Meteor Shower",
-            "magnitude":      None,
-            "tier":           0,
-            "tier_label":     "Naked Eye",
-            "tier_emoji":     "🟢",
-            "vis_start":      None,
-            "vis_end":        None,
-            "peak_alt":       s.get("radiant_alt"),
-            "peak_az":        None,
-            "peak_str":       None,
-            "low_alt":        False,
-            "note":           f"{s.get('timing','').capitalize()} · ~{s.get('zhr',0)}/hr ZHR",
-        })
 
     rows.sort(key=lambda r: r["tier"])
     return rows
