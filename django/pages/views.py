@@ -28,26 +28,32 @@ from engine.scorer import score_forecast, score_all
 
 _tf = TimezoneFinder()
 
-# Houston city-center coordinates used for guest planner sessions
-_GUEST_LAT  = 29.7604
-_GUEST_LON  = -95.3698
-_GUEST_DISP = "Houston, TX (guest)"
-_GUEST_TZ   = "America/Chicago"
-
-
 class _GuestPrefs:
-    """Lightweight prefs stand-in for unauthenticated planner sessions."""
-    has_location       = True
-    location_lat       = _GUEST_LAT
-    location_lon       = _GUEST_LON
-    location_display   = _GUEST_DISP
-    units              = "imperial"
-    timezone           = _GUEST_TZ
-    min_score_threshold   = 40
-    disq_max_cloud_cover  = 85
-    disq_max_precip_prob  = 40
+    """Lightweight prefs stand-in for unauthenticated sessions.
+
+    Reads lat/lon/display from the Django session if the guest has set a
+    location; otherwise has_location is False.
+    """
+    units                  = "imperial"
+    min_score_threshold    = 40
+    disq_max_cloud_cover   = 85
+    disq_max_precip_prob   = 40
     disq_min_visibility_km = 10
-    best_metric           = "combined"
+    best_metric            = "combined"
+
+    def __init__(self, session=None):
+        if session and session.get("guest_lat"):
+            self.has_location     = True
+            self.location_lat     = float(session["guest_lat"])
+            self.location_lon     = float(session["guest_lon"])
+            self.location_display = session.get("guest_display", "Your location")
+            self.timezone         = session.get("guest_tz", "America/Chicago")
+        else:
+            self.has_location     = False
+            self.location_lat     = None
+            self.location_lon     = None
+            self.location_display = ""
+            self.timezone         = "America/Chicago"
 
 
 def _planner_key_prefix(request):
@@ -283,6 +289,61 @@ def location(request):
         )
 
     return render(request, "pages/location.html")
+
+
+@require_http_methods(["POST"])
+def set_guest_location(request):
+    """Store a guest's location in their session (no login required)."""
+    lat = request.POST.get("lat", "").strip()
+    lon = request.POST.get("lon", "").strip()
+    display = request.POST.get("display", "").strip()
+
+    if not lat or not lon:
+        return HttpResponse('<div class="alert error">No coordinates provided.</div>', status=400)
+    try:
+        lat, lon = float(lat), float(lon)
+    except ValueError:
+        return HttpResponse('<div class="alert error">Invalid coordinates.</div>', status=400)
+
+    if not display:
+        try:
+            resp = http.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lon, "format": "json"},
+                headers={"User-Agent": "StarWolf-App/1.0"},
+                timeout=8,
+            )
+            addr = resp.json().get("address", {})
+            parts = [
+                addr.get("city") or addr.get("town") or addr.get("village"),
+                addr.get("state"),
+                addr.get("country_code", "").upper(),
+            ]
+            display = ", ".join(p for p in parts if p) or f"{lat:.4f}, {lon:.4f}"
+        except Exception:
+            display = f"{lat:.4f}, {lon:.4f}"
+
+    tz = _tf.timezone_at(lat=lat, lng=lon) or "America/Chicago"
+
+    request.session["guest_lat"] = lat
+    request.session["guest_lon"] = lon
+    request.session["guest_display"] = display
+    request.session["guest_tz"] = tz
+    request.session.modified = True
+
+    # Full page redirect so Tonight recomputes with the new location
+    from django.shortcuts import redirect as _redirect
+    return _redirect("tonight")
+
+
+@require_http_methods(["POST"])
+def clear_guest_location(request):
+    """Remove guest location from session."""
+    for k in ("guest_lat", "guest_lon", "guest_display", "guest_tz"):
+        request.session.pop(k, None)
+    request.session.modified = True
+    from django.shortcuts import redirect as _redirect
+    return _redirect("tonight")
 
 
 @login_required
@@ -889,7 +950,7 @@ def sky_objects(request, site_id):
     max_date = today + timedelta(days=10)
     target_date = max(today, min(target_date, max_date))
 
-    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs(request.session)
     tz_name = getattr(prefs, "timezone", "America/Chicago")
 
     # Weather: pull cloud score from planner cache if available
@@ -946,7 +1007,7 @@ def tonight(request):
     from engine.sky_objects import compute_sky, BORTLE_LIMITING_MAG
     from engine.cache import cache_get, cache_set
 
-    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs(request.session)
     has_location = prefs.has_location
     tz_name = getattr(prefs, "timezone", "America/Chicago")
 
@@ -1539,7 +1600,7 @@ def _get_planner_max_sites():
 
 @require_http_methods(["GET"])
 def planner(request):
-    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs(request.session)
     is_guest = not request.user.is_authenticated
 
     try:
@@ -1599,7 +1660,7 @@ def planner(request):
 
 @require_http_methods(["GET"])
 def planner_site_count(request):
-    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs(request.session)
     try:
         radius_val = int(request.GET.get("radius", 300))
     except ValueError:
@@ -1628,7 +1689,7 @@ def planner_site_count(request):
 
 @require_http_methods(["POST"])
 def planner_run(request):
-    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs()
+    prefs = request.prefs if request.user.is_authenticated else _GuestPrefs(request.session)
     if not request.user.is_authenticated and not request.session.session_key:
         request.session.create()
 

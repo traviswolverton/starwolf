@@ -2285,6 +2285,25 @@ a.catalog-card:hover { border-color: #3a4a6a; }
 .tonight-next-good { font-size: 0.82rem; color: #4caf96; text-decoration: none; background: rgba(76,175,150,0.1); border: 1px solid rgba(76,175,150,0.3); border-radius: 4px; padding: 0.15rem 0.5rem; }
 .tonight-next-good:hover { background: rgba(76,175,150,0.2); }
 
+/* ── Guest location prompt ───────────────────────────────────────────── */
+.guest-loc-prompt { background: #0e1420; border: 1px solid #2a3a5a; border-radius: 10px; padding: 1.5rem 1.75rem; margin-bottom: 1.5rem; }
+.guest-loc-headline { font-size: 1.1rem; font-weight: 700; color: #d0d8e8; margin: 0 0 0.35rem; }
+.guest-loc-sub { font-size: 0.88rem; color: #8090b0; margin: 0 0 1.25rem; }
+.guest-loc-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.guest-loc-geo-btn { white-space: nowrap; }
+.guest-loc-or { font-size: 0.8rem; color: #555; white-space: nowrap; }
+.guest-loc-form { display: flex; gap: 0.5rem; flex: 1; min-width: 200px; }
+.guest-loc-input { flex: 1; }
+.guest-loc-signin { font-size: 0.8rem; color: #666; margin: 1rem 0 0; }
+.guest-loc-signin a { color: #4caf96; text-decoration: none; }
+.guest-loc-signin a:hover { text-decoration: underline; }
+/* ── Guest location nudge banner ─────────────────────────────────────── */
+.guest-loc-nudge { background: rgba(76,175,150,0.08); border: 1px solid rgba(76,175,150,0.25); border-radius: 6px; padding: 0.5rem 0.9rem; margin-bottom: 0.85rem; font-size: 0.83rem; color: #8090b0; }
+.guest-loc-nudge a { color: #4caf96; text-decoration: none; }
+.guest-loc-nudge a:hover { text-decoration: underline; }
+.guest-loc-clear { color: #8090b0; font-size: 0.8rem; margin-left: 0.5rem; }
+.guest-loc-clear:hover { color: #c0c8d8; }
+
 /* ── Top 3 nearby sites ──────────────────────────────────────────────── */
 .tonight-top3 { background: #0e1420; border: 1px solid #1e2535; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
 .tonight-top3-header { font-size: 0.75rem; font-weight: 700; color: #8090b0; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem; }

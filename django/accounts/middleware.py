@@ -69,6 +69,9 @@ class ProxyAuthMiddleware:
         if request.user.is_authenticated:
             request.prefs, _ = UserPreferences.objects.get_or_create(user=request.user)
         else:
+            # Ensure guests have a session so guest_lat etc. can be stored
+            if not request.session.session_key:
+                request.session.create()
             request.prefs = None
 
         return self.get_response(request)
