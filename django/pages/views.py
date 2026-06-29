@@ -693,6 +693,8 @@ def _today_local():
 
 def _load_heatmap_data(today):
     from accounts.models import SiteDailyScore
+    # Try today first; fall back to most recent date with data
+    date_used = today
     qs = (
         SiteDailyScore.objects
         .filter(score_date=today)
@@ -701,7 +703,23 @@ def _load_heatmap_data(today):
     )
     rows = list(qs)
     if not rows:
-        return None, None
+        latest = (
+            SiteDailyScore.objects
+            .filter(score_date__lt=today, score__isnull=False)
+            .order_by("-score_date")
+            .values_list("score_date", flat=True)
+            .first()
+        )
+        if not latest:
+            return None, None
+        date_used = latest
+        qs = (
+            SiteDailyScore.objects
+            .filter(score_date=latest)
+            .order_by("-score")
+            .values("name", "lat", "lon", "score", "computed_at")
+        )
+        rows = list(qs)
     sites = []
     scored = 0
     computed_at = None
@@ -717,7 +735,10 @@ def _load_heatmap_data(today):
             scored += 1
         if computed_at is None and r["computed_at"] is not None:
             computed_at = r["computed_at"]
-    return sites, {"total": len(sites), "scored": scored, "computed_at": computed_at}
+    return sites, {
+        "total": len(sites), "scored": scored, "computed_at": computed_at,
+        "date_used": date_used, "is_stale": date_used != today,
+    }
 
 
 @require_http_methods(["GET"])
@@ -757,15 +778,17 @@ def heatmap(request):
             site["rank"] = i + 1
 
     return render(request, "pages/heatmap.html", {
-        "sites_json": json.dumps(sites or []),
-        "meta": meta,
-        "ts_str": ts_str,
-        "today": today,
-        "has_data": bool(sites),
-        "is_admin": is_admin,
+        "sites_json":   json.dumps(sites or []),
+        "meta":         meta,
+        "ts_str":       ts_str,
+        "today":        today,
+        "has_data":     bool(sites),
+        "is_stale":     meta["is_stale"] if meta else False,
+        "date_used":    meta["date_used"] if meta else today,
+        "is_admin":     is_admin,
         "compute_state": compute_state,
         "missing_count": (meta["total"] - meta["scored"]) if meta else 0,
-        "top10": top10,
+        "top10":        top10,
     })
 
 

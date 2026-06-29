@@ -36,6 +36,13 @@
   <span class="heatmap-timestamp">Data last gathered: <strong>{{ ts_str }}</strong></span>
   {% endif %}
 </div>
+{% if is_stale %}
+<div class="alert info heatmap-stale-banner">
+  ⏳ Tonight's forecast hasn't been computed yet — showing data from <strong>{{ date_used|date:"N j" }}</strong>.
+  {% if is_admin %}Next scheduled run is at noon CDT, or <button class="btn-link" onclick="startCompute(false)">compute now</button>.
+  {% else %}Check back after noon CDT.{% endif %}
+</div>
+{% endif %}
 {% endif %}
 
 {% if not has_data %}
@@ -43,7 +50,7 @@
   {% if is_admin %}
   Click <strong>Compute tonight's forecast</strong> above to generate the map. Takes 2–3 minutes.
   {% else %}
-  Forecast map hasn't been computed yet for today. Check back later.
+  Forecast map hasn't been computed yet. Check back later.
   {% endif %}
 </div>
 {% else %}

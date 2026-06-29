@@ -743,6 +743,11 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
 }
 .heatmap-timestamp { color: #aaa; }
 .heatmap-timestamp strong { color: #e0e0e0; }
+.heatmap-stale-banner { margin-bottom: 0.5rem; font-size: 0.85rem; }
+.btn-link {
+  background: none; border: none; padding: 0; color: #4caf96;
+  cursor: pointer; font-size: inherit; text-decoration: underline;
+}
 .heatmap-map {
   width: 100%;
   height: 560px;
