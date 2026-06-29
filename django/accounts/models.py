@@ -218,3 +218,23 @@ class SkyObject(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.category})"
+
+
+class SkyObjectDetail(models.Model):
+    sky_object          = models.OneToOneField(SkyObject, on_delete=models.CASCADE, primary_key=True, related_name="detail")
+    wikipedia_url       = models.TextField(blank=True, null=True)
+    wikipedia_summary   = models.TextField(blank=True, null=True)
+    image_url           = models.TextField(blank=True, null=True)
+    image_credit        = models.TextField(blank=True, null=True)
+    constellation       = models.CharField(max_length=50, blank=True)
+    distance_ly         = models.FloatField(null=True, blank=True)
+    angular_size_arcmin = models.FloatField(null=True, blank=True)
+    discovery_year      = models.IntegerField(null=True, blank=True)
+    discoverer          = models.CharField(max_length=100, blank=True)
+    enriched_at         = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "sky_object_details"
+
+    def __str__(self):
+        return f"Details for {self.sky_object_id}"

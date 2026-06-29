@@ -3,6 +3,12 @@
     {
       "date": "2026-06-28",
       "features": [
+        "Sky object enrichment — new sky_object_details table stores Wikipedia summary, CC-licensed image, constellation, distance (light-years), angular size, discovery year, and discoverer for each catalog object. Management command enrich_sky_catalog populates it. 109 DSOs, 7 planets, and 20 bright stars enriched on first run."
+      ]
+    },
+    {
+      "date": "2026-06-28",
+      "features": [
         "Messier catalog common names expanded — 20 additional objects now show their popular names in the sky table (e.g. M2 → Aquarius Cluster, M3 → Great Globular Cluster, M74 → Phantom Galaxy, M99 → Coma Pinwheel). Coverage up from 31 to 51 of 110 objects; the remaining 59 have no widely recognized common name."
       ]
     },
