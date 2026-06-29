@@ -4,8 +4,8 @@
 {% block content %}
 {% if is_guest %}
 <div class="guest-banner">
-  <span>👋 You're browsing as a guest — location fixed to Houston, TX.</span>
-  <a href="{% url 'account_login' %}" class="guest-banner-cta">Sign in to use your own location →</a>
+  <span>👋 You're browsing as a guest — sign in to save your location and settings.</span>
+  <a href="{% url 'account_login' %}" class="guest-banner-cta">Sign in →</a>
 </div>
 {% endif %}
 <h1>🔭 Stargazing Trip Planner</h1>

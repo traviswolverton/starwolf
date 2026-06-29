@@ -365,7 +365,7 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
   /* Sign in — styled as a button */
   .nav-signin {
     display: block;
-    margin: 0.75rem 1.25rem 0.25rem;
+    margin: 0.75rem 1.5rem 0.25rem !important;
     text-align: center;
     background: #4caf96;
     color: #0a0e18 !important;
@@ -373,6 +373,8 @@ header { background: #1a1d27; border-bottom: 1px solid #2a2d3e; }
     border-radius: 7px;
     padding: 0.65rem 1rem !important;
     border-bottom: none !important;
+    box-sizing: border-box;
+    width: calc(100% - 3rem) !important;
   }
   .nav-signin:hover { background: #5dc8aa; }
 
