@@ -31,6 +31,7 @@
 
 {# ── Night window + equipment filter ───────────────────────────────── #}
 <div x-data="{ gear: 'all' }">
+
 <p class="sky-night-window">
   🌃 Astronomical night: <strong>{{ sky.night_start }} – {{ sky.night_end }}</strong>
   &nbsp;·&nbsp; Bortle {{ sky.bortle }} site
@@ -45,141 +46,103 @@
   <button class="sky-equip-btn" :class="{ active: gear === 'large_scope' }" @click="gear = 'large_scope'">🔭🔭 Large Scope</button>
 </div>
 
-{# ── Moon ───────────────────────────────────────────────────────────── #}
-<div class="sky-section">
-  <div class="sky-section-header">🌙 Moon</div>
-  <div class="sky-moon-row">
-    <span class="sky-moon-phase">{{ sky.moon.phase_name }} &mdash; {{ sky.moon.illumination }}% illuminated</span>
-    <span class="sky-moon-details">
-      {% if sky.moon.rise_str %}Rises {{ sky.moon.rise_str }}{% endif %}
-      {% if sky.moon.set_str %} · Sets {{ sky.moon.set_str }}{% endif %}
-      {% if sky.moon.above_horizon %} · Peak {{ sky.moon.peak_alt }}° at {{ sky.moon.peak_str }}{% endif %}
-    </span>
-  </div>
-  {% if sky.moon.bright %}
-  <p class="sky-moon-warning">⚠️ Bright moon may wash out faint DSOs tonight</p>
-  {% endif %}
+{# ── Moon card ──────────────────────────────────────────────────────── #}
+<div class="sky-moon-card">
+  <span class="sky-cat-badge sky-cat-moon">🌙 Moon</span>
+  <span class="sky-moon-phase">{{ sky.moon.phase_name }} &mdash; {{ sky.moon.illumination }}% illuminated</span>
+  <span class="sky-moon-details">
+    {% if sky.moon.rise_str %}Rises {{ sky.moon.rise_str }}{% endif %}
+    {% if sky.moon.set_str %} · Sets {{ sky.moon.set_str }}{% endif %}
+    {% if sky.moon.above_horizon %} · Peak {{ sky.moon.peak_alt }}° at {{ sky.moon.peak_str }}{% endif %}
+  </span>
+  {% if sky.moon.bright %}<span class="sky-moon-warning">⚠️ Bright moon may wash out faint DSOs</span>{% endif %}
 </div>
 
-{# ── Planets ─────────────────────────────────────────────────────────── #}
-{% with visible_planets=sky.planets %}
-{% if visible_planets %}
-<div class="sky-section">
-  <div class="sky-section-header">🪐 Planets visible tonight</div>
-  <div class="sky-object-list">
-    {% for p in sky.planets %}
-    <div class="sky-object-row {% if not p.visible %}sky-object-dim{% endif %}"
-         x-show="gear === 'all' || ({{ p.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3)">
-      <span class="sky-obj-name">{{ p.name }}</span>
-      {% if p.visible %}
-        <span class="sky-tier sky-tier-{{ p.tier }}">{{ p.tier_emoji }} {{ p.tier_label }}</span>
-        <span class="sky-obj-mag">mag {{ p.magnitude }}</span>
-        <span class="sky-obj-detail">
-          {% if p.rise_str %}Rises {{ p.rise_str }}{% endif %}
-          {% if p.rise_str and p.peak_alt %} · {% endif %}
-          {% if p.peak_alt %}Peak {{ p.peak_alt }}° {{ p.peak_az }} at {{ p.peak_str }}{% endif %}
-        </span>
-        {% if p.peak_alt and p.peak_alt <= 15 %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ p.peak_alt }}° above the horizon — haze and light pollution will significantly dim this object. Best views above 30°.</span></span>{% endif %}
-        </span>
-      {% else %}
-        <span class="sky-tier sky-tier-4">⛔ {{ p.note }}</span>
-      {% endif %}
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-{% endwith %}
+{# ── Unified object table ───────────────────────────────────────────── #}
+{% if sky_rows %}
+<div class="sky-table-wrap">
+  <table class="sky-table">
+    <thead>
+      <tr>
+        <th>Object</th>
+        <th>Category</th>
+        <th>Type</th>
+        <th>Gear</th>
+        <th>Mag</th>
+        <th>Visible</th>
+        <th>Peak</th>
+        <th></th>
+      </tr>
+    </thead>
+      {% for row in sky_rows %}
+      <tbody {% if row.expandable %}x-data="{ open: false }"{% endif %}>
+        <tr class="sky-tr {% if row.tier == 4 %}sky-tr-dim{% endif %}{% if row.expandable %} sky-tr-expandable{% endif %}"
+            x-show="gear === 'all' || ({{ row.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3)"
+            {% if row.expandable %}@click="open = !open"{% endif %}>
 
-{# ── Bright Stars ────────────────────────────────────────────────────── #}
-{% if sky.stars %}
-<div class="sky-section" x-data="{ showAll: false }">
-  <div class="sky-section-header">
-    ⭐ Bright Stars
-    <span class="sky-section-count">({{ sky.stars|length }} visible)</span>
-  </div>
-  <div class="sky-object-list">
-    {% for s in sky.stars %}
-    <div class="sky-object-row"
-         x-show="(showAll || {{ forloop.counter }} <= 8) && (gear === 'all' || ({{ s.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3))">
-      <span class="sky-obj-name">
-        {{ s.name }}
-        {% if s.common_name %}<span class="sky-obj-common">{{ s.common_name }}</span>{% endif %}
-      </span>
-      <span class="sky-tier sky-tier-{{ s.tier }}">{{ s.tier_emoji }} {{ s.tier_label }}</span>
-      <span class="sky-obj-mag">mag {{ s.magnitude }}</span>
-      <span class="sky-obj-detail">{{ s.vis_start }}–{{ s.vis_end }} · Peak {{ s.peak_alt }}° {{ s.peak_az }}</span>
-      {% if s.peak_alt <= 15 %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ s.peak_alt }}° above the horizon — atmospheric haze will reduce visibility.</span></span>{% endif %}
-    </div>
-    {% endfor %}
-  </div>
-  {% if sky.stars|length > 8 %}
-  <button class="sky-show-more" @click="showAll = !showAll" x-text="showAll ? 'Show fewer' : 'Show all {{ sky.stars|length }} stars'">Show all</button>
-  {% endif %}
-</div>
-{% endif %}
+          {# Object name #}
+          <td class="sky-td-name">
+            <span class="sky-obj-name">{{ row.name }}</span>
+            {% if row.common_name %}<span class="sky-obj-common">{{ row.common_name }}</span>{% endif %}
+            {% if row.note %}<span class="sky-obj-note">{{ row.note }}</span>{% endif %}
+          </td>
 
-{# ── Deep Sky Objects ────────────────────────────────────────────────── #}
-{% if sky.dsos %}
-<div class="sky-section" x-data="{ showAll: false }">
-  <div class="sky-section-header">
-    🌌 Deep Sky Objects
-    <span class="sky-section-count">({{ sky.dsos|length }} tonight)</span>
-  </div>
-  <div class="sky-object-list">
-    {% for d in sky.dsos %}
-    <div class="sky-object-row"
-         x-show="(showAll || {{ forloop.counter }} <= 8) && (gear === 'all' || ({{ d.tier }} <= {'naked_eye':0,'binoculars':1,'small_scope':2,'large_scope':3}[gear] ?? 3))">
-      <span class="sky-obj-name">
-        {{ d.name }}
-        {% if d.common_name %}<span class="sky-obj-common">{{ d.common_name }}</span>{% endif %}
-      </span>
-      <span class="sky-tier sky-tier-{{ d.tier }}">{{ d.tier_emoji }} {{ d.tier_label }}</span>
-      <span class="sky-obj-type">{{ d.obj_type }}</span>
-      <span class="sky-obj-mag">mag {{ d.magnitude }}</span>
-      <span class="sky-obj-detail">{{ d.vis_start }}–{{ d.vis_end }} · Peak {{ d.peak_alt }}° {{ d.peak_az }}</span>
-      {% if d.peak_alt <= 15 %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ d.peak_alt }}° above the horizon — atmospheric haze and light pollution will significantly dim this object. Best views come from objects above 30°.</span></span>{% endif %}
-    </div>
-    {% endfor %}
-  </div>
-  {% if sky.dsos|length > 8 %}
-  <button class="sky-show-more" @click="showAll = !showAll" x-text="showAll ? 'Show fewer' : 'Show all {{ sky.dsos|length }} objects'">Show all</button>
-  {% endif %}
-</div>
-{% endif %}
+          {# Category badge #}
+          <td><span class="sky-cat-badge sky-cat-{{ row.category }}">{{ row.category_label }}</span></td>
 
-{# ── Meteor Showers ──────────────────────────────────────────────────── #}
-{% if sky.showers %}
-<div class="sky-section">
-  <div class="sky-section-header">☄️ Meteor Showers</div>
-  <div class="sky-object-list">
-    {% for s in sky.showers %}
-    <div class="sky-object-row {% if not s.active %}sky-object-dim{% endif %}">
-      <span class="sky-obj-name">{{ s.name }}</span>
-      <span class="sky-obj-detail">
-        {{ s.timing|capfirst }} · ~{{ s.zhr }}/hr ZHR
-        {% if s.radiant_up %} · Radiant peaks at {{ s.radiant_alt }}°{% else %} · Radiant below horizon{% endif %}
-      </span>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
+          {# Type #}
+          <td class="sky-td-type">{{ row.obj_type }}</td>
 
-{# ── ISS Passes ──────────────────────────────────────────────────────── #}
-{% if sky.iss_passes %}
-<div class="sky-section">
-  <div class="sky-section-header">🛸 ISS Passes</div>
-  <div class="sky-object-list">
-    {% for pass in sky.iss_passes %}
-    <div class="sky-object-row">
-      <span class="sky-obj-name">{{ pass.rise_str }}</span>
-      <span class="sky-obj-detail">
-        Duration {{ pass.duration_m }} min · Max elevation {{ pass.peak_alt }}° · {{ pass.direction }}
-      </span>
-    </div>
-    {% endfor %}
-  </div>
+          {# Gear tier #}
+          <td><span class="sky-tier sky-tier-{{ row.tier }}">{{ row.tier_emoji }} {{ row.tier_label }}</span></td>
+
+          {# Magnitude #}
+          <td class="sky-td-num">{% if row.magnitude is not None %}{{ row.magnitude }}{% else %}—{% endif %}</td>
+
+          {# Visibility window #}
+          <td class="sky-td-vis">
+            {% if row.vis_start and row.vis_end %}{{ row.vis_start }}–{{ row.vis_end }}
+            {% elif row.vis_start %}From {{ row.vis_start }}
+            {% else %}—{% endif %}
+          </td>
+
+          {# Peak #}
+          <td class="sky-td-peak">
+            {% if row.peak_alt %}
+              {{ row.peak_alt }}°{% if row.peak_az %} {{ row.peak_az }}{% endif %}{% if row.peak_str %} · {{ row.peak_str }}{% endif %}
+              {% if row.low_alt %}<span class="sky-low-warn" x-data="{ t: false }" @mouseenter="t=true" @mouseleave="t=false" @click.stop="t=!t">⚠️<span class="sky-low-tip" x-show="t" x-cloak x-transition>Only {{ row.peak_alt }}° above the horizon — haze will significantly dim this object.</span></span>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+
+          {# Expand toggle for ISS #}
+          <td class="sky-td-expand">
+            {% if row.expandable %}<span class="sky-expand-btn" x-text="open ? '▲' : '▼'">▼</span>{% endif %}
+          </td>
+        </tr>
+
+        {# ISS passes expansion row — shares x-data from parent tbody #}
+        {% if row.expandable %}
+        <tr class="sky-tr-passes" x-show="open" x-cloak x-transition>
+          <td colspan="8" class="sky-td-passes">
+            <table class="sky-passes-table">
+              <thead><tr><th>Rise</th><th>Duration</th><th>Max Elevation</th><th>Direction</th></tr></thead>
+              <tbody>
+                {% for pass in row.passes %}
+                <tr>
+                  <td>{{ pass.rise_str }}</td>
+                  <td>{{ pass.duration_m }} min</td>
+                  <td>{{ pass.peak_alt }}°</td>
+                  <td>{{ pass.direction }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+      {% endfor %}
+  </table>
 </div>
 {% endif %}
 

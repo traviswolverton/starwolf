@@ -1858,6 +1858,72 @@ select.text-input { cursor: pointer; }
 }
 .sky-night-window strong { color: #888; }
 
+/* Moon card */
+.sky-moon-card {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+  background: #151820; border-radius: 8px; padding: 0.6rem 0.85rem;
+  margin-bottom: 0.85rem; font-size: 0.85rem;
+}
+.sky-moon-card .sky-moon-phase  { font-weight: 600; color: #c0c8d8; }
+.sky-moon-card .sky-moon-details { color: #666; font-size: 0.8rem; }
+.sky-moon-card .sky-moon-warning { color: #d4a44c; font-size: 0.78rem; margin-left: auto; }
+
+/* Category badges */
+.sky-cat-badge {
+  display: inline-block; font-size: 0.7rem; font-weight: 600;
+  border-radius: 4px; padding: 0.15rem 0.45rem; white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.sky-cat-planet   { background: #1a2040; color: #7090e8; border: 1px solid #2a3060; }
+.sky-cat-star     { background: #2a2010; color: #d4a44c; border: 1px solid #4a3820; }
+.sky-cat-dso      { background: #1a0d2a; color: #9b6ad4; border: 1px solid #3a2050; }
+.sky-cat-shower   { background: #0d2a1a; color: #4caf76; border: 1px solid #1a5030; }
+.sky-cat-satellite{ background: #1a1a2a; color: #7090b8; border: 1px solid #2a2a40; }
+.sky-cat-moon     { background: #202030; color: #c0b8e8; border: 1px solid #383850; }
+
+/* Unified sky table */
+.sky-table-wrap { overflow-x: auto; }
+.sky-table {
+  width: 100%; border-collapse: collapse; font-size: 0.82rem;
+}
+.sky-table thead th {
+  text-align: left; font-size: 0.72rem; font-weight: 600; color: #555;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 0.4rem 0.6rem; border-bottom: 1px solid #1e2436;
+}
+.sky-tr td { padding: 0.45rem 0.6rem; border-bottom: 1px solid #1a1d27; vertical-align: middle; }
+.sky-tr:last-child td { border-bottom: none; }
+.sky-tr-dim td { opacity: 0.4; }
+.sky-tr-expandable { cursor: pointer; }
+.sky-tr-expandable:hover td { background: #1a1d27; }
+
+.sky-td-name  { min-width: 8rem; }
+.sky-td-type  { color: #555; }
+.sky-td-num   { text-align: right; color: #888; white-space: nowrap; }
+.sky-td-vis   { color: #777; white-space: nowrap; font-size: 0.78rem; }
+.sky-td-peak  { color: #777; white-space: nowrap; font-size: 0.78rem; }
+.sky-td-expand { width: 1.5rem; text-align: center; color: #555; }
+
+.sky-obj-note {
+  display: block; font-size: 0.72rem; color: #555; font-weight: 400;
+  margin-top: 0.1rem;
+}
+
+.sky-expand-btn { font-size: 0.65rem; color: #555; }
+
+/* ISS passes sub-table */
+.sky-tr-passes td { background: #0f1118; padding: 0.75rem 0.6rem; }
+.sky-passes-table {
+  width: 100%; border-collapse: collapse; font-size: 0.8rem; color: #888;
+}
+.sky-passes-table thead th {
+  font-size: 0.7rem; color: #555; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; padding: 0.25rem 0.5rem; border-bottom: 1px solid #1e2436;
+  text-align: left;
+}
+.sky-passes-table td { padding: 0.35rem 0.5rem; border-bottom: 1px solid #151820; }
+.sky-passes-table tr:last-child td { border-bottom: none; }
+
 .sky-section {
   margin-bottom: 1.25rem;
   background: #151820;

@@ -892,6 +892,7 @@ def sky_objects(request, site_id):
     date_options = [(today + timedelta(days=i)) for i in range(11)]
     return render(request, "pages/_sky_objects.html", {
         "sky":          result,
+        "sky_rows":     _flatten_sky(result),
         "site_id":      site_id,
         "site_name":    site_name,
         "target_date":  target_date,
@@ -978,6 +979,7 @@ def tonight(request):
     date_options = [(today + timedelta(days=i)) for i in range(11)]
     return render(request, "pages/tonight.html", {
         "sky":             sky,
+        "sky_rows":        _flatten_sky(sky) if sky else [],
         "has_location":    has_location,
         "location_name":   getattr(prefs, "location_display", "") or getattr(prefs, "location_text", ""),
         "bortle":          bortle,
@@ -986,6 +988,134 @@ def tonight(request):
         "target_date":     target_date,
         "date_options":    date_options,
     })
+
+
+def _flatten_sky(sky):
+    """Merge all sky categories into a single list sorted by visibility tier."""
+    rows = []
+
+    # Moon — always first regardless of sort; handled as header card in template
+    # (not included here)
+
+    # Planets
+    for p in sky.get("planets", []):
+        rows.append({
+            "name":           p["name"],
+            "common_name":    "",
+            "category":       "planet",
+            "category_label": "Planet",
+            "obj_type":       "Planet",
+            "magnitude":      p.get("magnitude"),
+            "tier":           p.get("tier", 4),
+            "tier_label":     p.get("tier_label", ""),
+            "tier_emoji":     p.get("tier_emoji", ""),
+            "vis_start":      p.get("rise_str"),
+            "vis_end":        p.get("set_str"),
+            "peak_alt":       p.get("peak_alt"),
+            "peak_az":        p.get("peak_az"),
+            "peak_str":       p.get("peak_str"),
+            "low_alt":        (p.get("peak_alt") or 0) <= 15 and p.get("visible", True),
+            "note":           p.get("note", ""),
+            "expandable":     False,
+            "passes":         [],
+        })
+
+    # Stars
+    for s in sky.get("stars", []):
+        rows.append({
+            "name":           s["name"],
+            "common_name":    s.get("common_name", ""),
+            "category":       "star",
+            "category_label": "Star",
+            "obj_type":       "Star",
+            "magnitude":      s.get("magnitude"),
+            "tier":           s.get("tier", 4),
+            "tier_label":     s.get("tier_label", ""),
+            "tier_emoji":     s.get("tier_emoji", ""),
+            "vis_start":      s.get("vis_start"),
+            "vis_end":        s.get("vis_end"),
+            "peak_alt":       s.get("peak_alt"),
+            "peak_az":        s.get("peak_az"),
+            "peak_str":       s.get("peak_str"),
+            "low_alt":        (s.get("peak_alt") or 0) <= 15,
+            "note":           s.get("notes", ""),
+            "expandable":     False,
+            "passes":         [],
+        })
+
+    # DSOs
+    for d in sky.get("dsos", []):
+        rows.append({
+            "name":           d["name"],
+            "common_name":    d.get("common_name", ""),
+            "category":       "dso",
+            "category_label": "DSO",
+            "obj_type":       d.get("obj_type", ""),
+            "magnitude":      d.get("magnitude"),
+            "tier":           d.get("tier", 4),
+            "tier_label":     d.get("tier_label", ""),
+            "tier_emoji":     d.get("tier_emoji", ""),
+            "vis_start":      d.get("vis_start"),
+            "vis_end":        d.get("vis_end"),
+            "peak_alt":       d.get("peak_alt"),
+            "peak_az":        d.get("peak_az"),
+            "peak_str":       d.get("peak_str"),
+            "low_alt":        (d.get("peak_alt") or 0) <= 15,
+            "note":           "",
+            "expandable":     False,
+            "passes":         [],
+        })
+
+    # Meteor showers — always naked eye, no magnitude/position
+    for s in sky.get("showers", []):
+        rows.append({
+            "name":           s["name"],
+            "common_name":    "",
+            "category":       "shower",
+            "category_label": "Meteor Shower",
+            "obj_type":       "Meteor Shower",
+            "magnitude":      None,
+            "tier":           0,
+            "tier_label":     "Naked Eye",
+            "tier_emoji":     "🟢",
+            "vis_start":      None,
+            "vis_end":        None,
+            "peak_alt":       s.get("radiant_alt"),
+            "peak_az":        None,
+            "peak_str":       None,
+            "low_alt":        False,
+            "note":           f"{s.get('timing','').capitalize()} · ~{s.get('zhr',0)}/hr ZHR",
+            "expandable":     False,
+            "passes":         [],
+        })
+
+    # ISS — one row per satellite; passes expand inline
+    iss_passes = sky.get("iss_passes", [])
+    if iss_passes:
+        first = iss_passes[0]
+        rows.append({
+            "name":           "ISS",
+            "common_name":    "International Space Station",
+            "category":       "satellite",
+            "category_label": "Satellite",
+            "obj_type":       "Satellite",
+            "magnitude":      None,
+            "tier":           0,
+            "tier_label":     "Naked Eye",
+            "tier_emoji":     "🟢",
+            "vis_start":      first.get("rise_str"),
+            "vis_end":        None,
+            "peak_alt":       first.get("peak_alt"),
+            "peak_az":        None,
+            "peak_str":       None,
+            "low_alt":        False,
+            "note":           f"{len(iss_passes)} pass{'es' if len(iss_passes) != 1 else ''} tonight",
+            "expandable":     True,
+            "passes":         iss_passes,
+        })
+
+    rows.sort(key=lambda r: r["tier"])
+    return rows
 
 
 @login_required
