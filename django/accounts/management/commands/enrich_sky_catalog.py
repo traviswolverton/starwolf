@@ -61,6 +61,17 @@ _WIKI_OVERRIDES = {
     "M97": "Owl Nebula",
     "M101": "Pinwheel Galaxy",
     "M104": "Sombrero Galaxy",
+    # Meteor showers
+    "Perseids":       "Perseid meteor shower",
+    "Geminids":       "Geminid meteor shower",
+    "Leonids":        "Leonid meteor shower",
+    "Orionids":       "Orionid meteor shower",
+    "Eta Aquariids":  "Eta Aquariid meteor shower",
+    "Delta Aquariids": "Delta Aquariid meteor shower",
+    "Quadrantids":    "Quadrantid meteor shower",
+    "Lyrids":         "Lyrid meteor shower",
+    "Taurids":        "Taurid meteor shower",
+    "Ursids":         "Ursid meteor shower",
     # Planets and stars use their common name directly
     "Mercury": "Mercury (planet)",
     "Venus":   "Venus",
@@ -157,7 +168,43 @@ def _wiki_summary(search_term):
     title = page.get("title", search_term)
     credit = f"Image: Wikipedia / Wikimedia Commons — {title} (CC BY-SA)" if thumb_url else ""
 
+    # Fallback: search Wikimedia Commons directly if Wikipedia had no lead image
+    if not thumb_url:
+        thumb_url, credit = _commons_image(search_term, title)
+
     return summary, page_url, thumb_url, credit
+
+
+def _commons_image(search_term, page_title):
+    """Search Wikimedia Commons for a CC image when Wikipedia has no thumbnail."""
+    try:
+        data = _get(
+            "https://commons.wikimedia.org/w/api.php?action=query&list=search"
+            f"&srsearch={urllib.parse.quote(search_term)}&srnamespace=6"
+            "&format=json&srlimit=3"
+        )
+        results = data.get("query", {}).get("search", [])
+        for result in results:
+            file_title = result["title"]  # e.g. "File:M92 globular cluster.jpg"
+            # Get the image URL via imageinfo
+            info = _get(
+                "https://commons.wikimedia.org/w/api.php?action=query"
+                f"&titles={urllib.parse.quote(file_title)}"
+                "&prop=imageinfo&iiprop=url|mime&iiurlwidth=600&format=json"
+            )
+            pages = info.get("query", {}).get("pages", {})
+            for p in pages.values():
+                ii = p.get("imageinfo", [{}])[0]
+                mime = ii.get("mime", "")
+                if not mime.startswith("image/"):
+                    continue
+                url = ii.get("thumburl") or ii.get("url", "")
+                if url:
+                    credit = f"Image: Wikimedia Commons — {file_title[5:]} (CC BY-SA)"
+                    return url, credit
+    except Exception:
+        pass
+    return "", ""
 
 
 class Command(BaseCommand):
