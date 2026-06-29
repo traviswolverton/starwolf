@@ -187,9 +187,22 @@ UNFOLD = {
         "show_all_applications": False,
         "navigation": [
             {
+                "title": "Sites",
+                "items": [
+                    {"title": "Sites", "icon": "location_on", "link": reverse_lazy("admin:accounts_site_changelist")},
+                    {"title": "Site Details", "icon": "article", "link": reverse_lazy("admin:accounts_sitedetail_changelist")},
+                ],
+            },
+            {
                 "title": "Sky Catalog",
                 "items": [
                     {"title": "Sky Objects", "icon": "star", "link": reverse_lazy("admin:accounts_skyobject_changelist")},
+                ],
+            },
+            {
+                "title": "Configuration",
+                "items": [
+                    {"title": "App Settings", "icon": "tune", "link": reverse_lazy("admin:accounts_appsetting_changelist")},
                 ],
             },
             {

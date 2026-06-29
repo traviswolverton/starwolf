@@ -27,10 +27,8 @@ def _rate_limit(key, limit, window):
 
 
 def _default_tz():
-    with connection.cursor() as cur:
-        cur.execute("SELECT value FROM app_settings WHERE key = 'timezone'")
-        row = cur.fetchone()
-    return row[0] if row else "America/Chicago"
+    from accounts.models import AppSetting
+    return AppSetting.get("timezone", "America/Chicago")
 
 
 def _ip(request):

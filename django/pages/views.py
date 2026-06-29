@@ -778,10 +778,8 @@ def heatmap_compute(request):
     only_missing = request.POST.get("only_missing") == "1"
     today = _today_local()
     # Use UTC timezone from DB settings as fallback
-    with connection.cursor() as cur:
-        cur.execute("SELECT value FROM app_settings WHERE key = 'timezone'")
-        row = cur.fetchone()
-    tz = row[0] if row else "America/Chicago"
+    from accounts.models import AppSetting
+    tz = AppSetting.get("timezone", "America/Chicago")
 
     t = threading.Thread(
         target=_run_compute, args=(today, tz, only_missing), daemon=True
@@ -1261,10 +1259,8 @@ def _run_planner_thread(prefix, sites, forecast_days, tz, disq):
 
 
 def _get_planner_max_sites():
-    with connection.cursor() as cur:
-        cur.execute("SELECT value FROM app_settings WHERE key = 'planner_max_sites'")
-        row = cur.fetchone()
-    return int(row[0]) if row else 250
+    from accounts.models import AppSetting
+    return int(AppSetting.get("planner_max_sites", 250))
 
 
 @require_http_methods(["GET"])
@@ -1384,10 +1380,8 @@ def planner_run(request):
             sites.sort(key=lambda s: _haversine(prefs.location_lat, prefs.location_lon, s["lat"], s["lon"]))
         sites = sites[:max_sites]
 
-    with connection.cursor() as cur:
-        cur.execute("SELECT value FROM app_settings WHERE key = 'forecast_days'")
-        row = cur.fetchone()
-    forecast_days = int(row[0]) if row else 10
+    from accounts.models import AppSetting
+    forecast_days = int(AppSetting.get("forecast_days", 10))
 
     tz = prefs.timezone
     disq = {
@@ -1600,15 +1594,15 @@ def admin_panel(request):
     if not request.user.is_authenticated or not request.user.is_admin():
         return redirect("home")
 
+    from accounts.models import AppSetting
     with connection.cursor() as cur:
         cur.execute("SELECT id, factor, weight, description FROM scoring_weights ORDER BY weight DESC")
         tel_weights = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
         cur.execute("SELECT id, factor, weight, description FROM naked_eye_weights ORDER BY weight DESC")
         eye_weights = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
-        cur.execute("SELECT key, value, description FROM app_settings ORDER BY key")
-        app_settings = [dict(zip([d[0] for d in cur.description], r)) for r in cur.fetchall()]
         cur.execute("SELECT COUNT(*) FROM sites WHERE bortle_class IS NULL")
         bortle_null_count = cur.fetchone()[0]
+    app_settings = list(AppSetting.objects.order_by("key").values("key", "value", "description"))
 
     from accounts.models import User as StarWolfUser
     users = (
@@ -1618,9 +1612,9 @@ def admin_panel(request):
     )
 
     from engine.ai_summary import _DEFAULT_SYSTEM_PROMPT, _DEFAULT_USER_PROMPT_TEMPLATE
-    with connection.cursor() as cur:
-        cur.execute("SELECT key, value FROM app_settings WHERE key IN ('ollama_system_prompt','ollama_user_prompt')")
-        prompt_settings = dict(cur.fetchall())
+    prompt_settings = dict(
+        AppSetting.objects.filter(key__in=["ollama_system_prompt", "ollama_user_prompt"]).values_list("key", "value")
+    )
 
     return render(request, "pages/admin.html", {
         "tel_weights": tel_weights,
@@ -1680,14 +1674,11 @@ def admin_save_settings(request):
     values = request.POST.getlist("value")
     descs  = request.POST.getlist("description")
 
-    with connection.cursor() as cur:
-        for key, value, desc in zip(keys, values, descs):
-            if key.strip():
-                cur.execute("""
-                    INSERT INTO app_settings (key, value, description)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
-                """, [key.strip(), value, desc])
+    from accounts.models import AppSetting
+    for key, value, desc in zip(keys, values, descs):
+        key = key.strip()
+        if key:
+            AppSetting.objects.update_or_create(key=key, defaults={"value": value, "description": desc})
 
     return HttpResponse('<div class="alert success">Settings saved.</div>')
 
@@ -1730,13 +1721,9 @@ def admin_save_prompts(request):
     system_prompt = request.POST.get("ollama_system_prompt", "").strip()
     user_prompt   = request.POST.get("ollama_user_prompt", "").strip()
 
-    with connection.cursor() as cur:
-        for key, value in [("ollama_system_prompt", system_prompt), ("ollama_user_prompt", user_prompt)]:
-            cur.execute("""
-                INSERT INTO app_settings (key, value, description)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
-            """, [key, value, ""])
+    from accounts.models import AppSetting
+    for key, value in [("ollama_system_prompt", system_prompt), ("ollama_user_prompt", user_prompt)]:
+        AppSetting.objects.update_or_create(key=key, defaults={"value": value, "description": ""})
 
     # Bust the AI summary cache so next planner run picks up the new prompt
     from django.core.cache import cache

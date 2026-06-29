@@ -13,9 +13,8 @@ from .cache import cache_get, cache_set
 
 
 def _get_app_settings() -> dict:
-    with connection.cursor() as cur:
-        cur.execute("SELECT key, value FROM app_settings")
-        return dict(cur.fetchall())
+    from accounts.models import AppSetting
+    return AppSetting.all_as_dict()
 
 
 _PRIVATE_NETWORKS = [

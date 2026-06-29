@@ -71,6 +71,76 @@ class UserPreferences(models.Model):
         return self.location_lat is not None and self.location_lon is not None
 
 
+class AppSetting(models.Model):
+    key         = models.CharField(max_length=100, primary_key=True)
+    value       = models.TextField()
+    description = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "app_settings"
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.key} = {self.value}"
+
+    @classmethod
+    def get(cls, key, default=None):
+        try:
+            return cls.objects.get(key=key).value
+        except cls.DoesNotExist:
+            return default
+
+    @classmethod
+    def all_as_dict(cls):
+        return {s.key: s.value for s in cls.objects.all()}
+
+
+class Site(models.Model):
+    SITE_TYPES = [
+        ("public_land",    "Public Land"),
+        ("state_park",     "State Park"),
+        ("national_park",  "National Park"),
+        ("ida_certified",  "IDA Certified"),
+        ("private",        "Private"),
+        ("other",          "Other"),
+    ]
+
+    name           = models.CharField(max_length=255)
+    lat            = models.FloatField()
+    lon            = models.FloatField()
+    bortle_class   = models.IntegerField(null=True, blank=True)
+    elevation_m    = models.FloatField(null=True, blank=True)
+    notes          = models.TextField(blank=True)
+    active         = models.IntegerField(default=1)  # 0/1 — keep as int to match existing schema
+    site_type      = models.CharField(max_length=50, blank=True, choices=SITE_TYPES, null=True)
+    country        = models.CharField(max_length=100, blank=True, null=True)
+    state_province = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        db_table = "sites"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class SiteDetail(models.Model):
+    site              = models.OneToOneField(Site, on_delete=models.CASCADE, primary_key=True, related_name="detail")
+    wikipedia_url     = models.TextField(blank=True, null=True)
+    wikipedia_summary = models.TextField(blank=True, null=True)
+    image_url         = models.TextField(blank=True, null=True)
+    image_credit      = models.TextField(blank=True, null=True)
+    narrative         = models.TextField(blank=True, null=True)
+    maps_url          = models.TextField(blank=True, null=True)
+    enriched_at       = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "site_details"
+
+    def __str__(self):
+        return f"Details for {self.site_id}"
+
+
 class SkyObject(models.Model):
     CATEGORY_PLANET   = "planet"
     CATEGORY_STAR     = "star"

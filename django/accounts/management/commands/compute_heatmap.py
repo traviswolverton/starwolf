@@ -47,10 +47,8 @@ class Command(BaseCommand):
                 )
                 return
 
-        with connection.cursor() as cur:
-            cur.execute("SELECT value FROM app_settings WHERE key = 'timezone'")
-            row = cur.fetchone()
-        tz = row[0] if row else "America/Chicago"
+        from accounts.models import AppSetting
+        tz = AppSetting.get("timezone", "America/Chicago")
 
         self.stdout.write(f"Computing heatmap for {today} (tz={tz})…")
         _run_compute(today, tz, only_missing=options["only_missing"])

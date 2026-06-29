@@ -1,7 +1,37 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from .models import SkyObject, User, UserPreferences
+from .models import AppSetting, Site, SiteDetail, SkyObject, User, UserPreferences
+
+
+@admin.register(AppSetting)
+class AppSettingAdmin(ModelAdmin):
+    list_display  = ("key", "value", "description")
+    search_fields = ("key", "description")
+
+
+class SiteDetailInline(admin.StackedInline):
+    model  = SiteDetail
+    extra  = 0
+    fields = ("wikipedia_url", "wikipedia_summary", "image_url", "image_credit", "narrative", "maps_url", "enriched_at")
+    readonly_fields = ("enriched_at",)
+
+
+@admin.register(Site)
+class SiteAdmin(ModelAdmin):
+    list_display   = ("name", "country", "state_province", "bortle_class", "site_type", "active")
+    list_editable  = ("bortle_class", "active")
+    list_filter    = ("active", "site_type", "country", "bortle_class")
+    search_fields  = ("name", "country", "state_province", "notes")
+    ordering       = ("name",)
+    inlines        = [SiteDetailInline]
+
+
+@admin.register(SiteDetail)
+class SiteDetailAdmin(ModelAdmin):
+    list_display   = ("site", "enriched_at")
+    search_fields  = ("site__name",)
+    readonly_fields = ("enriched_at",)
 
 
 @admin.register(User)
