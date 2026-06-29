@@ -2159,22 +2159,9 @@ select.text-input { cursor: pointer; }
 .sky-pick-name { font-size: 0.9rem; color: #d0d8e8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sky-pick-dur  { font-size: 0.78rem; color: #8090b0; white-space: nowrap; }
 .sky-pick-peak { font-size: 0.78rem; color: #8090b0; white-space: nowrap; min-width: 4rem; text-align: right; }
-.sky-picks-see-all { font-size: 0.8rem; color: #4caf96; text-decoration: none; }
-.sky-picks-see-all:hover { text-decoration: underline; }
-
-/* ── All objects details/summary ───────────────────────────────────────── */
-.sky-all-objects-details { margin-top: 0.5rem; }
-.sky-all-objects-summary {
-  list-style: none; cursor: pointer; padding: 0.5rem 0;
-  border-top: 1px solid #1e2535;
-  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
-}
-.sky-all-objects-summary::-webkit-details-marker { display: none; }
-.sky-all-objects-details[open] .sky-all-objects-summary { border-bottom: 1px solid #1e2535; margin-bottom: 0.5rem; }
-.sky-all-objects-toggle { font-size: 0.82rem; color: #4caf96; white-space: nowrap; }
-.sky-all-objects-toggle::before { content: '▶ '; font-size: 0.65rem; }
-.sky-all-objects-details[open] .sky-all-objects-toggle::before { content: '▼ '; }
-.sky-all-objects-filters { margin-left: auto; }
+.sky-picks-nudge { font-size: 0.8rem; color: #8090b0; margin: 0.5rem 0 0; }
+.sky-picks-nudge a { color: #4caf96; text-decoration: none; }
+.sky-picks-nudge a:hover { text-decoration: underline; }
 
 /* ── Sky Objects Catalog page ─────────────────────────────────────────── */
 .catalog-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1rem; }

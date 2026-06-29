@@ -923,7 +923,7 @@ def sky_objects(request, site_id):
         hours = (r.get("vis_minutes") or 0) / 60
         alt   = (r.get("peak_alt") or 0) / 90
         return naked * 3 + hours + alt
-    site_top_picks = sorted([r for r in sky_rows if r["tier"] < 4], key=_pick_score, reverse=True)[:5]
+    site_top_picks = sorted([r for r in sky_rows if r["tier"] < 4], key=_pick_score, reverse=True)[:10]
 
     return render(request, "pages/_sky_objects.html", {
         "sky":                  result,
@@ -1042,7 +1042,7 @@ def tonight(request):
             alt   = (r.get("peak_alt") or 0) / 90
             return naked * 3 + hours + alt
         candidates = [r for r in sky_rows if r["tier"] < 4]
-        sky_top_picks = sorted(candidates, key=_pick_score, reverse=True)[:5]
+        sky_top_picks = sorted(candidates, key=_pick_score, reverse=True)[:10]
 
     # ── Heatmap data ──────────────────────────────────────────────────────────
     heatmap_sites, heatmap_meta = _load_heatmap_data(today)
